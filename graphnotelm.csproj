@@ -10,6 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="graphnotelm.Tests\**" />
+    <Content Remove="graphnotelm.Tests\**" />
+    <EmbeddedResource Remove="graphnotelm.Tests\**" />
+    <None Remove="graphnotelm.Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.18.1" />
     <PackageReference Include="MongoDB.Driver" Version="2.*" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.*" />
