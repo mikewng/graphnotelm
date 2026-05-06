@@ -1,56 +1,87 @@
 ﻿using graphnotelm.Core.Models.DTOs;
+using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Utils;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace graphnotelm.API
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class NoteGraphController : ControllerBase
     {
         private readonly ILogger<NoteGraphController> _logger;
+        private readonly INoteGraphService _noteGraphService;
 
-        public NoteGraphController(ILogger<NoteGraphController> logger)
+        public NoteGraphController(ILogger<NoteGraphController> logger, INoteGraphService noteGraphService)
         {
             _logger = logger;
+            _noteGraphService = noteGraphService;
         }
 
         // GENERAL CRUD ENDPOINTS
 
         [HttpGet("id/{noteGraphId:guid}", Name = "GetNoteGraphById")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> GetGraphById(Guid noteGraphId, CancellationToken ct)
+        public async Task<ActionResult<Result<GetGraphResponse>>> GetGraphById(Guid noteGraphId, CancellationToken ct)
         {
             // TODO: NodeGraphService.GetByNoteGraphId(id)
             // 1. Makes a call to SQL DB to see if it exists (and not deleted)
             // 2. If exists, return metadata and document from DynamoDB repo
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+
+            var graphResponse = await _noteGraphService.GetNoteGraphById(noteGraphId);
+            if (!graphResponse.Success || graphResponse.Value == null)
+            {
+                return Result<GetGraphResponse>.Fail("Could not find note graph of given id.");
+            }
+
+            return Result<GetGraphResponse>.Ok(graphResponse.Value);
         }
 
         [HttpGet("list", Name = "GetNoteGraphList")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> GetGraphList(Guid noteGraphId, CancellationToken ct)
+        public async Task<ActionResult<Result<GetGraphListResponse>>> GetGraphList(CancellationToken ct)
         {
             // TODO: NodeGraphService.GetListofNoteGraphs()
             // 1. Queries list of SQL DB for metadata
             // 2. Returns name, id, and tags in response (not deleted)
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+
+            var graphListResponse = await _noteGraphService.GetNoteGraphList();
+            if (!graphListResponse.Success || graphListResponse.Value == null)
+            {
+                return Result<GetGraphListResponse>.Fail("Could not find any graphs for given user.");
+            }
+
+            return Result<GetGraphListResponse>.Ok(graphListResponse.Value);
         }
 
         [HttpPost("create", Name = "CreateNoteGraph")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> CreateGraph(Guid noteGraphId, CancellationToken ct)
+        public async Task<ActionResult<Result<CreateGraphResponse>>> CreateGraph([FromBody] CreateGraphRequest createGraphRequest, CancellationToken ct)
         {
             // TODO: NodeGraphService.CreateNoteGraph()
             // 1. Creates the metadata for nodegraph
             // 2. Creates the nodegraph document
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+            var createGraphResponse = await _noteGraphService.CreateNoteGraph(createGraphRequest);
+            if (!createGraphResponse.Success || createGraphResponse.Value == null)
+            {
+                return Result<CreateGraphResponse>.Fail("Failed to create given graph note.");
+            }
+
+            return Result<CreateGraphResponse>.Ok(createGraphResponse.Value);
         }
 
         [HttpPost("delete/{noteGraphId:guid}", Name = "DeleteNoteGraph")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> DeleteGraph(Guid noteGraphId, CancellationToken ct)
+        public async Task<ActionResult<Result<DeleteGraphResponse>>> DeleteGraph(Guid noteGraphId, CancellationToken ct)
         {
             // TODO: NodeGraphService.DeleteNoteGraph(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+            var deleteGraphResponse = await _noteGraphService.DeleteNoteGraphById(noteGraphId);
+            if (!deleteGraphResponse.Success || deleteGraphResponse.Value == null)
+            {
+                return Result<DeleteGraphResponse>.Fail("Could not delete graph of given id.");
+            }
+
+            return Result<DeleteGraphResponse>.Ok(deleteGraphResponse.Value);
         }
 
 
