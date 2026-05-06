@@ -1,0 +1,49 @@
+{
+  "userId": "472fb28e-c4c3-44cb-a2c8-0c3602ea449f",
+  "noteGraphId": "30631c92-7179-429b-b46f-7117cbb59d87",
+  "tags": {
+    "AWS Service": { "color": "#32a852" },
+    "Skill": { "color": "#3832a8" },
+    "User": { "color": "#ff0040" }
+  },
+  "relationships": {
+    "Prerequisite to": {
+      "color": "#ffffff",
+      "inverse": "Prerequisites"
+    },
+    "Assigned to": {
+      "color": "#000000",
+      "inverse": "Assigned Skills"
+    }
+  },
+  "nodes": {
+    "a1b2c3d4-0001-4000-8000-000000000001": {
+      "title": "AWS Redshift",
+      "note": "A managed data warehouse within AWS.",
+      "relationships": [
+        {
+          "targetNodeId": "a1b2c3d4-0001-4000-8000-000000000003",
+          "type": "Assigned to"
+        }
+      ],
+      "tags": [ "AWS Service" ]
+    },
+    "a1b2c3d4-0001-4000-8000-000000000002": {
+      "title": "Data Engineering",
+      "note": "A study, practice, and application of building ETL pipelines.",
+      "relationships": [
+        {
+          "targetNodeId": "a1b2c3d4-0001-4000-8000-000000000001",
+          "type": "Prerequisite to"
+        }
+      ],
+      "tags": [ "Skill" ]
+    },
+    "a1b2c3d4-0001-4000-8000-000000000003": {
+      "title": "John Smith",
+      "note": "An engineer specializing in data pipelines and AWS services.",
+      "relationships": [],
+      "tags": [ "User" ]
+    }
+  }
+}
