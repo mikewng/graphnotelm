@@ -13,13 +13,21 @@ namespace graphnotelm.Core.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserContext _currentUser;
         private readonly INoteGraphMetadataRepository _noteGraphMetadataRepository;
+        private readonly INoteGraphRepository _noteGraphRepository;
         private readonly INoteGraphAccessService _noteGraphAccessService;
 
-        public NoteGraphService(IUnitOfWork unitOfWork, ICurrentUserContext currentUser, INoteGraphMetadataRepository noteGraphMetadataRepository, INoteGraphAccessService noteGraphAccessService)
+        public NoteGraphService(
+            IUnitOfWork unitOfWork, 
+            ICurrentUserContext currentUser, 
+            INoteGraphMetadataRepository noteGraphMetadataRepository, 
+            INoteGraphRepository noteGraphRepository,
+            INoteGraphAccessService noteGraphAccessService
+            )
         {
             _unitOfWork = unitOfWork;
             _currentUser = currentUser;
             _noteGraphMetadataRepository = noteGraphMetadataRepository;
+            _noteGraphRepository = noteGraphRepository;
             _noteGraphAccessService = noteGraphAccessService;
         }
 
@@ -87,6 +95,17 @@ namespace graphnotelm.Core.Services
             {
                 await _noteGraphMetadataRepository.AddAsync(newGraphMetadata, ct);
                 await _unitOfWork.SaveChangesAsync(ct);
+
+                NoteGraphDocument newGraphDocument = new NoteGraphDocument()
+                {
+                    Id = newGraphMetadata.Id,
+                    UserId = _currentUser.UserId
+                };
+
+                // TODO: Save full
+                await _noteGraphRepository.SaveAsync(newGraphDocument);
+                await _unitOfWork.SaveChangesAsync(ct);
+
                 return Result<CreateGraphResponse>.Ok(new CreateGraphResponse
                 {
                     Id = newGraphMetadata.Id,
