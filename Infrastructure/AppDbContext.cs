@@ -10,6 +10,7 @@ namespace graphnotelm.Infrastructure
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
         public DbSet<User> Users => Set<User>();
+        public DbSet<NoteGraphMetadata> NoteGraphMetadata => Set<NoteGraphMetadata>();
         public override Task<int> SaveChangesAsync(CancellationToken ct = default)
             => base.SaveChangesAsync(ct);
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -28,6 +29,20 @@ namespace graphnotelm.Infrastructure
 
                 e.HasIndex(u => u.Username).IsUnique();
                 e.HasIndex(u => u.Email).IsUnique();
+            });
+
+            modelBuilder.Entity<NoteGraphMetadata>(e =>
+            {
+                e.ToTable("NoteGraphMetadata");
+                e.HasKey(u => u.Id);
+
+                e.Property(u => u.Id).ValueGeneratedOnAdd();
+                e.Property(u => u.NoteGraphId).ValueGeneratedOnAdd();
+                e.Property(u => u.UserId).IsRequired();
+                e.Property(u => u.Name).IsRequired().HasMaxLength(255);
+                e.Property(u => u.isPublic).IsRequired().HasDefaultValue(false);
+                e.Property(u => u.isDeleted).IsRequired().HasDefaultValue(false);
+
             });
         }
     }
