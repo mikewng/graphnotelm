@@ -7,5 +7,7 @@
         public string Name { get; set; } = String.Empty;
         public bool IsPublic { get; set; } = false;
         public bool IsDeleted { get; set; } = false;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }

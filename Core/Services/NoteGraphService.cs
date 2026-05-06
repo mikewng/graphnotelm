@@ -106,10 +106,8 @@ namespace graphnotelm.Core.Services
             {
                 return Result<CreateGraphResponse>.Fail("Failed to create new graph.");
             }
-            
-
-
         }
+
         public async Task<Result<DeleteGraphResponse>> DeleteNoteGraphById(Guid noteGraphId, CancellationToken ct)
         {
             var graphMetadata = await _noteGraphMetadataRepository.GetByIdAsync(noteGraphId, ct);
@@ -125,7 +123,6 @@ namespace graphnotelm.Core.Services
             //TODO: Mark as IsDeleted = True via patching
             throw new NotImplementedException();
         }
-
 
     }
 }

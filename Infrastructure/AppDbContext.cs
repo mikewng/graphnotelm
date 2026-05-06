@@ -37,11 +37,12 @@ namespace graphnotelm.Infrastructure
                 e.HasKey(u => u.Id);
 
                 e.Property(u => u.Id).ValueGeneratedOnAdd();
-                e.Property(u => u.NoteGraphId).ValueGeneratedOnAdd();
                 e.Property(u => u.UserId).IsRequired();
                 e.Property(u => u.Name).IsRequired().HasMaxLength(255);
-                e.Property(u => u.isPublic).IsRequired().HasDefaultValue(false);
-                e.Property(u => u.isDeleted).IsRequired().HasDefaultValue(false);
+                e.Property(u => u.IsPublic).IsRequired().HasDefaultValue(false);
+                e.Property(u => u.IsDeleted).IsRequired().HasDefaultValue(false);
+                e.Property(u => u.CreatedAt).IsRequired();
+                e.Property(u => u.UpdatedAt);
 
             });
         }
