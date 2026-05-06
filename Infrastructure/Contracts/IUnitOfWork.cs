@@ -1,4 +1,4 @@
-﻿namespace card_library.Core.Application.Repository.Contracts
+﻿namespace graphnotelm.Infrastructure.Contracts
 {
     public interface IUnitOfWork
     {

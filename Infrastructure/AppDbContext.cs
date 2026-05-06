@@ -1,4 +1,4 @@
-﻿using card_library.Core.Application.Repository.Contracts;
+﻿using graphnotelm.Infrastructure.Contracts;
 using graphnotelm.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;

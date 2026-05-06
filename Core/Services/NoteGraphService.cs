@@ -1,4 +1,4 @@
-using card_library.Core.Application.Repository.Contracts;
+using graphnotelm.Infrastructure.Contracts;
 using graphnotelm.Core.Contexts.Contracts;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
