@@ -15,6 +15,9 @@ public static class DependencyInjection
         // Register application services
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<INoteGraphAccessService, NoteGraphAccessService>();
+        services.AddScoped<INoteGraphService, NoteGraphService>();
+        services.AddScoped<INoteNodeService, NoteNodeService>();
 
         // Register Contexts
         services.AddHttpContextAccessor();

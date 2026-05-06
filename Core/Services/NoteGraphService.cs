@@ -1,4 +1,4 @@
-﻿using card_library.Core.Application.Repository.Contracts;
+using card_library.Core.Application.Repository.Contracts;
 using graphnotelm.Core.Contexts.Contracts;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
@@ -13,42 +13,33 @@ namespace graphnotelm.Core.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrentUserContext _currentUser;
         private readonly INoteGraphMetadataRepository _noteGraphMetadataRepository;
-        private readonly INoteGraphRepository _noteGraphRepository;
+        private readonly INoteGraphAccessService _noteGraphAccessService;
 
-        public NoteGraphService(IUnitOfWork unitOfWork, ICurrentUserContext currentUser, INoteGraphMetadataRepository noteGraphMetadataRepository, INoteGraphRepository noteGraphRepository)
+        public NoteGraphService(IUnitOfWork unitOfWork, ICurrentUserContext currentUser, INoteGraphMetadataRepository noteGraphMetadataRepository, INoteGraphAccessService noteGraphAccessService)
         {
             _unitOfWork = unitOfWork;
             _currentUser = currentUser;
             _noteGraphMetadataRepository = noteGraphMetadataRepository;
-            _noteGraphRepository = noteGraphRepository;
+            _noteGraphAccessService = noteGraphAccessService;
         }
 
         public async Task<Result<GetGraphResponse>> GetNoteGraphById(Guid noteGraphId, CancellationToken ct)
         {
-            // Retreive graph metadata
-            var graphMetadata = await _noteGraphMetadataRepository.GetByIdAsync(noteGraphId, ct);
-            if (graphMetadata is null)
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
             {
-                return Result<GetGraphResponse>.Fail("Graph metadata not found");
-            }
-            if (graphMetadata.UserId != _currentUser.UserId)
-            {
-                return Result<GetGraphResponse>.Fail("UserId mismatch. Access to graph metadata denied.");
+                return Result<GetGraphResponse>.Fail(metadataResult.Error!);
             }
 
-            // Retreive full Data from DynamoDB Repo
-            var graphData = await _noteGraphRepository.GetByIdAsync(noteGraphId, ct);
-            if (graphData is null)
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
             {
-                return Result<GetGraphResponse>.Fail("Full associated graph data not found");
-            }
-            if (graphData.UserId != _currentUser.UserId)
-            {
-                return Result<GetGraphResponse>.Fail("UserId mismatch. Access to full data of graph denied.");
+                return Result<GetGraphResponse>.Fail(graphDataResult.Error!);
             }
 
-            // DTO Transform
-            GetGraphResponse dto = new GetGraphResponse() { 
+            var graphData = graphDataResult.Value!;
+            GetGraphResponse dto = new GetGraphResponse()
+            {
                 Id = graphData.Id,
                 Tags = graphData.Tags,
                 Relationships = graphData.Relationships,
@@ -110,14 +101,10 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<DeleteGraphResponse>> DeleteNoteGraphById(Guid noteGraphId, CancellationToken ct)
         {
-            var graphMetadata = await _noteGraphMetadataRepository.GetByIdAsync(noteGraphId, ct);
-            if (graphMetadata is null)
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
             {
-                return Result<DeleteGraphResponse>.Fail("Graph metadata not found");
-            }
-            if (graphMetadata.UserId != _currentUser.UserId)
-            {
-                return Result<DeleteGraphResponse>.Fail("UserId mismatch. Access to graph metadata denied.");
+                return Result<DeleteGraphResponse>.Fail(metadataResult.Error!);
             }
 
             //TODO: Mark as IsDeleted = True via patching
