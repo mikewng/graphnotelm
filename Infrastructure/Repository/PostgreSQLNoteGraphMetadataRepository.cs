@@ -23,5 +23,14 @@ namespace graphnotelm.Infrastructure.Repository
         {
             return await DbSet.Where(m => m.UserId == userId && !m.IsDeleted).OrderByDescending(m => m.UpdatedAt).ToListAsync();
         }
+
+        public async Task<bool> UpdateAsync(NoteGraphMetadata noteGraphMetadata, CancellationToken ct = default)
+        {
+            if (!await DbSet.AnyAsync(m => m.Id == noteGraphMetadata.Id, ct))
+                return false;
+
+            DbSet.Update(noteGraphMetadata);
+            return true;
+        }
     }
 }

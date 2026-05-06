@@ -107,8 +107,24 @@ namespace graphnotelm.Core.Services
                 return Result<DeleteGraphResponse>.Fail(metadataResult.Error!);
             }
 
-            //TODO: Mark as IsDeleted = True via patching
-            throw new NotImplementedException();
+            var graphMetadata = metadataResult.Value!;
+            graphMetadata.IsDeleted = true;
+            graphMetadata.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _noteGraphMetadataRepository.UpdateAsync(graphMetadata, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+                return Result<DeleteGraphResponse>.Ok(new DeleteGraphResponse
+                {
+                    id = graphMetadata.Id,
+                    isDeleted = true
+                });
+            }
+            catch
+            {
+                return Result<DeleteGraphResponse>.Fail("Failed to delete graph.");
+            }
         }
 
     }
