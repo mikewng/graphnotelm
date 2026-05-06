@@ -1,6 +1,7 @@
 ﻿using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Infrastructure.Repository;
 using graphnotelm.Infrastructure.Repository.Contracts;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -12,6 +13,9 @@ namespace graphnotelm.Infrastructure
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddDbContext<AppDbContext>(options => 
+                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+
             services.AddScoped<INoteGraphRepository, DynamoDBNoteGraphRepository>();
             services.AddScoped<INoteGraphMetadataRepository, PostgreSQLNoteGraphMetadataRepository>();
             return services;

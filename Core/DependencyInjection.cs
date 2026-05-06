@@ -1,9 +1,8 @@
-﻿using graphnotelm.Core.Services;
+﻿using graphnotelm.Core.Contexts;
+using graphnotelm.Core.Contexts.Contracts;
+using graphnotelm.Core.Services;
 using graphnotelm.Core.Services.Contracts;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -16,6 +15,10 @@ public static class DependencyInjection
         // Register application services
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+
+        // Register Contexts
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
 
         // Register JWT configuration
         var jwtSection = configuration.GetSection("Jwt");

@@ -364,3 +364,7 @@ FodyWeavers.xsd
 
 # Claude
 .claude
+
+# Environments
+appsettings.json
+*.appsettings.json
