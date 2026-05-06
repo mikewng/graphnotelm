@@ -1,5 +1,6 @@
 ﻿using card_library.Core.Application.Repository.Contracts;
 using graphnotelm.Core.Contexts.Contracts;
+using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Infrastructure.Repository.Contracts;
@@ -22,79 +23,109 @@ namespace graphnotelm.Core.Services
             _noteGraphRepository = noteGraphRepository;
         }
 
-        public async Task<Result<CreateNodeResponse>> CreateNodeByGraphId(CreateNodeRequest createNodeRequest, Guid noteGraphId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<Result<CreateGraphResponse>> CreateNoteGraph(CreateGraphRequest createGraphRequest, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<Result<CreateRelationshipResponse>> CreateRelationshipByGraphId(CreateRelationshipRequest createRelationshipRequest, Guid noteGraphId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<Result<CreateTagResponse>> CreateTagByGraphId(CreateTagRequest createTagRequest, Guid noteGraphId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<Result<DeleteNodeResponse>> DeleteNodeByIds(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<Result<DeleteGraphResponse>> DeleteNoteGraphById(Guid noteGraphId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<Result<DeleteRelationshipResponse>> DeleteRelationshipByIds(Guid noteGraphId, Guid relationId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<Result<DeleteTagResponse>> DeleteTagByIds(Guid noteGraphId, Guid tagId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<Result<EditNodeResponse>> EditNodeByIds(EditNodeRequest createNodeRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<Result<EditRelationshipResponse>> EditRelationshipByIds(EditRelationshipRequest editRelationshipRequest, Guid noteGraphId, Guid relationId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<Result<EditTagResponse>> EditTagByIds(EditTagRequest editTagRequest, Guid noteGraphId, Guid tagId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
         public async Task<Result<GetGraphResponse>> GetNoteGraphById(Guid noteGraphId, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            // Retreive graph metadata
+            var graphMetadata = await _noteGraphMetadataRepository.GetByIdAsync(noteGraphId, ct);
+            if (graphMetadata is null)
+            {
+                return Result<GetGraphResponse>.Fail("Graph metadata not found");
+            }
+            if (graphMetadata.UserId != _currentUser.UserId)
+            {
+                return Result<GetGraphResponse>.Fail("UserId mismatch. Access to graph metadata denied.");
+            }
+
+            // Retreive full Data from DynamoDB Repo
+            var graphData = await _noteGraphRepository.GetByIdAsync(noteGraphId, ct);
+            if (graphData is null)
+            {
+                return Result<GetGraphResponse>.Fail("Full associated graph data not found");
+            }
+            if (graphData.UserId != _currentUser.UserId)
+            {
+                return Result<GetGraphResponse>.Fail("UserId mismatch. Access to full data of graph denied.");
+            }
+
+            // DTO Transform
+            GetGraphResponse dto = new GetGraphResponse() { 
+                Id = graphData.Id,
+                Tags = graphData.Tags,
+                Relationships = graphData.Relationships,
+                Nodes = graphData.Nodes
+            };
+
+            return Result<GetGraphResponse>.Ok(dto);
         }
 
         public async Task<Result<GetGraphListResponse>> GetNoteGraphList(CancellationToken ct)
         {
+            var graphMetadataList = await _noteGraphMetadataRepository.GetListByUserIdAsync(_currentUser.UserId, ct);
+            if (graphMetadataList.Count == 0)
+            {
+                return Result<GetGraphListResponse>.Fail("No graphs associated with user ID.");
+            }
+            if (graphMetadataList is null)
+            {
+                return Result<GetGraphListResponse>.Fail("List returned as null.");
+            }
+
+            GetGraphListResponse dto = new GetGraphListResponse()
+            {
+                GraphList = graphMetadataList
+            };
+            return Result<GetGraphListResponse>.Ok(dto);
+        }
+
+        public async Task<Result<CreateGraphResponse>> CreateNoteGraph(CreateGraphRequest createGraphRequest, CancellationToken ct)
+        {
+            NoteGraphMetadata newGraphMetadata = new NoteGraphMetadata()
+            {
+                Id = Guid.NewGuid(),
+                UserId = _currentUser.UserId,
+                Name = createGraphRequest.Name,
+                IsPublic = createGraphRequest.isPublic,
+                IsDeleted = createGraphRequest.isDeleted
+            };
+            if (newGraphMetadata.Name == String.Empty)
+            {
+                return Result<CreateGraphResponse>.Fail("Failed to create: Name was empty.");
+            }
+
+            try
+            {
+                await _noteGraphMetadataRepository.AddAsync(newGraphMetadata, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+                return Result<CreateGraphResponse>.Ok(new CreateGraphResponse
+                {
+                    Id = newGraphMetadata.Id,
+                    IsSuccess = true
+                });
+            }
+            catch
+            {
+                return Result<CreateGraphResponse>.Fail("Failed to create new graph.");
+            }
+            
+
+
+        }
+        public async Task<Result<DeleteGraphResponse>> DeleteNoteGraphById(Guid noteGraphId, CancellationToken ct)
+        {
+            var graphMetadata = await _noteGraphMetadataRepository.GetByIdAsync(noteGraphId, ct);
+            if (graphMetadata is null)
+            {
+                return Result<DeleteGraphResponse>.Fail("Graph metadata not found");
+            }
+            if (graphMetadata.UserId != _currentUser.UserId)
+            {
+                return Result<DeleteGraphResponse>.Fail("UserId mismatch. Access to graph metadata denied.");
+            }
+
+            //TODO: Mark as IsDeleted = True via patching
             throw new NotImplementedException();
         }
 
-        public async Task<Result<GetRelationshipListResponse>> GetRelationshipListByGraphId(Guid noteGraphId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
 
-        public async Task<Result<GetTagListResponse>> GetTagListByGraphId(Guid noteGraphId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

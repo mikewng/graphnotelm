@@ -4,18 +4,21 @@ namespace graphnotelm.Core.Models.DTOs
 {
     public class CreateGraphResponse
     {
-        public Guid id { get; set; }
-        public bool isSuccess { get; set; }
+        public Guid Id { get; set; }
+        public bool IsSuccess { get; set; }
     }
 
     public class GetGraphResponse
     {
-        NoteGraphDocumentREADONLY? noteGraphDocument { get; set; }
+        public Guid Id { get; set; }
+        public Dictionary<Guid, TagDefinition> Tags { get; set; } = new();
+        public Dictionary<Guid, RelationshipDefinition> Relationships { get; set; } = new();
+        public Dictionary<Guid, NoteNode> Nodes { get; set; } = new();
     }
 
     public class GetGraphListResponse
     {
-        List<NoteGraphMetadata> graphList { get; set; } = new List<NoteGraphMetadata>();
+        public List<NoteGraphMetadata> GraphList { get; set; } = new List<NoteGraphMetadata>();
     }
 
     public class DeleteGraphResponse
@@ -32,13 +35,13 @@ namespace graphnotelm.Core.Models.DTOs
 
     public class EditNodeResponse
     {
-        public NoteNode noteNodeContent { get; set; }
+        public NoteNode NoteNodeContent { get; set; }
     }
 
     public class DeleteNodeResponse
     {
-        public Guid id { get; set; }
-        public bool isDeleted { get; set; }
+        public Guid Id { get; set; }
+        public bool IsDeleted { get; set; }
     }
 
 

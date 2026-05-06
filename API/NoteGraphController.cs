@@ -14,11 +14,23 @@ namespace graphnotelm.API
     {
         private readonly ILogger<NoteGraphController> _logger;
         private readonly INoteGraphService _noteGraphService;
+        private readonly INoteNodeService _noteNodeService;
+        private readonly IGraphTagService _graphTagService;
+        private readonly IGraphRelationshipService _graphRelationshipService;
 
-        public NoteGraphController(ILogger<NoteGraphController> logger, INoteGraphService noteGraphService)
+        public NoteGraphController(
+            ILogger<NoteGraphController> logger, 
+            INoteGraphService noteGraphService,
+            INoteNodeService noteNodeService,
+            IGraphTagService graphTagService,
+            IGraphRelationshipService graphRelationshipService
+            )
         {
             _logger = logger;
             _noteGraphService = noteGraphService;
+            _noteNodeService = noteNodeService;
+            _graphTagService = graphTagService;
+            _graphRelationshipService = graphRelationshipService;
         }
 
         // GENERAL CRUD ENDPOINTS
@@ -93,7 +105,7 @@ namespace graphnotelm.API
             // TODO: NodeGraphService.CreateNoteNode(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, add note request data to as a new node to document
-            var createNodeResponse = await _noteGraphService.CreateNodeByGraphId(createNodeRequest, noteGraphId, ct);
+            var createNodeResponse = await _noteNodeService.CreateNodeByGraphId(createNodeRequest, noteGraphId, ct);
             if (!createNodeResponse.Success || createNodeResponse.Value == null)
             {
                 return Result<CreateNodeResponse>.Fail("Failed to create node.");
@@ -108,7 +120,7 @@ namespace graphnotelm.API
             // TODO: NodeGraphService.EditNoteNode(notegraph_id, noteid)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            var editNodeResponse = await _noteGraphService.EditNodeByIds(editNodeRequest, noteGraphId, noteNodeId, ct);
+            var editNodeResponse = await _noteNodeService.EditNodeByIds(editNodeRequest, noteGraphId, noteNodeId, ct);
             if (!editNodeResponse.Success || editNodeResponse.Value == null)
             {
                 return Result<EditNodeResponse>.Fail("Failed to edit node.");
@@ -123,7 +135,7 @@ namespace graphnotelm.API
             // TODO: NodeGraphService.DeleteNoteNode(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            var deleteNodeResponse = await _noteGraphService.DeleteNodeByIds(noteGraphId, noteNodeId, ct);
+            var deleteNodeResponse = await _noteNodeService.DeleteNodeByIds(noteGraphId, noteNodeId, ct);
             if (!deleteNodeResponse.Success || deleteNodeResponse.Value == null)
             {
                 return Result<DeleteNodeResponse>.Fail("Failed to delete node of given id");
@@ -141,7 +153,7 @@ namespace graphnotelm.API
             // TODO: NodeGraphService.GetTagsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            var getTagListResponse = await _noteGraphService.GetTagListByGraphId(noteGraphId, ct);
+            var getTagListResponse = await _graphTagService.GetTagListByGraphId(noteGraphId, ct);
             if (!getTagListResponse.Success || getTagListResponse.Value == null)
             {
                 return Result<GetTagListResponse>.Fail("Failed to retreive tags within graph node.");
@@ -156,7 +168,7 @@ namespace graphnotelm.API
             // TODO: NodeGraphService.GetRelationshipsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            var createTagResponse = await _noteGraphService.CreateTagByGraphId(createTagRequest, noteGraphId, ct);
+            var createTagResponse = await _graphTagService.CreateTagByGraphId(createTagRequest, noteGraphId, ct);
             if (!createTagResponse.Success || createTagResponse.Value == null)
             {
                 return Result<CreateTagResponse>.Fail("Failed to create tag within graph node.");
@@ -171,7 +183,7 @@ namespace graphnotelm.API
             // TODO: NodeGraphService.GetRelationshipsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            var editTagResponse = await _noteGraphService.EditTagByIds(editTagRequest, noteGraphId, tagId, ct);
+            var editTagResponse = await _graphTagService.EditTagByIds(editTagRequest, noteGraphId, tagId, ct);
             if (!editTagResponse.Success || editTagResponse.Value == null)
             {
                 return Result<EditTagResponse>.Fail("Failed to edit tag within graph node.");
@@ -186,7 +198,7 @@ namespace graphnotelm.API
             // TODO: NodeGraphService.GetRelationshipsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            var deleteTagResponse = await _noteGraphService.DeleteTagByIds(noteGraphId, tagId, ct);
+            var deleteTagResponse = await _graphTagService.DeleteTagByIds(noteGraphId, tagId, ct);
             if (!deleteTagResponse.Success || deleteTagResponse.Value == null)
             {
                 return Result<DeleteTagResponse>.Fail("Failed to delete tag within graph node.");
@@ -203,7 +215,7 @@ namespace graphnotelm.API
             // TODO: NodeGraphService.GetRelationshipsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            var getRelationshipListResponse = await _noteGraphService.GetRelationshipListByGraphId(noteGraphId, ct);
+            var getRelationshipListResponse = await _graphRelationshipService.GetRelationshipListByGraphId(noteGraphId, ct);
             if (!getRelationshipListResponse.Success || getRelationshipListResponse.Value == null)
             {
                 return Result<GetRelationshipListResponse>.Fail("Failed to retreive relationships within graph node.");
@@ -218,7 +230,7 @@ namespace graphnotelm.API
             // TODO: NodeGraphService.GetRelationshipsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            var editRelationshipResponse = await _noteGraphService.EditRelationshipByIds(editRelationshipRequest, noteGraphId, relationId, ct);
+            var editRelationshipResponse = await _graphRelationshipService.EditRelationshipByIds(editRelationshipRequest, noteGraphId, relationId, ct);
             if (!editRelationshipResponse.Success || editRelationshipResponse.Value == null)
             {
                 return Result<EditRelationshipResponse>.Fail("Failed to edit relationships within graph node.");
@@ -233,7 +245,7 @@ namespace graphnotelm.API
             // TODO: NodeGraphService.GetRelationshipsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            var deleteRelationshipResponse = await _noteGraphService.DeleteRelationshipByIds(noteGraphId, relationId, ct);
+            var deleteRelationshipResponse = await _graphRelationshipService.DeleteRelationshipByIds(noteGraphId, relationId, ct);
             if (!deleteRelationshipResponse.Success || deleteRelationshipResponse.Value == null)
             {
                 return Result<DeleteRelationshipResponse>.Fail("Failed to delete relationships within graph node.");
