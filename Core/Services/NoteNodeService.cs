@@ -2,6 +2,7 @@ using card_library.Core.Application.Repository.Contracts;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Core.Services.Contracts;
+using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
 
 namespace graphnotelm.Core.Services
@@ -10,11 +11,13 @@ namespace graphnotelm.Core.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly INoteGraphAccessService _noteGraphAccessService;
+        private readonly INoteGraphRepository _noteGraphRepository;
 
-        public NoteNodeService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService)
+        public NoteNodeService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository)
         {
             _unitOfWork = unitOfWork;
             _noteGraphAccessService = noteGraphAccessService;
+            _noteGraphRepository = noteGraphRepository;
         }
 
         public async Task<Result<CreateNodeResponse>> CreateNodeByGraphId(CreateNodeRequest createNodeRequest, Guid noteGraphId, CancellationToken ct)
@@ -47,6 +50,7 @@ namespace graphnotelm.Core.Services
             graphData.Nodes[newNode.Id] = newNode;
 
             //TODO: Persist updated graph document to DynamoDB
+            await _noteGraphRepository.SaveAsync(graphData);
             throw new NotImplementedException();
         }
 
@@ -98,6 +102,10 @@ namespace graphnotelm.Core.Services
             }
 
             graphData.Nodes.Remove(noteNodeId);
+            foreach (var node in graphData.Nodes.Values)
+            {
+                node.Relationships.RemoveAll(r => r.TargetNodeId == noteNodeId);
+            }
 
             //TODO: Persist updated graph document to DynamoDB
             throw new NotImplementedException();
