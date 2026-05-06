@@ -51,8 +51,15 @@ namespace graphnotelm.Core.Services
             var tagId = Guid.NewGuid();
             graphData.Tags[tagId] = new TagDefinition { Name = createTagRequest.TagName, Color = createTagRequest.TagColor };
 
-            //TODO: Persist updated graph document to DynamoDB
-            throw new NotImplementedException();
+            try
+            {
+                await _noteGraphRepository.SaveAsync(graphData);
+                return Result<CreateTagResponse>.Ok(new CreateTagResponse { TagName = createTagRequest.TagName });
+            }
+            catch
+            {
+                return Result<CreateTagResponse>.Fail("Failed to create tag.");
+            }
         }
 
         public async Task<Result<EditTagResponse>> EditTagByIds(EditTagRequest editTagRequest, Guid noteGraphId, Guid tagId, CancellationToken ct)
@@ -72,8 +79,15 @@ namespace graphnotelm.Core.Services
             tag.Name = editTagRequest.TagName;
             tag.Color = editTagRequest.TagColor;
 
-            //TODO: Persist updated graph document to DynamoDB
-            throw new NotImplementedException();
+            try
+            {
+                await _noteGraphRepository.SaveAsync(graphData);
+                return Result<EditTagResponse>.Ok(new EditTagResponse());
+            }
+            catch
+            {
+                return Result<EditTagResponse>.Fail("Failed to update tag.");
+            }
         }
 
         public async Task<Result<DeleteTagResponse>> DeleteTagByIds(Guid noteGraphId, Guid tagId, CancellationToken ct)
@@ -95,8 +109,15 @@ namespace graphnotelm.Core.Services
             foreach (var node in graphData.Nodes.Values)
                 node.Tags.Remove(tagId);
 
-            //TODO: Persist updated graph document to DynamoDB
-            throw new NotImplementedException();
+            try
+            {
+                await _noteGraphRepository.SaveAsync(graphData);
+                return Result<DeleteTagResponse>.Ok(new DeleteTagResponse { TagName = tag.Name });
+            }
+            catch
+            {
+                return Result<DeleteTagResponse>.Fail("Failed to delete tag.");
+            }
         }
     }
 }

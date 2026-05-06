@@ -49,9 +49,15 @@ namespace graphnotelm.Core.Services
 
             graphData.Nodes[newNode.Id] = newNode;
 
-            //TODO: Persist updated graph document to DynamoDB
-            await _noteGraphRepository.SaveAsync(graphData);
-            throw new NotImplementedException();
+            try
+            {
+                await _noteGraphRepository.SaveAsync(graphData);
+                return Result<CreateNodeResponse>.Ok(new CreateNodeResponse { Id = newNode.Id, Title = newNode.Title });
+            }
+            catch
+            {
+                return Result<CreateNodeResponse>.Fail("Failed to create node.");
+            }
         }
 
         public async Task<Result<EditNodeResponse>> EditNodeByIds(EditNodeRequest editNodeRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
@@ -77,8 +83,15 @@ namespace graphnotelm.Core.Services
             existingNode.Title = editNodeRequest.Title;
             existingNode.Note = editNodeRequest.Note;
 
-            //TODO: Persist updated graph document to DynamoDB
-            throw new NotImplementedException();
+            try
+            {
+                await _noteGraphRepository.SaveAsync(graphData);
+                return Result<EditNodeResponse>.Ok(new EditNodeResponse { NoteNodeContent = existingNode });
+            }
+            catch
+            {
+                return Result<EditNodeResponse>.Fail("Failed to update node.");
+            }
         }
 
         public async Task<Result<DeleteNodeResponse>> DeleteNodeByIds(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
@@ -107,8 +120,15 @@ namespace graphnotelm.Core.Services
                 node.Relationships.RemoveAll(r => r.TargetNodeId == noteNodeId);
             }
 
-            //TODO: Persist updated graph document to DynamoDB
-            throw new NotImplementedException();
+            try
+            {
+                await _noteGraphRepository.SaveAsync(graphData);
+                return Result<DeleteNodeResponse>.Ok(new DeleteNodeResponse { Id = noteNodeId, IsDeleted = true });
+            }
+            catch
+            {
+                return Result<DeleteNodeResponse>.Fail("Failed to delete node.");
+            }
         }
 
     }
