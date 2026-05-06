@@ -82,7 +82,7 @@ namespace graphnotelm.API
             return Result<CreateGraphResponse>.Ok(createGraphResponse.Value);
         }
 
-        [HttpPost("delete/{noteGraphId:guid}", Name = "DeleteNoteGraph")]
+        [HttpDelete("delete/{noteGraphId:guid}", Name = "DeleteNoteGraph")]
         public async Task<ActionResult<Result<DeleteGraphResponse>>> DeleteGraph(Guid noteGraphId, CancellationToken ct)
         {
             // TODO: NodeGraphService.DeleteNoteGraph(id)
@@ -114,7 +114,7 @@ namespace graphnotelm.API
             return Result<CreateNodeResponse>.Ok(createNodeResponse.Value);
         }
 
-        [HttpPatch("id/{noteGraphId:guid}/node/{noteNodeId:guid}")]
+        [HttpPatch("id/{noteGraphId:guid}/node/edit/{noteNodeId:guid}")]
         public async Task<ActionResult<Result<EditNodeResponse>>> EditNode([FromBody] EditNodeRequest editNodeRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
             // TODO: NodeGraphService.EditNoteNode(notegraph_id, noteid)
@@ -129,7 +129,7 @@ namespace graphnotelm.API
             return Result<EditNodeResponse>.Ok(editNodeResponse.Value);
         }
 
-        [HttpDelete("id/{noteGraphId:guid}/node/{noteNodeId:guid}")]
+        [HttpDelete("id/{noteGraphId:guid}/node/delete/{noteNodeId:guid}")]
         public async Task<ActionResult<Result<DeleteNodeResponse>>> DeleteNode(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
             // TODO: NodeGraphService.DeleteNoteNode(id)
@@ -224,6 +224,19 @@ namespace graphnotelm.API
             return Result<GetRelationshipListResponse>.Ok(getRelationshipListResponse.Value);
         }
 
+        [HttpPost("id/{noteGraphId:guid}/relationships/create")]
+        public async Task<ActionResult<Result<CreateRelationshipResponse>>> CreateRelationship([FromBody] CreateRelationshipRequest createRelationshipRequest, Guid noteGraphId, CancellationToken ct)
+        {
+
+            var createRelationshipResponse = await _graphRelationshipService.CreateRelationshipByGraphId(createRelationshipRequest, noteGraphId, ct);
+            if (!createRelationshipResponse.Success || createRelationshipResponse.Value == null)
+            {
+                return Result<CreateRelationshipResponse>.Fail("Failed to create relationships within graph node.");
+            }
+
+            return Result<CreateRelationshipResponse>.Ok(createRelationshipResponse.Value);
+        }
+
         [HttpPatch("id/{noteGraphId:guid}/relationships/edit/{relationId:guid}")]
         public async Task<ActionResult<Result<EditRelationshipResponse>>> EditRelationship(EditRelationshipRequest editRelationshipRequest, Guid noteGraphId, Guid relationId, CancellationToken ct)
         {
@@ -239,7 +252,7 @@ namespace graphnotelm.API
             return Result<EditRelationshipResponse>.Ok(editRelationshipResponse.Value);
         }
 
-        [HttpDelete("id/{noteGraphId:guid}/relationships")]
+        [HttpDelete("id/{noteGraphId:guid}/relationships/delete")]
         public async Task<ActionResult<Result<DeleteRelationshipResponse>>> DeleteRelationship(Guid noteGraphId, Guid relationId, CancellationToken ct)
         {
             // TODO: NodeGraphService.GetRelationshipsList(id)
