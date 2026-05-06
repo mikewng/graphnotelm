@@ -1,4 +1,5 @@
-﻿using graphnotelm.Core.Models.DTOs;
+﻿using Amazon.DynamoDBv2.Model;
+using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Utils;
 using Microsoft.AspNetCore.Authorization;
@@ -87,89 +88,158 @@ namespace graphnotelm.API
 
         // NOTEGRAPH NOTE NODES ENDPOINTS
         [HttpPost("id/{noteGraphId:guid}/node/create")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> AddNode(Guid noteGraphId, CancellationToken ct)
+        public async Task<ActionResult<Result<CreateNodeResponse>>> AddNode([FromBody] CreateNodeRequest createNodeRequest, Guid noteGraphId, CancellationToken ct)
         {
             // TODO: NodeGraphService.CreateNoteNode(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, add note request data to as a new node to document
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+            var createNodeResponse = await _noteGraphService.CreateNodeByGraphId(createNodeRequest, noteGraphId);
+            if (!createNodeResponse.Success || createNodeResponse.Value == null)
+            {
+                return Result<CreateNodeResponse>.Fail("Failed to create node.");
+            }
+
+            return Result<CreateNodeResponse>.Ok(createNodeResponse.Value);
         }
 
         [HttpPatch("id/{noteGraphId:guid}/node/{noteNodeId:guid}")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> EditNode(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
+        public async Task<ActionResult<Result<EditNodeResponse>>> EditNode([FromBody] EditNodeRequest editNodeRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
             // TODO: NodeGraphService.EditNoteNode(notegraph_id, noteid)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+            var editNodeResponse = await _noteGraphService.EditNodeByIds(editNodeRequest, noteGraphId, noteNodeId);
+            if (!editNodeResponse.Success || editNodeResponse.Value == null)
+            {
+                return Result<EditNodeResponse>.Fail("Failed to edit node.");
+            }
+
+            return Result<EditNodeResponse>.Ok(editNodeResponse.Value);
         }
 
         [HttpDelete("id/{noteGraphId:guid}/node/{noteNodeId:guid}")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> DeleteNode(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
+        public async Task<ActionResult<Result<DeleteNodeResponse>>> DeleteNode(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
             // TODO: NodeGraphService.DeleteNoteNode(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+            var deleteNodeResponse = await _noteGraphService.DeleteNodeByIds(noteGraphId, noteNodeId);
+            if (!deleteNodeResponse.Success || deleteNodeResponse.Value == null)
+            {
+                return Result<DeleteNodeResponse>.Fail("Failed to delete node of given id");
+            }
+
+            return Result<DeleteNodeResponse>.Ok(deleteNodeResponse.Value);
         }
 
 
 
         // NOTEGRAPH TAGS
         [HttpGet("id/{noteGraphId:guid}/tags", Name = "GetListOfTags")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> GetListTags(Guid noteGraphId, CancellationToken ct)
+        public async Task<ActionResult<Result<GetTagListResponse>>> GetListTags(Guid noteGraphId, CancellationToken ct)
         {
             // TODO: NodeGraphService.GetTagsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+            var getTagListResponse = await _noteGraphService.GetTagListByGraphId(noteGraphId);
+            if (!getTagListResponse.Success || getTagListResponse.Value == null)
+            {
+                return Result<GetTagListResponse>.Fail("Failed to retreive tags within graph node.");
+            }
+
+            return Result<GetTagListResponse>.Ok(new GetTagListResponse());
         }
 
-        [HttpPatch("id/{noteGraphId:guid}/tags/edit")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> EditTag(Guid noteGraphId, string tag, CancellationToken ct)
+        [HttpPost("id/{noteGraphId:guid}/tags/create")]
+        public async Task<ActionResult<Result<CreateTagResponse>>> CreateTag([FromBody] CreateTagRequest createTagRequest, Guid noteGraphId, CancellationToken ct)
         {
             // TODO: NodeGraphService.GetRelationshipsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+            var createTagResponse = await _noteGraphService.CreateTagByGraphId(createTagRequest, noteGraphId);
+            if (!createTagResponse.Success || createTagResponse.Value == null)
+            {
+                return Result<CreateTagResponse>.Fail("Failed to create tag within graph node.");
+            }
+
+            return Result<CreateTagResponse>.Ok(createTagResponse.Value);
         }
 
-        [HttpDelete("id/{noteGraphId:guid}/tags")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> DeleteTag(Guid noteGraphId, string tag, CancellationToken ct)
+        [HttpPatch("id/{noteGraphId:guid}/tags/edit/{tagId:guid}")]
+        public async Task<ActionResult<Result<EditTagResponse>>> EditTag([FromBody] EditTagRequest editTagRequest, Guid noteGraphId, Guid tagId, CancellationToken ct)
         {
             // TODO: NodeGraphService.GetRelationshipsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+            var editTagResponse = await _noteGraphService.EditTagByIds(editTagRequest, noteGraphId, tagId);
+            if (!editTagResponse.Success || editTagResponse.Value == null)
+            {
+                return Result<EditTagResponse>.Fail("Failed to edit tag within graph node.");
+            }
+
+            return Result<EditTagResponse>.Ok(editTagResponse.Value);
+        }
+
+        [HttpDelete("id/{noteGraphId:guid}/tags/delete/{tagId:guid}")]
+        public async Task<ActionResult<Result<DeleteTagResponse>>> DeleteTag(Guid noteGraphId, Guid tagId, CancellationToken ct)
+        {
+            // TODO: NodeGraphService.GetRelationshipsList(id)
+            // 1. Finds if notegraph id exists within user
+            // 2. If exists, set metadata isDeleted as true
+            var deleteTagResponse = await _noteGraphService.DeleteTagByIds(noteGraphId, tagId);
+            if (!deleteTagResponse.Success || deleteTagResponse.Value == null)
+            {
+                return Result<DeleteTagResponse>.Fail("Failed to delete tag within graph node.");
+            }
+
+            return Result<DeleteTagResponse>.Ok(deleteTagResponse.Value);
         }
 
 
 
         [HttpGet("id/{noteGraphId:guid}/relationships", Name = "GetListOfRelationships")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> GetListRelationships(Guid noteGraphId, CancellationToken ct)
+        public async Task<ActionResult<Result<GetRelationshipListResponse>>> GetListRelationships(Guid noteGraphId, CancellationToken ct)
         {
             // TODO: NodeGraphService.GetRelationshipsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+            var getRelationshipListResponse = await _noteGraphService.GetRelationshipListByGraphId(noteGraphId);
+            if (!getRelationshipListResponse.Success || getRelationshipListResponse.Value == null)
+            {
+                return Result<GetRelationshipListResponse>.Fail("Failed to retreive relationships within graph node.");
+            }
+
+            return Result<GetRelationshipListResponse>.Ok(getRelationshipListResponse.Value);
         }
 
-        [HttpPatch("id/{noteGraphId:guid}/relationships/edit")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> EditRelationship(Guid noteGraphId, string tag, CancellationToken ct)
+        [HttpPatch("id/{noteGraphId:guid}/relationships/edit/{relationId:guid}")]
+        public async Task<ActionResult<Result<EditRelationshipResponse>>> EditRelationship(EditRelationshipRequest editRelationshipRequest, Guid noteGraphId, Guid relationId, CancellationToken ct)
         {
             // TODO: NodeGraphService.GetRelationshipsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+            var editRelationshipResponse = await _noteGraphService.EditRelationshipByIds(editRelationshipRequest, noteGraphId, relationId);
+            if (!editRelationshipResponse.Success || editRelationshipResponse.Value == null)
+            {
+                return Result<EditRelationshipResponse>.Fail("Failed to edit relationships within graph node.");
+            }
+
+            return Result<EditRelationshipResponse>.Ok(editRelationshipResponse.Value);
         }
 
         [HttpDelete("id/{noteGraphId:guid}/relationships")]
-        public async Task<ActionResult<Result<CreateNodeGraphResponse>>> DeleteRelationship(Guid noteGraphId, string tag, CancellationToken ct)
+        public async Task<ActionResult<Result<DeleteRelationshipResponse>>> DeleteRelationship(Guid noteGraphId, Guid relationId, CancellationToken ct)
         {
             // TODO: NodeGraphService.GetRelationshipsList(id)
             // 1. Finds if notegraph id exists within user
             // 2. If exists, set metadata isDeleted as true
-            return Result<CreateNodeGraphResponse>.Ok(new CreateNodeGraphResponse());
+            var deleteRelationshipResponse = await _noteGraphService.DeleteRelationshipByIds(noteGraphId, relationId);
+            if (!deleteRelationshipResponse.Success || deleteRelationshipResponse.Value == null)
+            {
+                return Result<DeleteRelationshipResponse>.Fail("Failed to delete relationships within graph node.");
+            }
+
+            return Result<DeleteRelationshipResponse>.Ok(new DeleteRelationshipResponse());
         }
     }
 }
