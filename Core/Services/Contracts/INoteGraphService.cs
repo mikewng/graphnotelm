@@ -1,4 +1,5 @@
-﻿using graphnotelm.Core.Models.DTOs;
+﻿using graphnotelm.Core.Models;
+using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Utils;
 
 namespace graphnotelm.Core.Services.Contracts
@@ -10,5 +11,7 @@ namespace graphnotelm.Core.Services.Contracts
         public Task<Result<GetGraphListResponse>> GetNoteGraphList(CancellationToken ct);
         public Task<Result<CreateGraphResponse>> CreateNoteGraph(CreateGraphRequest createGraphRequest, CancellationToken ct);
         public Task<Result<DeleteGraphResponse>> DeleteNoteGraphById(Guid noteGraphId, CancellationToken ct);
+        public Task<Result<CreateGraphResponse>> ImportNoteGraphFromJSON(NoteGraphDocumentREADONLY document, CancellationToken ct);
+        public Task<Result<NoteGraphDocumentREADONLY>> ExportNoteGraphAsJSON(Guid noteGraphId, CancellationToken ct);
     }
 }

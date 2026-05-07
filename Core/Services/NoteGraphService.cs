@@ -146,5 +146,68 @@ namespace graphnotelm.Core.Services
             }
         }
 
+        public async Task<Result<CreateGraphResponse>> ImportNoteGraphFromJSON(NoteGraphDocumentREADONLY document, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(document.Name))
+                return Result<CreateGraphResponse>.Fail("Failed to import: Name was empty.");
+
+            var newMetadata = new NoteGraphMetadata
+            {
+                Id = Guid.NewGuid(),
+                UserId = _currentUser.UserId,
+                Name = document.Name,
+                IsDeleted = false
+            };
+
+            try
+            {
+                await _noteGraphMetadataRepository.AddAsync(newMetadata, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+
+                var newDocument = new NoteGraphDocument
+                {
+                    Id = newMetadata.Id,
+                    UserId = _currentUser.UserId,
+                    Tags = document.Tags,
+                    Relationships = document.Relationships,
+                    Nodes = document.Nodes
+                };
+
+                await _noteGraphRepository.SaveAsync(newDocument);
+
+                return Result<CreateGraphResponse>.Ok(new CreateGraphResponse
+                {
+                    Id = newMetadata.Id,
+                    IsSuccess = true
+                });
+            }
+            catch
+            {
+                return Result<CreateGraphResponse>.Fail("Failed to import graph from JSON.");
+            }
+        }
+
+        public async Task<Result<NoteGraphDocumentREADONLY>> ExportNoteGraphAsJSON(Guid noteGraphId, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<NoteGraphDocumentREADONLY>.Fail(metadataResult.Error!);
+
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
+                return Result<NoteGraphDocumentREADONLY>.Fail(graphDataResult.Error!);
+
+            var graphData = graphDataResult.Value!;
+            var exportDoc = new NoteGraphDocumentREADONLY
+            {
+                Name = metadataResult.Value!.Name,
+                Tags = graphData.Tags,
+                Relationships = graphData.Relationships,
+                Nodes = graphData.Nodes
+            };
+
+            return Result<NoteGraphDocumentREADONLY>.Ok(exportDoc);
+        }
+
     }
 }

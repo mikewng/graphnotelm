@@ -1,7 +1,7 @@
 ﻿namespace graphnotelm.Core.Models
 {
     public class NoteGraphDocumentREADONLY {
-        public Guid Id { get; set; }
+        public string Name { get; set; } = String.Empty;
         public Dictionary<Guid, TagDefinition> Tags { get; set; } = new();
         public Dictionary<Guid, RelationshipDefinition> Relationships { get; set; } = new();
         public Dictionary<Guid, NoteNode> Nodes { get; set; } = new();

@@ -1,9 +1,10 @@
-﻿using Amazon.DynamoDBv2.Model;
+﻿using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace graphnotelm.API
 {
@@ -252,7 +253,7 @@ namespace graphnotelm.API
             return Result<EditRelationshipResponse>.Ok(editRelationshipResponse.Value);
         }
 
-        [HttpDelete("id/{noteGraphId:guid}/relationships/delete")]
+        [HttpDelete("id/{noteGraphId:guid}/relationships/delete/{relationId:guid}")]
         public async Task<ActionResult<Result<DeleteRelationshipResponse>>> DeleteRelationship(Guid noteGraphId, Guid relationId, CancellationToken ct)
         {
             // TODO: NodeGraphService.GetRelationshipsList(id)
@@ -265,6 +266,31 @@ namespace graphnotelm.API
             }
 
             return Result<DeleteRelationshipResponse>.Ok(new DeleteRelationshipResponse());
+        }
+
+        [HttpPost("create/import")]
+        public async Task<ActionResult<Result<CreateGraphResponse>>> ImportNoteGraph([FromBody] NoteGraphDocumentREADONLY document, CancellationToken ct)
+        {
+            var importNoteGraphResponse = await _noteGraphService.ImportNoteGraphFromJSON(document, ct);
+            if (!importNoteGraphResponse.Success || importNoteGraphResponse.Value == null)
+            {
+                return Result<CreateGraphResponse>.Fail("Failed to import graph from JSON.");
+            }
+            return Result<CreateGraphResponse>.Ok(importNoteGraphResponse.Value);
+        }
+
+        [HttpGet("id/{noteGraphId:guid}/export")]
+        public async Task<IActionResult> ExportNoteGraphAsJSON(Guid noteGraphId, CancellationToken ct)
+        {
+            var exportResult = await _noteGraphService.ExportNoteGraphAsJSON(noteGraphId, ct);
+            if (!exportResult.Success || exportResult.Value == null)
+            {
+                return BadRequest(Result<object>.Fail("Failed to export graph as JSON."));
+            }
+
+            var json = JsonSerializer.Serialize(exportResult.Value, new JsonSerializerOptions { WriteIndented = true });
+            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+            return File(bytes, "application/json", $"notegraph-{exportResult.Value.Name}.json");
         }
     }
 }
