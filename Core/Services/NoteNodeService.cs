@@ -150,5 +150,10 @@ namespace graphnotelm.Core.Services
             }
         }
 
+        // TODO: Implement a saving node functionality for autosave.
+        public Task<Result<SaveNodeContentResponse>> SaveNodeContentAsync(SaveNodeContentRequest saveNodeContentRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
