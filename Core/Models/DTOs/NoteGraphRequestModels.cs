@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using graphnotelm.Core.Models;
 
 namespace graphnotelm.Core.Models.DTOs
 {
@@ -14,16 +15,16 @@ namespace graphnotelm.Core.Models.DTOs
     {
         public string Title { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
-        public Dictionary<Guid, string> Relationships { get; set; } = new Dictionary<Guid, string>();
-        public List<string> Tags { get; set; } = new List<string>();
+        public List<NodeRelationship> Relationships { get; set; } = new();
+        public List<Guid> Tags { get; set; } = new();
     }
 
     public class EditNodeRequest
     {
         public string Title { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
-        public Dictionary<Guid, string> Relationships { get; set; } = new Dictionary<Guid, string>();
-        public List<string> Tags { get; set; } = new List<string>();
+        public List<NodeRelationship> Relationships { get; set; } = new();
+        public List<Guid> Tags { get; set; } = new();
     }
 
     public class CreateTagRequest
@@ -53,5 +54,8 @@ namespace graphnotelm.Core.Models.DTOs
         public string Color { get; set; }
         public string Inverse { get; set; }
     }
-
+    public class SaveNodeContentRequest {
+        public string? Title { get; set; }
+        public string? Note { get; set; }
+    }
 }

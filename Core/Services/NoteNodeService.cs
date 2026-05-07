@@ -83,6 +83,25 @@ namespace graphnotelm.Core.Services
             existingNode.Title = editNodeRequest.Title;
             existingNode.Note = editNodeRequest.Note;
 
+            var invalidTagIds = editNodeRequest.Tags.Where(tagId => !graphData.Tags.ContainsKey(tagId)).ToList();
+            if (invalidTagIds.Any())
+            {
+                return Result<EditNodeResponse>.Fail($"Tag(s) not found in graph: {string.Join(", ", invalidTagIds)}");
+            }
+
+            foreach (var rel in editNodeRequest.Relationships)
+            {
+                if (rel.TargetNodeId == noteNodeId)
+                    return Result<EditNodeResponse>.Fail("A node cannot have a relationship with itself.");
+                if (!graphData.Nodes.ContainsKey(rel.TargetNodeId))
+                    return Result<EditNodeResponse>.Fail($"Target node not found: {rel.TargetNodeId}");
+                if (!graphData.Relationships.ContainsKey(rel.RelationshipId))
+                    return Result<EditNodeResponse>.Fail($"Relationship type not found: {rel.RelationshipId}");
+            }
+
+            existingNode.Tags = editNodeRequest.Tags;
+            existingNode.Relationships = editNodeRequest.Relationships;
+
             try
             {
                 await _noteGraphRepository.SaveAsync(graphData);

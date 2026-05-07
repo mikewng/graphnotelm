@@ -20,7 +20,7 @@ namespace graphnotelm.API
         private readonly IGraphRelationshipService _graphRelationshipService;
 
         public NoteGraphController(
-            ILogger<NoteGraphController> logger, 
+            ILogger<NoteGraphController> logger,
             INoteGraphService noteGraphService,
             INoteNodeService noteNodeService,
             IGraphTagService graphTagService,
@@ -268,6 +268,7 @@ namespace graphnotelm.API
             return Result<DeleteRelationshipResponse>.Ok(new DeleteRelationshipResponse());
         }
 
+        // Import Export Functionality
         [HttpPost("create/import")]
         public async Task<ActionResult<Result<CreateGraphResponse>>> ImportNoteGraph([FromBody] NoteGraphDocumentREADONLY document, CancellationToken ct)
         {
@@ -292,5 +293,20 @@ namespace graphnotelm.API
             var bytes = System.Text.Encoding.UTF8.GetBytes(json);
             return File(bytes, "application/json", $"notegraph-{exportResult.Value.Name}.json");
         }
+
+        // AUTOSAVE Functionality
+        [HttpPatch("id/{noteGraphId:guid}/node/{nodeId:guid}/content")]
+        public async Task<ActionResult<Result<SaveNodeContentResponse>>> SaveNodeContent([FromBody] SaveNodeContentRequest saveNodeContentRequest, Guid noteGraphId, Guid relationId, CancellationToken ct)
+        {
+            var saveNodeContentResponse = await _noteNodeService.SaveNodeContentAsync(saveNodeContentRequest, noteGraphId, relationId, ct);
+            if (!saveNodeContentResponse.Success || saveNodeContentResponse.Value == null)
+            {
+                return BadRequest(Result<SaveNodeContentResponse>.Fail("Failed to save note node."));
+            }
+
+            return Result<SaveNodeContentResponse>.Ok(saveNodeContentResponse.Value);
+
+        }
+
     }
 }
