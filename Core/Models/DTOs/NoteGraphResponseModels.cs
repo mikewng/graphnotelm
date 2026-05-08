@@ -8,6 +8,13 @@ namespace graphnotelm.Core.Models.DTOs
         public bool IsSuccess { get; set; }
     }
 
+    public class EditGraphMetadataResponse
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+    }
+
     public class GetGraphResponse
     {
         public Guid Id { get; set; }

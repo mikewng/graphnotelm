@@ -7,8 +7,15 @@ namespace graphnotelm.Core.Models.DTOs
     {
         [Required]
         public string Name { get; set; }
+        public string Description { get; set; } = string.Empty;
         public bool isPublic { get; set; } = false;
         public bool isDeleted { get; set; } = false;
+    }
+
+    public class EditGraphMetadataRequest
+    {
+        public string Name { get; set; }
+        public string Description { get; set; }
     }
 
     public class CreateNodeRequest

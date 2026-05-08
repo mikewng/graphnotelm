@@ -28,7 +28,7 @@
 
     public class NoteNodeMetadata
     {
-        public float LearningRate { get; set; } = 0.0f;
+        public float UserConfidenceRate { get; set; } = 0.0f;
         public string LLMMetadata { get; set; } = string.Empty;
     }
 

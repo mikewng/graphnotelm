@@ -39,6 +39,7 @@ namespace graphnotelm.Infrastructure
                 e.Property(u => u.Id).ValueGeneratedOnAdd();
                 e.Property(u => u.UserId).IsRequired();
                 e.Property(u => u.Name).IsRequired().HasMaxLength(255);
+                e.Property(u => u.Description).HasDefaultValue("").HasMaxLength(255);
                 e.Property(u => u.IsPublic).IsRequired().HasDefaultValue(false);
                 e.Property(u => u.IsDeleted).IsRequired().HasDefaultValue(false);
                 e.Property(u => u.CreatedAt).IsRequired();

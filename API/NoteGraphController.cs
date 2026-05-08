@@ -72,6 +72,18 @@ namespace graphnotelm.API
             return Result<DeleteGraphResponse>.Ok(deleteGraphResponse.Value);
         }
 
+        [HttpPatch("edit/{noteGraphId:guid}/metadata", Name = "EditNoteGraphMetadata")]
+        public async Task<ActionResult<Result<EditGraphMetadataResponse>>> EditGraphMetadata([FromBody] EditGraphMetadataRequest editGraphMetadataRequest, Guid noteGraphId, CancellationToken ct)
+        {
+            var editGraphMetadataResponse = await _noteGraphService.EditGraphMetadataById(editGraphMetadataRequest, noteGraphId, ct);
+            if (!editGraphMetadataResponse.Success || editGraphMetadataResponse.Value == null)
+            {
+                return Result<EditGraphMetadataResponse>.Fail("Failed to edit graph metadata of given ID.");
+            }
+
+            return Result<EditGraphMetadataResponse>.Ok(editGraphMetadataResponse.Value);
+        }
+
         [HttpPost("create/import")]
         public async Task<ActionResult<Result<CreateGraphResponse>>> ImportNoteGraph([FromBody] NoteGraphDocumentREADONLY document, CancellationToken ct)
         {

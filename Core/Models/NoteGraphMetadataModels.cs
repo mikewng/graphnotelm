@@ -4,7 +4,8 @@
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
-        public string Name { get; set; } = String.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
         public bool IsPublic { get; set; } = false;
         public bool IsDeleted { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

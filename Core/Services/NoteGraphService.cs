@@ -83,6 +83,7 @@ namespace graphnotelm.Core.Services
                 Id = Guid.NewGuid(),
                 UserId = _currentUser.UserId,
                 Name = createGraphRequest.Name,
+                Description = createGraphRequest.Description,
                 IsPublic = createGraphRequest.isPublic,
                 IsDeleted = createGraphRequest.isDeleted
             };
@@ -115,6 +116,36 @@ namespace graphnotelm.Core.Services
             catch
             {
                 return Result<CreateGraphResponse>.Fail("Failed to create new graph.");
+            }
+        }
+
+        public async Task<Result<EditGraphMetadataResponse>> EditGraphMetadataById(EditGraphMetadataRequest editGraphMetadataRequest, Guid noteGraphId, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+            {
+                return Result<EditGraphMetadataResponse>.Fail(metadataResult.Error!);
+            }
+
+            var graphMetadata = metadataResult.Value!;
+            graphMetadata.Name = editGraphMetadataRequest.Name ?? graphMetadata.Name;
+            graphMetadata.Description = editGraphMetadataRequest.Description ?? graphMetadata.Description;
+            graphMetadata.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _noteGraphMetadataRepository.UpdateAsync(graphMetadata, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+                return Result<EditGraphMetadataResponse>.Ok(new EditGraphMetadataResponse
+                {
+                    Id = graphMetadata.Id,
+                    Name = graphMetadata.Name,
+                    Description = graphMetadata.Description
+                });
+            }
+            catch
+            {
+                return Result<EditGraphMetadataResponse>.Fail("Failed to edit graph metadata.");
             }
         }
 
