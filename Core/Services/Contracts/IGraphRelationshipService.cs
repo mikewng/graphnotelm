@@ -9,5 +9,7 @@ namespace graphnotelm.Core.Services.Contracts
         public Task<Result<CreateRelationshipResponse>> CreateRelationshipByGraphId(CreateRelationshipRequest createRelationshipRequest, Guid noteGraphId, CancellationToken ct);
         public Task<Result<EditRelationshipResponse>> EditRelationshipByIds(EditRelationshipRequest editRelationshipRequest, Guid noteGraphId, Guid relationId, CancellationToken ct);
         public Task<Result<DeleteRelationshipResponse>> DeleteRelationshipByIds(Guid noteGraphId, Guid relationId, CancellationToken ct);
+        public Task<Result<AddNodeRelationshipResponse>> AddRelationshipToNode(AddNodeRelationshipRequest request, Guid noteGraphId, Guid noteNodeId, CancellationToken ct);
+        public Task<Result<RemoveNodeRelationshipResponse>> RemoveRelationshipFromNode(Guid noteGraphId, Guid noteNodeId, Guid targetNodeId, Guid relationshipId, CancellationToken ct);
     }
 }

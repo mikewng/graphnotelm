@@ -119,5 +119,63 @@ namespace graphnotelm.Core.Services
                 return Result<DeleteTagResponse>.Fail("Failed to delete tag.");
             }
         }
+
+        public async Task<Result<AddNodeTagResponse>> AddTagToNode(AddNodeTagRequest request, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<AddNodeTagResponse>.Fail(metadataResult.Error!);
+
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
+                return Result<AddNodeTagResponse>.Fail(graphDataResult.Error!);
+
+            var graphData = graphDataResult.Value!;
+            if (!graphData.Nodes.TryGetValue(noteNodeId, out var node))
+                return Result<AddNodeTagResponse>.Fail("Node not found in graph.");
+            if (!graphData.Tags.ContainsKey(request.TagId))
+                return Result<AddNodeTagResponse>.Fail("Tag not found in graph.");
+            if (node.Tags.Contains(request.TagId))
+                return Result<AddNodeTagResponse>.Fail("Tag is already assigned to this node.");
+
+            node.Tags.Add(request.TagId);
+
+            try
+            {
+                await _noteGraphRepository.SaveAsync(graphData);
+                return Result<AddNodeTagResponse>.Ok(new AddNodeTagResponse { NodeId = noteNodeId, Tags = node.Tags });
+            }
+            catch
+            {
+                return Result<AddNodeTagResponse>.Fail("Failed to add tag to node.");
+            }
+        }
+
+        public async Task<Result<RemoveNodeTagResponse>> RemoveTagFromNode(Guid noteGraphId, Guid noteNodeId, Guid tagId, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<RemoveNodeTagResponse>.Fail(metadataResult.Error!);
+
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
+                return Result<RemoveNodeTagResponse>.Fail(graphDataResult.Error!);
+
+            var graphData = graphDataResult.Value!;
+            if (!graphData.Nodes.TryGetValue(noteNodeId, out var node))
+                return Result<RemoveNodeTagResponse>.Fail("Node not found in graph.");
+            if (!node.Tags.Remove(tagId))
+                return Result<RemoveNodeTagResponse>.Fail("Tag is not assigned to this node.");
+
+            try
+            {
+                await _noteGraphRepository.SaveAsync(graphData);
+                return Result<RemoveNodeTagResponse>.Ok(new RemoveNodeTagResponse { NodeId = noteNodeId, RemovedTagId = tagId });
+            }
+            catch
+            {
+                return Result<RemoveNodeTagResponse>.Fail("Failed to remove tag from node.");
+            }
+        }
     }
 }

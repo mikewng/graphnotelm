@@ -102,4 +102,29 @@ namespace graphnotelm.Core.Models.DTOs
         public Guid NodeId { get; set; }
         public NoteNodeMetadata Metadata { get; set; } = new();
     }
+
+    public class AddNodeTagResponse
+    {
+        public Guid NodeId { get; set; }
+        public List<Guid> Tags { get; set; } = new();
+    }
+
+    public class RemoveNodeTagResponse
+    {
+        public Guid NodeId { get; set; }
+        public Guid RemovedTagId { get; set; }
+    }
+
+    public class AddNodeRelationshipResponse
+    {
+        public Guid NodeId { get; set; }
+        public List<NodeRelationship> Relationships { get; set; } = new();
+    }
+
+    public class RemoveNodeRelationshipResponse
+    {
+        public Guid NodeId { get; set; }
+        public Guid RemovedTargetNodeId { get; set; }
+        public Guid RemovedRelationshipId { get; set; }
+    }
 }

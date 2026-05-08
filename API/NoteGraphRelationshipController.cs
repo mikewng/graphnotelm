@@ -69,5 +69,25 @@ namespace graphnotelm.API
 
             return Result<DeleteRelationshipResponse>.Ok(new DeleteRelationshipResponse());
         }
+
+        [HttpPost("id/{noteGraphId:guid}/node/{nodeId:guid}/relationships")]
+        public async Task<ActionResult<Result<AddNodeRelationshipResponse>>> AddRelationshipToNode([FromBody] AddNodeRelationshipRequest addNodeRelationshipRequest, Guid noteGraphId, Guid nodeId, CancellationToken ct)
+        {
+            var response = await _graphRelationshipService.AddRelationshipToNode(addNodeRelationshipRequest, noteGraphId, nodeId, ct);
+            if (!response.Success || response.Value == null)
+                return BadRequest(Result<AddNodeRelationshipResponse>.Fail(response.Error ?? "Failed to add relationship to node."));
+
+            return Result<AddNodeRelationshipResponse>.Ok(response.Value);
+        }
+
+        [HttpDelete("id/{noteGraphId:guid}/node/{nodeId:guid}/relationships/{targetNodeId:guid}/{relationshipId:guid}")]
+        public async Task<ActionResult<Result<RemoveNodeRelationshipResponse>>> RemoveRelationshipFromNode(Guid noteGraphId, Guid nodeId, Guid targetNodeId, Guid relationshipId, CancellationToken ct)
+        {
+            var response = await _graphRelationshipService.RemoveRelationshipFromNode(noteGraphId, nodeId, targetNodeId, relationshipId, ct);
+            if (!response.Success || response.Value == null)
+                return BadRequest(Result<RemoveNodeRelationshipResponse>.Fail(response.Error ?? "Failed to remove relationship from node."));
+
+            return Result<RemoveNodeRelationshipResponse>.Ok(response.Value);
+        }
     }
 }

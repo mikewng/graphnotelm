@@ -72,4 +72,18 @@ namespace graphnotelm.Core.Models.DTOs
         public float? UserConfidenceRate { get; set; }
         public string? LLMMetadata { get; set; }
     }
+
+    public class AddNodeTagRequest
+    {
+        [Required]
+        public Guid TagId { get; set; }
+    }
+
+    public class AddNodeRelationshipRequest
+    {
+        [Required]
+        public Guid TargetNodeId { get; set; }
+        [Required]
+        public Guid RelationshipId { get; set; }
+    }
 }

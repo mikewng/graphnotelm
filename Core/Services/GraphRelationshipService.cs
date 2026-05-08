@@ -122,5 +122,74 @@ namespace graphnotelm.Core.Services
                 return Result<DeleteRelationshipResponse>.Fail("Failed to delete relationship.");
             }
         }
+
+        public async Task<Result<AddNodeRelationshipResponse>> AddRelationshipToNode(AddNodeRelationshipRequest request, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<AddNodeRelationshipResponse>.Fail(metadataResult.Error!);
+
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
+                return Result<AddNodeRelationshipResponse>.Fail(graphDataResult.Error!);
+
+            var graphData = graphDataResult.Value!;
+            if (!graphData.Nodes.TryGetValue(noteNodeId, out var node))
+                return Result<AddNodeRelationshipResponse>.Fail("Node not found in graph.");
+            if (request.TargetNodeId == noteNodeId)
+                return Result<AddNodeRelationshipResponse>.Fail("A node cannot have a relationship with itself.");
+            if (!graphData.Nodes.ContainsKey(request.TargetNodeId))
+                return Result<AddNodeRelationshipResponse>.Fail("Target node not found in graph.");
+            if (!graphData.Relationships.ContainsKey(request.RelationshipId))
+                return Result<AddNodeRelationshipResponse>.Fail("Relationship type not found in graph.");
+            if (node.Relationships.Any(r => r.TargetNodeId == request.TargetNodeId && r.RelationshipId == request.RelationshipId))
+                return Result<AddNodeRelationshipResponse>.Fail("This relationship already exists on the node.");
+
+            node.Relationships.Add(new NodeRelationship { TargetNodeId = request.TargetNodeId, RelationshipId = request.RelationshipId });
+
+            try
+            {
+                await _noteGraphRepository.SaveAsync(graphData);
+                return Result<AddNodeRelationshipResponse>.Ok(new AddNodeRelationshipResponse { NodeId = noteNodeId, Relationships = node.Relationships });
+            }
+            catch
+            {
+                return Result<AddNodeRelationshipResponse>.Fail("Failed to add relationship to node.");
+            }
+        }
+
+        public async Task<Result<RemoveNodeRelationshipResponse>> RemoveRelationshipFromNode(Guid noteGraphId, Guid noteNodeId, Guid targetNodeId, Guid relationshipId, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<RemoveNodeRelationshipResponse>.Fail(metadataResult.Error!);
+
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
+                return Result<RemoveNodeRelationshipResponse>.Fail(graphDataResult.Error!);
+
+            var graphData = graphDataResult.Value!;
+            if (!graphData.Nodes.TryGetValue(noteNodeId, out var node))
+                return Result<RemoveNodeRelationshipResponse>.Fail("Node not found in graph.");
+
+            var removed = node.Relationships.RemoveAll(r => r.TargetNodeId == targetNodeId && r.RelationshipId == relationshipId);
+            if (removed == 0)
+                return Result<RemoveNodeRelationshipResponse>.Fail("Relationship not found on node.");
+
+            try
+            {
+                await _noteGraphRepository.SaveAsync(graphData);
+                return Result<RemoveNodeRelationshipResponse>.Ok(new RemoveNodeRelationshipResponse
+                {
+                    NodeId = noteNodeId,
+                    RemovedTargetNodeId = targetNodeId,
+                    RemovedRelationshipId = relationshipId
+                });
+            }
+            catch
+            {
+                return Result<RemoveNodeRelationshipResponse>.Fail("Failed to remove relationship from node.");
+            }
+        }
     }
 }

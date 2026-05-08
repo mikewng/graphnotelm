@@ -69,5 +69,25 @@ namespace graphnotelm.API
 
             return Result<DeleteTagResponse>.Ok(deleteTagResponse.Value);
         }
+
+        [HttpPost("id/{noteGraphId:guid}/node/{nodeId:guid}/tags")]
+        public async Task<ActionResult<Result<AddNodeTagResponse>>> AddTagToNode([FromBody] AddNodeTagRequest addNodeTagRequest, Guid noteGraphId, Guid nodeId, CancellationToken ct)
+        {
+            var response = await _graphTagService.AddTagToNode(addNodeTagRequest, noteGraphId, nodeId, ct);
+            if (!response.Success || response.Value == null)
+                return BadRequest(Result<AddNodeTagResponse>.Fail(response.Error ?? "Failed to add tag to node."));
+
+            return Result<AddNodeTagResponse>.Ok(response.Value);
+        }
+
+        [HttpDelete("id/{noteGraphId:guid}/node/{nodeId:guid}/tags/{tagId:guid}")]
+        public async Task<ActionResult<Result<RemoveNodeTagResponse>>> RemoveTagFromNode(Guid noteGraphId, Guid nodeId, Guid tagId, CancellationToken ct)
+        {
+            var response = await _graphTagService.RemoveTagFromNode(noteGraphId, nodeId, tagId, ct);
+            if (!response.Success || response.Value == null)
+                return BadRequest(Result<RemoveNodeTagResponse>.Fail(response.Error ?? "Failed to remove tag from node."));
+
+            return Result<RemoveNodeTagResponse>.Ok(response.Value);
+        }
     }
 }
