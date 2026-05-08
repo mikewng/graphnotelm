@@ -15,6 +15,7 @@ namespace graphnotelm.Core.Models.DTOs
     {
         public string Title { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
+        public NoteNodeMetadata Metadata { get; set; } = new();
         public List<NodeRelationship> Relationships { get; set; } = new();
         public List<Guid> Tags { get; set; } = new();
     }

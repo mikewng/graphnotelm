@@ -19,10 +19,17 @@
     public class NoteNode
     {
         public Guid Id { get; set; }
+        public NoteNodeMetadata Metadata { get; set; } = new();
         public string Title { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
         public List<NodeRelationship> Relationships { get; set; } = new();
         public List<Guid> Tags { get; set; } = new();
+    }
+
+    public class NoteNodeMetadata
+    {
+        public float LearningRate { get; set; } = 0.0f;
+        public string LLMMetadata { get; set; } = string.Empty;
     }
 
     public class NodeRelationship
