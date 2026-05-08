@@ -150,10 +150,45 @@ namespace graphnotelm.Core.Services
             }
         }
 
-        // TODO: Implement a saving node functionality for autosave.
-        public Task<Result<SaveNodeContentResponse>> SaveNodeContentAsync(SaveNodeContentRequest saveNodeContentRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
+        public async Task<Result<SaveNodeContentResponse>> SaveNodeContentAsync(SaveNodeContentRequest saveNodeContentRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+            {
+                return Result<SaveNodeContentResponse>.Fail(metadataResult.Error!);
+            }
+
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
+            {
+                return Result<SaveNodeContentResponse>.Fail(graphDataResult.Error!);
+            }
+
+            var graphData = graphDataResult.Value!;
+            if (!graphData.Nodes.TryGetValue(noteNodeId, out var existingNode))
+            {
+                return Result<SaveNodeContentResponse>.Fail("Node not found in graph.");
+            }
+
+            if (saveNodeContentRequest.Title is not null)
+            {
+                if (saveNodeContentRequest.Title == string.Empty)
+                    return Result<SaveNodeContentResponse>.Fail("Title cannot be empty.");
+                existingNode.Title = saveNodeContentRequest.Title;
+            }
+
+            if (saveNodeContentRequest.Note is not null)
+                existingNode.Note = saveNodeContentRequest.Note;
+
+            try
+            {
+                await _noteGraphRepository.SaveAsync(graphData);
+                return Result<SaveNodeContentResponse>.Ok(new SaveNodeContentResponse { IsSuccess = true });
+            }
+            catch
+            {
+                return Result<SaveNodeContentResponse>.Fail("Failed to save node content.");
+            }
         }
 
         public async Task<Result<EditNodeMetadataResponse>> EditNodeMetadataByIds(EditNodeMetadataRequest editNodeMetadataRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
