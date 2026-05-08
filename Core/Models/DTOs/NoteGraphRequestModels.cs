@@ -66,4 +66,10 @@ namespace graphnotelm.Core.Models.DTOs
         public string? Title { get; set; }
         public string? Note { get; set; }
     }
+
+    public class EditNodeMetadataRequest
+    {
+        public float? UserConfidenceRate { get; set; }
+        public string? LLMMetadata { get; set; }
+    }
 }

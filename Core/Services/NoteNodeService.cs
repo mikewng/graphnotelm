@@ -155,5 +155,45 @@ namespace graphnotelm.Core.Services
         {
             throw new NotImplementedException();
         }
+
+        public async Task<Result<EditNodeMetadataResponse>> EditNodeMetadataByIds(EditNodeMetadataRequest editNodeMetadataRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+            {
+                return Result<EditNodeMetadataResponse>.Fail(metadataResult.Error!);
+            }
+
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
+            {
+                return Result<EditNodeMetadataResponse>.Fail(graphDataResult.Error!);
+            }
+
+            var graphData = graphDataResult.Value!;
+            if (!graphData.Nodes.TryGetValue(noteNodeId, out var existingNode))
+            {
+                return Result<EditNodeMetadataResponse>.Fail("Node not found in graph.");
+            }
+
+            if (editNodeMetadataRequest.UserConfidenceRate.HasValue)
+                existingNode.Metadata.UserConfidenceRate = editNodeMetadataRequest.UserConfidenceRate.Value;
+            if (editNodeMetadataRequest.LLMMetadata is not null)
+                existingNode.Metadata.LLMMetadata = editNodeMetadataRequest.LLMMetadata;
+
+            try
+            {
+                await _noteGraphRepository.SaveAsync(graphData);
+                return Result<EditNodeMetadataResponse>.Ok(new EditNodeMetadataResponse
+                {
+                    NodeId = noteNodeId,
+                    Metadata = existingNode.Metadata
+                });
+            }
+            catch
+            {
+                return Result<EditNodeMetadataResponse>.Fail("Failed to update node metadata.");
+            }
+        }
     }
 }

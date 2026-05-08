@@ -58,6 +58,7 @@ namespace graphnotelm.API
             return Result<DeleteNodeResponse>.Ok(deleteNodeResponse.Value);
         }
 
+        // This will be called everytime after user stops typing for ~20s
         [HttpPatch("id/{noteGraphId:guid}/node/{nodeId:guid}/content")]
         public async Task<ActionResult<Result<SaveNodeContentResponse>>> SaveNodeContent([FromBody] SaveNodeContentRequest saveNodeContentRequest, Guid noteGraphId, Guid nodeId, CancellationToken ct)
         {
@@ -68,6 +69,18 @@ namespace graphnotelm.API
             }
 
             return Result<SaveNodeContentResponse>.Ok(saveNodeContentResponse.Value);
+        }
+
+        [HttpPatch("id/{noteGraphId:guid}/node/{nodeId:guid}/metadata")]
+        public async Task<ActionResult<Result<EditNodeMetadataResponse>>> EditNoteMetadata([FromBody] EditNodeMetadataRequest editNodeMetadataRequest, Guid noteGraphId, Guid nodeId, CancellationToken ct)
+        {
+            var editNodeMetadataResponse = await _noteNodeService.EditNodeMetadataByIds(editNodeMetadataRequest, noteGraphId, nodeId, ct);
+            if (!editNodeMetadataResponse.Success || editNodeMetadataResponse.Value == null)
+            {
+                return BadRequest(Result<EditNodeMetadataResponse>.Fail("Failed to edit node metadata."));
+            }
+
+            return Result<EditNodeMetadataResponse>.Ok(editNodeMetadataResponse.Value);
         }
     }
 }

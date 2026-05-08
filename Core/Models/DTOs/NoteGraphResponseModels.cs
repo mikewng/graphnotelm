@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using graphnotelm.Core.Models;
 
 namespace graphnotelm.Core.Models.DTOs
 {
@@ -94,5 +95,11 @@ namespace graphnotelm.Core.Models.DTOs
     public class SaveNodeContentResponse
     {
         public bool IsSuccess = false;
+    }
+
+    public class EditNodeMetadataResponse
+    {
+        public Guid NodeId { get; set; }
+        public NoteNodeMetadata Metadata { get; set; } = new();
     }
 }
