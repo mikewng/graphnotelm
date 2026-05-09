@@ -2,14 +2,14 @@
 
 namespace graphnotelm.Core.Utils
 {
-    public class GraphTraversal
+    public class GraphView
     {
         private readonly NoteGraphDocument _document;
         private readonly Dictionary<Guid, List<NodeRelationship>> _adjacency;
         private readonly Dictionary<Guid, List<NodeRelationship>> _reverseAdjacency;
         private readonly Dictionary<Guid, NoteNode> _nodes;
 
-        public GraphTraversal(NoteGraphDocument graph)
+        public GraphView(NoteGraphDocument graph)
         {
             _document = graph;
             _nodes = graph.Nodes;
