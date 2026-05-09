@@ -3,7 +3,7 @@ using graphnotelm.Utils;
 
 namespace graphnotelm.Core.Services.Contracts
 {
-    public interface IGraphRelationshipService
+    public interface INoteGraphRelationshipService
     {
         public Task<Result<GetRelationshipListResponse>> GetRelationshipListByGraphId(Guid noteGraphId, CancellationToken ct);
         public Task<Result<CreateRelationshipResponse>> CreateRelationshipByGraphId(CreateRelationshipRequest createRelationshipRequest, Guid noteGraphId, CancellationToken ct);

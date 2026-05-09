@@ -7,13 +7,13 @@ using graphnotelm.Utils;
 
 namespace graphnotelm.Core.Services
 {
-    public class GraphRelationshipService : IGraphRelationshipService
+    public class NoteGraphRelationshipService : INoteGraphRelationshipService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly INoteGraphAccessService _noteGraphAccessService;
         private readonly INoteGraphRepository _noteGraphRepository;
 
-        public GraphRelationshipService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository)
+        public NoteGraphRelationshipService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository)
         {
             _unitOfWork = unitOfWork;
             _noteGraphAccessService = noteGraphAccessService;

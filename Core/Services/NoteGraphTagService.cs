@@ -7,14 +7,14 @@ using graphnotelm.Utils;
 
 namespace graphnotelm.Core.Services
 {
-    public class GraphTagService : IGraphTagService
+    public class NoteGraphTagService : INoteGraphTagService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly INoteGraphAccessService _noteGraphAccessService;
         private readonly INoteGraphRepository _noteGraphRepository;
 
 
-        public GraphTagService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository)
+        public NoteGraphTagService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository)
         {
             _unitOfWork = unitOfWork;
             _noteGraphAccessService = noteGraphAccessService;

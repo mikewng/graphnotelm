@@ -3,7 +3,7 @@ using graphnotelm.Utils;
 
 namespace graphnotelm.Core.Services.Contracts
 {
-    public interface IGraphTagService
+    public interface INoteGraphTagService
     {
         public Task<Result<GetTagListResponse>> GetTagListByGraphId(Guid noteGraphId, CancellationToken ct);
         public Task<Result<CreateTagResponse>> CreateTagByGraphId(CreateTagRequest createTagRequest, Guid noteGraphId, CancellationToken ct);

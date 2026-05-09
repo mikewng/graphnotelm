@@ -12,11 +12,11 @@ namespace graphnotelm.API
     public class NoteGraphRelationshipController : ControllerBase
     {
         private readonly ILogger<NoteGraphRelationshipController> _logger;
-        private readonly IGraphRelationshipService _graphRelationshipService;
+        private readonly INoteGraphRelationshipService _graphRelationshipService;
 
         public NoteGraphRelationshipController(
             ILogger<NoteGraphRelationshipController> logger,
-            IGraphRelationshipService graphRelationshipService)
+            INoteGraphRelationshipService graphRelationshipService)
         {
             _logger = logger;
             _graphRelationshipService = graphRelationshipService;

@@ -21,8 +21,8 @@ public static class DependencyInjection
         services.AddScoped<INoteGraphService, NoteGraphService>();
         services.AddScoped<INoteNodeService, NoteNodeService>();
 
-        services.AddScoped<IGraphTagService, GraphTagService>();
-        services.AddScoped<IGraphRelationshipService, GraphRelationshipService>();
+        services.AddScoped<INoteGraphTagService, NoteGraphTagService>();
+        services.AddScoped<INoteGraphRelationshipService, NoteGraphRelationshipService>();
 
         // Register Contexts
         services.AddHttpContextAccessor();

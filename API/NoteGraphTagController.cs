@@ -12,11 +12,11 @@ namespace graphnotelm.API
     public class NoteGraphTagController : ControllerBase
     {
         private readonly ILogger<NoteGraphTagController> _logger;
-        private readonly IGraphTagService _graphTagService;
+        private readonly INoteGraphTagService _graphTagService;
 
         public NoteGraphTagController(
             ILogger<NoteGraphTagController> logger,
-            IGraphTagService graphTagService)
+            INoteGraphTagService graphTagService)
         {
             _logger = logger;
             _graphTagService = graphTagService;
