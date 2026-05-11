@@ -8,12 +8,18 @@ In addition to each notebook, or "notegraph", being powered by a graph datastruc
 
 
 ## Technologies
+Stack
 - ReactJS + Vite (JavaScript, HTML & CSS)
-- ASP.NET 9.0 (C#)
+- .NET Core 9.0 (C#)
 - PostgreSQL
 - DynamoDB
 - Environment Dockerization
 - Redis Caching
+Deployment
+- AWS ECS Fargate
+- AWS RDS
+- AWS DynamoDB
+- AWS S3 + CloudFront
 
 
 ## Features
@@ -32,7 +38,10 @@ If you want to streamline the saving process of notegraphs, you can utilize the 
 If privacy is a big concern to you, a major option is running everything encased within the application within a single docker command. The docker compose will spin up everything - from Frontend, to .NET Backend Service, to even the PostgreSQL and InternalJSONStorage as volumes. All you need is to install docker, clone the repo, and run docker compose --build. The application should be lightweight enough to be run in the background, but contains graceful shutdowns that does not disrupt data.
 
 ## Cool Applications of NoteGraphLM
-### Worldbuilding and Storytelling for Large Book Projects
+### Learning Pacing Tool
+This was the main motivation for me to build this tool, as a way to find the best way to learn concepts and what order to learn them. For example, you can set nodes as concepts, write note and content within them, and then connect each node to other nodes as "prerequisite to" or "has prerequisite" relationships. With the built-in confidence rate within each node's metadata, you can gage how well you have the node's concept learned and whether or not you are ready to move onto the subsequent nodes.
+
+### Worldbuilding and Storytelling for Large Book Projects and Tabletop RPGs
 You can use this NoteGraphs instead for learning, but keep an organized and visual representation of your story and in-story world as relationships and concepts. This can be especially useful for people that are into hobbies like Dungeons and Dragons, writing multi-series books that span over many in-story centuries, etc. You can have note nodes be for characters, events, items, and note relationships be connections like "allied with", "enemies with", "caused event", etc.
 
 ### Interactive Grid Game
@@ -47,8 +56,29 @@ Aside from being a primarily note-taking application, there are ways to make Not
 ## Options to Run
 
 ### Publicly Deployed Service
+You can access the service publicly through the url: xxx. You can create an account to have your notes be saved on the cloud. Otherwise, you must handle manual saving by exporting your notegraph every so often (you still have this option as a user).
 
-### Local Development
+### Local Development API
+Clone the repository from master. Make sure you have the following installed (at the very minimum):
+- .NET Core
+- PostgreSQL
+
+1. Within .NET application, provide an appsettings based off of appsettings.Example.json, the main crediential being your local postgreSQL server. ("Host=localhost;Port=5432;Database=graphnotelm;Username=postgres;Password=[yourlocalpassword]")
+2. CD into the folder that contains all the code within the repo.
+3. Apply migrations via Entity Framework: dotnet ef database update
+4. Run the application via http or https
 
 ### Local Workspace
+Clone the repository "feature/with-fe". Make sure you have docker installed.
+1. CD into the folder that contains all the code within the repo.
+2. run the command: docker compose --build
+3. Frontend UI runs on localhost:5173
 
+Caveats:
+- You do not have access to the LLM features by default (can be turned back on, but is off due to compliance with everything being ENTIRELY local).
+- Shutdown local service
+   - run command: docker compose down
+   - Go to docker -> Containers -> graphnotelm -> CLick the blue square button, which shuts down the container.
+- Delete Internal NoteGraph Data
+   - run command: docker volume rm graphnotelm_notegraph_data graphnotelm_postgres_data
+   - Go to docker -> Volumes -> Check graphnotelm_notegraph_data and or graphnotelm_postgres_data -> Hit "delete" button on top right
