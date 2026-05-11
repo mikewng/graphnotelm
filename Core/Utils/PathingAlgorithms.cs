@@ -13,7 +13,6 @@ namespace graphnotelm.Core.Utils
         public static List<GuidMetadataPair> DijkstrasById(Guid noteNodeId, GraphView graph)
         {
             List<GuidMetadataPair> path = new List<GuidMetadataPair>();
-
             NoteNode startingNode = graph.GetNode(noteNodeId);
 
             HashSet<Guid> visited = new HashSet<Guid>();
@@ -66,7 +65,6 @@ namespace graphnotelm.Core.Utils
         public static List<Guid> BreadthFirstSearchById(Guid noteNodeId, float minConfidence, GraphView graph)
         {
             List<Guid> nodes = new List<Guid>() { noteNodeId };
-
             NoteNode startingNode = graph.GetNode(noteNodeId);
 
             HashSet<Guid> visited = new HashSet<Guid>();
