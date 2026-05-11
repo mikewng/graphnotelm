@@ -27,4 +27,7 @@ RUN dotnet publish "./graphnotelm.csproj" -c $BUILD_CONFIGURATION -o /app/publis
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+USER root
+RUN mkdir -p /app/data && chown app:app /app/data
+USER $APP_UID
 ENTRYPOINT ["dotnet", "graphnotelm.dll"]

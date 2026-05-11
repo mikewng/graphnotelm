@@ -28,7 +28,9 @@ services:
       - Jwt__Key=57ff8cb7-ed21-482d-810b-7e784dfd4ba0
       - Jwt__Issuer=graphnotelm
       - Jwt__Audience=graphnotelm_client
-      - Jwt__AccessTokenMinutes=60
+      - Jwt__AccessTokenMinutes=43200
+    volumes:
+      - notegraph_data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,3 +48,4 @@ services:
 
 volumes:
   postgres_data:
+  notegraph_data:

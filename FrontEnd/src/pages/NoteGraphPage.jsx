@@ -60,6 +60,7 @@ export default function NoteGraphPage() {
     try {
       const data = await noteGraphApi.get(id)
       setGraph(data)
+      setError('')
     } catch (err) {
       setError(err.message)
     }
