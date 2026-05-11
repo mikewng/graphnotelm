@@ -1,0 +1,149 @@
+.home-body {
+  width: 100%;
+  max-width: 100rem;
+  margin: 0 auto;
+  padding: 48px 32px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.home-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.home-search {
+  flex: 1;
+  min-width: 0;
+  max-width: 360px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  font-size: 12px;
+  color: var(--text);
+  transition: border-color var(--t-fast);
+}
+
+.home-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.home-search::placeholder { color: var(--text-3); }
+
+.home-count {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.home-error {
+  color: var(--red);
+  font-size: 12px;
+  padding: 8px 12px;
+  background: color-mix(in oklch, var(--red) 8%, transparent);
+  border: 1px solid color-mix(in oklch, var(--red) 25%, transparent);
+  border-radius: var(--radius);
+}
+
+.graph-list {
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg-2);
+}
+
+.graph-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  transition: background var(--t-fast);
+  gap: 12px;
+}
+
+.graph-list-item:last-child {
+  border-bottom: none;
+}
+
+.graph-list-item:hover {
+  background: var(--hover);
+}
+
+.graph-name-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: color var(--t-fast);
+}
+
+.graph-name-btn:hover { background: none; border-color: transparent; }
+.graph-name-btn:hover .graph-name { color: var(--accent); }
+
+.graph-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--t-fast);
+}
+
+.graph-description {
+  font-size: 11px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.01em;
+}
+
+.graph-list-item .btn-danger {
+  font-size: 11px;
+  padding: 3px 10px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--t-fast), background var(--t-fast);
+}
+
+.graph-list-item:hover .btn-danger {
+  opacity: 1;
+}
+
+.graph-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.6;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.graph-empty p { margin-bottom: 4px; }
+
+.graph-empty .hint {
+  font-size: 11px;
+  color: var(--text-3);
+  opacity: 0.7;
+}

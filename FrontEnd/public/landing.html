@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GraphNoteLM Landing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;450;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+
+  <style>
+    /* ── Tokens ─────────────────────────────────────────────────────── */
+    :root {
+      --bg:        oklch(0.18 0.005 60);
+      --bg-2:      oklch(0.21 0.006 60);
+      --bg-3:      oklch(0.24 0.006 60);
+      --hover:     oklch(0.27 0.008 60);
+      --border:    oklch(0.30 0.008 60);
+      --border-strong: oklch(0.38 0.010 60);
+      --text:      oklch(0.92 0.008 75);
+      --text-2:    oklch(0.70 0.010 70);
+      --text-3:    oklch(0.50 0.010 65);
+      --accent:    oklch(0.78 0.14 70);
+      --accent-2:  oklch(0.78 0.14 70 / 0.12);
+      --green:     oklch(0.78 0.13 145);
+      --blue:      oklch(0.78 0.11 240);
+      --purple:    oklch(0.78 0.13 305);
+      --pink:      oklch(0.78 0.14 350);
+
+      --radius: 4px;
+      --radius-lg: 6px;
+      --radius-xl: 10px;
+      --font-ui: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --font-body: 'Inter', system-ui, sans-serif;
+
+      --t-fast: 120ms cubic-bezier(.4,0,.2,1);
+      --t-med:  220ms cubic-bezier(.4,0,.2,1);
+      --t-slow: 380ms cubic-bezier(.4,0,.2,1);
+
+      --max: 1180px;
+    }
+    html[data-theme="light"] {
+      --bg:        oklch(0.985 0.004 75);
+      --bg-2:      oklch(0.965 0.005 75);
+      --bg-3:      oklch(0.945 0.006 75);
+      --hover:     oklch(0.92 0.008 75);
+      --border:    oklch(0.89 0.008 75);
+      --border-strong: oklch(0.80 0.010 75);
+      --text:      oklch(0.22 0.008 70);
+      --text-2:    oklch(0.45 0.010 70);
+      --text-3:    oklch(0.62 0.010 70);
+      --accent:    oklch(0.55 0.16 55);
+      --accent-2:  oklch(0.55 0.16 55 / 0.12);
+      --green:     oklch(0.55 0.14 145);
+      --blue:      oklch(0.55 0.13 240);
+      --purple:    oklch(0.50 0.16 305);
+      --pink:      oklch(0.55 0.16 350);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-ui);
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      transition: background var(--t-med), color var(--t-med);
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed; inset: 0;
+      background-image: radial-gradient(var(--border) 0.5px, transparent 0.5px);
+      background-size: 22px 22px;
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+    }
+    html[data-theme="light"] body::before {
+      background-image: radial-gradient(oklch(0.85 0.008 75) 0.5px, transparent 0.5px);
+      opacity: 0.5;
+    }
+
+    button, input, a { font-family: inherit; color: inherit; }
+    button { cursor: pointer; background: none; border: none; }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Header ─────────────────────────────────────────────────────── */
+    header {
+      position: sticky; top: 0;
+      z-index: 50;
+      height: 56px;
+      background: color-mix(in oklch, var(--bg) 80%, transparent);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 24px;
+    }
+    .nav-inner {
+      max-width: var(--max);
+      width: 100%;
+      margin: 0 auto;
+      display: flex; align-items: center;
+      gap: 28px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 600; font-size: 13px;
+      letter-spacing: 0.02em;
+    }
+    .brand-mark { width: 16px; height: 16px; }
+    .brand-mark svg { width: 100%; height: 100%; display: block; }
+    .brand-mark .dot { fill: var(--accent); }
+    .brand-mark .ln { stroke: var(--text-2); stroke-width: 1; }
+
+    nav.links {
+      display: flex; gap: 4px;
+      flex: 1;
+    }
+    nav.links a {
+      padding: 6px 10px;
+      font-size: 12px;
+      color: var(--text-2);
+      border-radius: var(--radius);
+      transition: background var(--t-fast), color var(--t-fast);
+    }
+    nav.links a:hover { background: var(--hover); color: var(--text); }
+
+    .header-right {
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .icon-btn {
+      width: 32px; height: 32px;
+      display: grid; place-items: center;
+      border-radius: var(--radius);
+      color: var(--text-2);
+      transition: background var(--t-fast), color var(--t-fast);
+    }
+    .icon-btn:hover { background: var(--hover); color: var(--text); }
+    .icon-btn svg { width: 16px; height: 16px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: var(--radius);
+      color: var(--text);
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast);
+      letter-spacing: 0.02em;
+    }
+    .btn:hover { background: var(--hover); border-color: var(--border-strong); }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.lg {
+      padding: 10px 18px;
+      font-size: 13px;
+    }
+    .btn svg { width: 13px; height: 13px; }
+
+    /* ── Section helpers ────────────────────────────────────────────── */
+    section {
+      position: relative; z-index: 1;
+      padding: 0 24px;
+    }
+    .container {
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+
+    .label {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .label::before {
+      content: "";
+      width: 14px; height: 1px;
+      background: var(--accent);
+    }
+
+    h2.section-title {
+      font-family: var(--font-ui);
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin: 14px 0 14px;
+      max-width: 720px;
+    }
+    .section-sub {
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 580px;
+      letter-spacing: 0.01em;
+    }
+
+    /* ── Hero ───────────────────────────────────────────────────────── */
+    .hero {
+      padding: 80px 24px 60px;
+      position: relative;
+    }
+    .hero-grid {
+      max-width: var(--max);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+    @media (max-width: 920px) {
+      .hero-grid { grid-template-columns: 1fr; }
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px 4px 8px;
+      font-size: 10.5px;
+      letter-spacing: 0.08em;
+      color: var(--text-2);
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .badge .pulse {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--green) 60%, transparent);
+      animation: pulseRing 2s ease infinite;
+    }
+    @keyframes pulseRing {
+      0%   { box-shadow: 0 0 0 0 color-mix(in oklch, var(--green) 50%, transparent); }
+      70%  { box-shadow: 0 0 0 8px transparent; }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+
+    h1.hero-title {
+      font-family: var(--font-ui);
+      font-size: clamp(38px, 6vw, 64px);
+      line-height: 1.02;
+      letter-spacing: -0.025em;
+      font-weight: 600;
+      margin: 18px 0 22px;
+    }
+    h1.hero-title .accent {
+      color: var(--accent);
+      font-style: normal;
+      position: relative;
+    }
+    h1.hero-title .strike {
+      position: relative;
+      color: var(--text-3);
+      text-decoration: line-through;
+      text-decoration-thickness: 1px;
+    }
+
+    .hero-sub {
+      font-size: 15px;
+      color: var(--text-2);
+      line-height: 1.65;
+      max-width: 520px;
+      margin-bottom: 28px;
+    }
+
+    .hero-actions {
+      display: flex; gap: 10px; align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 34px;
+    }
+
+    .hero-meta {
+      display: flex; gap: 22px;
+      flex-wrap: wrap;
+      padding-top: 22px;
+      border-top: 1px dashed var(--border);
+    }
+    .hero-meta .item {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .hero-meta .num {
+      font-size: 18px; font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .hero-meta .lbl {
+      font-size: 9.5px;
+      color: var(--text-3);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* ── Hero graph ──────────────────────────────────────────────────── */
+    .hero-viz {
+      position: relative;
+      aspect-ratio: 1 / 0.92;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow:
+        0 1px 0 0 color-mix(in oklch, white 4%, transparent) inset,
+        0 30px 60px -20px rgba(0,0,0,0.4),
+        0 16px 30px -16px rgba(0,0,0,0.3);
+    }
+    .viz-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 10.5px;
+      color: var(--text-3);
+      letter-spacing: 0.06em;
+    }
+    .viz-header .traffic {
+      display: flex; gap: 5px;
+    }
+    .viz-header .traffic span {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--bg-3);
+      border: 1px solid var(--border-strong);
+    }
+    .viz-header .right {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .viz-header .live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent);
+      animation: blink 1.4s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+    .viz-svg {
+      width: 100%;
+      height: calc(100% - 34px);
+      display: block;
+    }
+
+    .graph-link-svg {
+      stroke: var(--text-2);
+      stroke-opacity: 0.55;
+      transition: stroke-opacity var(--t-med);
+      fill: none;
+    }
+    .graph-node-svg circle {
+      transition: r 200ms ease, stroke-width var(--t-fast);
+    }
+    .graph-node-svg text {
+      fill: var(--text);
+      font-family: var(--font-ui);
+      font-size: 10px;
+      pointer-events: none;
+      dominant-baseline: middle;
+      paint-order: stroke;
+      stroke: var(--bg-2);
+      stroke-width: 3px;
+      stroke-linejoin: round;
+    }
+
+    /* node entry animation */
+    @keyframes nodeIn {
+      from { transform-origin: center; opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* ── Logos / trust strip ────────────────────────────────────────── */
+    .marquee {
+      padding: 38px 24px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-2);
+    }
+    .marquee-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+    .marquee-label {
+      font-size: 10.5px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+    .feature-strip {
+      display: flex; gap: 24px;
+      flex-wrap: wrap;
+    }
+    .feature-strip .item {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--text-2);
+      font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+    .feature-strip .item svg {
+      width: 14px; height: 14px;
+      color: var(--accent);
+    }
+
+    /* ── Features ───────────────────────────────────────────────────── */
+    .features {
+      padding: 100px 24px 60px;
+    }
+    .feature-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      padding: 60px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .feature-row:last-child { border-bottom: none; }
+    .feature-row.reverse .visual { order: -1; }
+    @media (max-width: 920px) {
+      .feature-row { grid-template-columns: 1fr; gap: 32px; padding: 40px 0; }
+      .feature-row.reverse .visual { order: 0; }
+    }
+
+    .feature-text h3 {
+      font-family: var(--font-ui);
+      font-size: clamp(24px, 3vw, 32px);
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      line-height: 1.15;
+      margin: 12px 0 14px;
+    }
+    .feature-text p {
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.7;
+      margin-bottom: 20px;
+      max-width: 480px;
+    }
+    .feature-bullets {
+      list-style: none;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .feature-bullets li {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 12.5px;
+      color: var(--text-2);
+      line-height: 1.55;
+    }
+    .feature-bullets li::before {
+      content: "→";
+      color: var(--accent);
+      font-weight: 600;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* visual frame */
+    .visual {
+      position: relative;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: 0 20px 40px -20px rgba(0,0,0,0.3);
+    }
+    .visual-head {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 10.5px;
+      color: var(--text-3);
+      letter-spacing: 0.08em;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .visual-body {
+      padding: 18px;
+    }
+
+    /* ── Feature 1: Graph view — full mini graph ─────────────────────── */
+    .visual-graph .visual-body {
+      padding: 0;
+      aspect-ratio: 16/11;
+    }
+    .visual-graph svg {
+      width: 100%; height: 100%; display: block;
+    }
+
+    /* ── Feature 2: Import / Export ──────────────────────────────────── */
+    .io-demo {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+    .io-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+    .io-card .filename {
+      display: flex; align-items: center; gap: 6px;
+      color: var(--text-2);
+      margin-bottom: 8px;
+      font-size: 10.5px;
+      letter-spacing: 0.04em;
+    }
+    .io-card .filename svg { width: 11px; height: 11px; color: var(--accent); }
+    .io-card pre {
+      font-family: var(--font-ui);
+      font-size: 10.5px;
+      line-height: 1.55;
+      color: var(--text-2);
+      white-space: pre;
+      overflow: hidden;
+    }
+    .io-card .key { color: var(--accent); }
+    .io-card .str { color: var(--green); }
+    .io-card .punct { color: var(--text-3); }
+    .io-arrow {
+      display: grid; place-items: center;
+      color: var(--accent);
+      width: 32px;
+    }
+    .io-arrow svg { width: 22px; height: 22px; }
+
+    .io-formats {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .format-pill {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      letter-spacing: 0.04em;
+    }
+    .format-pill.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-2);
+    }
+
+    @media (max-width: 480px) {
+      .io-demo { grid-template-columns: 1fr; }
+      .io-arrow { transform: rotate(90deg); width: auto; height: 32px; }
+    }
+
+    /* ── Feature 3: Flashcards ──────────────────────────────────────── */
+    .flashcard-stack {
+      position: relative;
+      height: 220px;
+      perspective: 1200px;
+    }
+    .flashcard {
+      position: absolute; inset: 0;
+      background: var(--bg);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      display: flex; flex-direction: column;
+      gap: 10px;
+      transition: transform var(--t-slow), opacity var(--t-slow);
+    }
+    .flashcard:nth-child(1) { transform: translateY(0) rotate(-1.2deg); z-index: 3; }
+    .flashcard:nth-child(2) { transform: translateY(8px) translateX(8px) rotate(1deg); z-index: 2; opacity: 0.8; }
+    .flashcard:nth-child(3) { transform: translateY(16px) translateX(-4px) rotate(-0.4deg); z-index: 1; opacity: 0.55; }
+
+    .flashcard .fc-meta {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+      text-transform: uppercase;
+    }
+    .flashcard .fc-meta .tag {
+      padding: 1px 6px;
+      border-radius: 8px;
+      border: 1px solid;
+    }
+    .flashcard .fc-q {
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text);
+      flex: 1;
+    }
+    .flashcard .fc-context {
+      font-size: 10.5px;
+      color: var(--text-3);
+      letter-spacing: 0.02em;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .flashcard .fc-context::before {
+      content: "↑";
+      color: var(--accent);
+    }
+    .fc-controls {
+      margin-top: 18px;
+      display: flex; gap: 6px;
+      justify-content: center;
+    }
+    .fc-controls button {
+      padding: 6px 14px;
+      font-size: 11px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-2);
+      transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+    }
+    .fc-controls button:hover { color: var(--text); border-color: var(--border-strong); }
+    .fc-controls button.know { color: var(--green); border-color: color-mix(in oklch, var(--green) 50%, var(--border)); }
+    .fc-controls button.know:hover { background: color-mix(in oklch, var(--green) 12%, transparent); }
+    .fc-controls button.again { color: var(--accent); border-color: color-mix(in oklch, var(--accent) 50%, var(--border)); }
+    .fc-controls button.again:hover { background: var(--accent-2); }
+
+    /* ── Feature 4: AI assistant ────────────────────────────────────── */
+    .chat {
+      display: flex; flex-direction: column;
+      gap: 10px;
+    }
+    .chat-msg {
+      display: flex; gap: 10px;
+      align-items: flex-start;
+      animation: msgIn 400ms ease both;
+    }
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .chat-msg.user .bubble {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .chat-msg.ai .bubble {
+      background: var(--accent-2);
+      color: var(--text);
+      border: 1px solid color-mix(in oklch, var(--accent) 35%, transparent);
+    }
+    .chat-avatar {
+      width: 22px; height: 22px;
+      border-radius: 5px;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+    .chat-msg.ai .chat-avatar {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg);
+    }
+    .chat-msg.ai .chat-avatar svg { width: 12px; height: 12px; }
+    .bubble {
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      line-height: 1.5;
+      font-family: var(--font-body);
+      max-width: 100%;
+    }
+    .bubble .ref {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: var(--font-ui);
+      padding: 1px 6px;
+      border-radius: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      font-size: 10.5px;
+      margin: 0 2px;
+      vertical-align: 1px;
+    }
+    .bubble .ref::before {
+      content: "#";
+      opacity: 0.6;
+    }
+    .chat-input {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: var(--bg);
+      color: var(--text-3);
+      font-size: 11.5px;
+    }
+    .chat-input .caret {
+      width: 1px; height: 12px;
+      background: var(--accent);
+      animation: caret 1s steps(1) infinite;
+    }
+    @keyframes caret { 50% { opacity: 0; } }
+
+    /* ── How it works (steps) ───────────────────────────────────────── */
+    .how {
+      padding: 80px 24px;
+      border-top: 1px solid var(--border);
+    }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      margin-top: 40px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+    @media (max-width: 760px) {
+      .steps { grid-template-columns: 1fr; }
+    }
+    .step {
+      padding: 24px;
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+    .step:last-child { border-right: none; }
+    @media (max-width: 760px) {
+      .step { border-right: none; border-bottom: 1px solid var(--border); }
+      .step:last-child { border-bottom: none; }
+    }
+    .step .num {
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+    .step h4 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      margin-bottom: 8px;
+    }
+    .step p {
+      font-size: 12.5px;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
+
+    /* ── CTA ────────────────────────────────────────────────────────── */
+    .cta {
+      padding: 100px 24px 80px;
+      text-align: center;
+    }
+    .cta-block {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 56px 32px;
+      background: var(--bg-2);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-xl);
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-block::before {
+      content: "";
+      position: absolute;
+      inset: -50% -10% auto -10%;
+      height: 200%;
+      background: radial-gradient(closest-side, var(--accent-2), transparent 70%);
+      pointer-events: none;
+      opacity: 0.7;
+    }
+    .cta-block > * { position: relative; }
+    .cta-block h2 {
+      font-family: var(--font-ui);
+      font-size: clamp(26px, 4vw, 36px);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 14px;
+    }
+    .cta-block p {
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      max-width: 480px;
+      margin-left: auto; margin-right: auto;
+    }
+    .cta-actions {
+      display: flex; gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────────── */
+    footer {
+      padding: 30px 24px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-2);
+    }
+    .footer-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--text-3);
+      letter-spacing: 0.04em;
+    }
+    .footer-inner a {
+      color: var(--text-2);
+      transition: color var(--t-fast);
+    }
+    .footer-inner a:hover { color: var(--text); }
+    .footer-links {
+      display: flex; gap: 18px;
+    }
+
+    /* reveal-on-scroll */
+    .reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 600ms ease, transform 600ms ease;
+    }
+    .reveal.in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────── -->
+<header>
+  <div class="nav-inner">
+    <a class="brand" href="#top">
+      <div class="brand-mark">
+        <svg viewBox="0 0 14 14">
+          <line class="ln" x1="3" y1="3" x2="11" y2="7"/>
+          <line class="ln" x1="3" y1="3" x2="7" y2="11"/>
+          <line class="ln" x1="11" y1="7" x2="7" y2="11"/>
+          <circle class="dot" cx="3" cy="3" r="2"/>
+          <circle class="dot" cx="11" cy="7" r="1.5"/>
+          <circle class="dot" cx="7" cy="11" r="1.5"/>
+        </svg>
+      </div>
+      <span>GraphNoteLM</span>
+    </a>
+    <nav class="links">
+      <a href="#features">features</a>
+      <a href="#how">how it works</a>
+      <a href="#flashcards">flashcards</a>
+      <a href="#ai">ai</a>
+    </nav>
+    <div class="header-right">
+      <button class="icon-btn" id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+        <svg id="theme-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ── Hero ─────────────────────────────────────────────────────────── -->
+<section class="hero" id="top">
+  <div class="hero-grid">
+    <div>
+      <span class="badge">
+        <span class="pulse"></span>
+        <span>v0.1 · early access</span>
+      </span>
+      <h1 class="hero-title">
+        notes that<br/>
+        <span class="strike">live in folders</span><br/>
+        <span class="accent">connect to each&nbsp;other</span>.
+      </h1>
+      <p class="hero-sub">
+        GraphNoteLM is a knowledge tool for thinking in connections. write notes, link them as prerequisites, and watch your understanding take shape as a navigable graph.
+      </p>
+      <div class="hero-actions">
+        <a class="btn lg" href="#features">
+          <span>see how it works</span>
+        </a>
+      </div>
+      <!-- <div class="hero-meta">
+        <div class="item">
+          <span class="num">∞</span>
+          <span class="lbl">notes</span>
+        </div>
+        <div class="item">
+          <span class="num">json</span>
+          <span class="lbl">portable</span>
+        </div>
+      </div> -->
+    </div>
+
+    <!-- Live graph viz -->
+    <div class="hero-viz">
+      <div class="viz-header">
+        <div class="traffic"><span></span><span></span><span></span></div>
+        <span style="color: var(--text-2); font-weight: 500;">~/knowledge.graph</span>
+        <div class="right">
+          <span class="live-dot"></span>
+          <span>live</span>
+        </div>
+      </div>
+      <svg class="viz-svg" id="hero-graph"></svg>
+    </div>
+  </div>
+</section>
+
+<!-- ── Trust strip ──────────────────────────────────────────────────── -->
+<div class="marquee">
+  <div class="marquee-inner">
+    <span class="marquee-label">built for</span>
+    <div class="feature-strip">
+      <div class="item">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 11 L7 3 L12 11"/><path d="M4 8 L10 8"/></svg>
+        <span>students</span>
+      </div>
+      <div class="item">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3 L11 3 L11 11 L3 11 Z"/><path d="M5 6 L9 6"/><path d="M5 8 L9 8"/></svg>
+        <span>researchers</span>
+      </div>
+      <div class="item">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4"/><path d="M7 4 L7 7 L9 9"/></svg>
+        <span>lifelong learners</span>
+      </div>
+      <div class="item">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 5 L7 2 L11 5 L11 11 L3 11 Z"/><path d="M6 11 L6 8 L8 8 L8 11"/></svg>
+        <span>builders</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Features ─────────────────────────────────────────────────────── -->
+<section class="features" id="features">
+  <div class="container">
+    <span class="label">features</span>
+    <h2 class="section-title">a small set of things, done carefully.</h2>
+    <p class="section-sub">no kitchen-sink editor. no folders. just notes, connections, and the tools to make sense of them.</p>
+  </div>
+
+  <div class="container">
+    <!-- Feature 1: Graph view -->
+    <div class="feature-row reveal">
+      <div class="feature-text">
+        <span class="label">01 · graph</span>
+        <h3>see the shape of what you know.</h3>
+        <p>every note is a node. every prerequisite is an edge. the graph view lays your notes out by depth — foundational at the top, derivative below — so you can see at a glance what the bedrock is and where you've built upward.</p>
+        <ul class="feature-bullets">
+          <li>force-directed layout with depth levels</li>
+          <li>filter by tag, hover to focus a subgraph</li>
+          <li>drag, zoom, pan — it's just yours to explore</li>
+        </ul>
+      </div>
+      <div class="visual visual-graph">
+        <div class="visual-head">
+          <span>graph view</span>
+          <span style="color:var(--text-2)">10 nodes · 14 edges</span>
+        </div>
+        <div class="visual-body">
+          <svg id="feature-graph"></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 2: Import/export -->
+    <div class="feature-row reverse reveal">
+      <div class="feature-text">
+        <span class="label">02 · portable</span>
+        <h3>your data, in plain json.</h3>
+        <p>export your graph to a single readable file. send it to a friend, version it in git, fork it, or mash two together.</p>
+        <ul class="feature-bullets">
+          <li>one-click json export</li>
+          <li>open any compatible file directly from disk</li>
+          <li>diff-friendly, human-readable format</li>
+        </ul>
+      </div>
+      <div class="visual">
+        <div class="visual-head">
+          <span>import / export</span>
+          <div style="display:flex;gap:4px;align-items:center">
+            <span class="format-pill active">.json</span>
+          </div>
+        </div>
+        <div class="visual-body">
+          <div class="io-demo">
+            <div class="io-card">
+              <div class="filename">
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M3 2 L9 2 L11 4 L11 12 L3 12 Z"/><path d="M9 2 L9 4 L11 4"/></svg>
+                <span>my-notes.json</span>
+              </div>
+<pre><span class="punct">{</span>
+  <span class="key">"calculus"</span><span class="punct">:</span> <span class="punct">{</span>
+    <span class="key">"subtopics"</span><span class="punct">:</span> <span class="punct">[</span>
+      <span class="str">"algebra"</span><span class="punct">,</span>
+      <span class="str">"limits"</span>
+    <span class="punct">],</span>
+    <span class="key">"tags"</span><span class="punct">:</span> <span class="punct">[</span><span class="str">"math"</span><span class="punct">]</span>
+  <span class="punct">},</span>
+  ...
+<span class="punct">}</span></pre>
+            </div>
+            <div class="io-arrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12 L19 12"/>
+                <path d="M14 7 L19 12 L14 17"/>
+              </svg>
+            </div>
+            <div class="io-card" style="display:flex;align-items:center;justify-content:center;text-align:center;min-height:160px;">
+              <div>
+                <svg viewBox="0 0 32 32" width="36" height="36" style="display:block;margin:0 auto 10px;color:var(--accent)" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+                  <circle cx="8" cy="8" r="2.4"/>
+                  <circle cx="24" cy="8" r="2.4"/>
+                  <circle cx="8" cy="24" r="2.4"/>
+                  <circle cx="24" cy="24" r="2.4"/>
+                  <circle cx="16" cy="16" r="2.4"/>
+                  <line x1="9.5" y1="9.5" x2="14.5" y2="14.5"/>
+                  <line x1="22.5" y1="9.5" x2="17.5" y2="14.5"/>
+                  <line x1="9.5" y1="22.5" x2="14.5" y2="17.5"/>
+                  <line x1="22.5" y1="22.5" x2="17.5" y2="17.5"/>
+                </svg>
+                <div style="font-size:11px;color:var(--text-2);letter-spacing:0.04em;">10 notes · 14 links</div>
+                <div style="font-size:10px;color:var(--text-3);letter-spacing:0.06em;margin-top:4px;">restored ✓</div>
+              </div>
+            </div>
+          </div>
+          <div class="io-formats">
+            <span class="format-pill active">json</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 3: Flashcards -->
+    <div class="feature-row reveal" id="flashcards">
+      <div class="feature-text">
+        <span class="label">03 · flashcards</span>
+        <h3>study cards that know the whole graph.</h3>
+        <p>generate flashcards directly from any note. because GraphNoteLM understands which notes depend on which, each card includes the surrounding context — prerequisites, related concepts, and where this idea sits in the bigger picture.</p>
+        <ul class="feature-bullets">
+          <li>auto-generated questions per note or subgraph</li>
+          <li>spaced repetition with full graph context</li>
+          <li>review by tag, depth, or topic</li>
+        </ul>
+      </div>
+      <div class="visual">
+        <div class="visual-head">
+          <span>flashcards</span>
+          <span style="color:var(--text-2)">3 / 24 reviewed today</span>
+        </div>
+        <div class="visual-body">
+          <div class="flashcard-stack">
+            <div class="flashcard">
+              <div class="fc-meta">
+                <span class="tag" style="color:var(--purple);border-color:var(--purple)">ml</span>
+                <span>depth 02</span>
+              </div>
+              <div class="fc-q">why does backpropagation require the chain rule from calculus?</div>
+              <div class="fc-context">depends on calculus, neural networks</div>
+            </div>
+            <div class="flashcard">
+              <div class="fc-meta">
+                <span class="tag" style="color:var(--green);border-color:var(--green)">math</span>
+                <span>depth 01</span>
+              </div>
+              <div class="fc-q">define a limit using the formal ε–δ definition.</div>
+              <div class="fc-context">depends on algebra</div>
+            </div>
+            <div class="flashcard">
+              <div class="fc-meta">
+                <span class="tag" style="color:var(--blue);border-color:var(--blue)">cs</span>
+                <span>depth 03</span>
+              </div>
+              <div class="fc-q">what is the role of attention in transformers?</div>
+              <div class="fc-context">depends on neural networks, attention</div>
+            </div>
+          </div>
+          <div class="fc-controls">
+            <button class="again">again</button>
+            <button>hard</button>
+            <button>good</button>
+            <button class="know">easy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature 4: AI assistant -->
+    <div class="feature-row reverse reveal" id="ai">
+      <div class="feature-text">
+        <span class="label">04 · ai assistant</span>
+        <h3>an assistant that's read all your notes.</h3>
+        <p>ask anything. the assistant has full context of every note and every connection — answers cite the exact notes it pulled from, so you can jump back to the source. it's not a chatbot bolted onto your data; it lives inside the graph.</p>
+        <ul class="feature-bullets">
+          <li>citations link back to source notes</li>
+          <li>aware of prerequisite chains</li>
+          <li>suggests new connections you missed</li>
+        </ul>
+      </div>
+      <div class="visual">
+        <div class="visual-head">
+          <span>assistant</span>
+          <span style="color:var(--accent)">● connected · 10 notes</span>
+        </div>
+        <div class="visual-body">
+          <div class="chat">
+            <div class="chat-msg user">
+              <div class="chat-avatar">u</div>
+              <div class="bubble">what do i still need to learn before i can really understand transformers?</div>
+            </div>
+            <div class="chat-msg ai" style="animation-delay: 250ms">
+              <div class="chat-avatar">
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="3" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="7" cy="11" r="1.5"/><line x1="3.7" y1="3.7" x2="6.3" y2="10.3"/><line x1="10.3" y1="3.7" x2="7.7" y2="10.3"/></svg>
+              </div>
+              <div class="bubble">
+                based on your graph, transformers depend on
+                <span class="ref">attention</span>
+                and
+                <span class="ref">neural networks</span>.
+                you have notes on both, but no note yet on <em>positional encoding</em> — that's the missing piece.
+              </div>
+            </div>
+            <div class="chat-msg user" style="animation-delay: 500ms">
+              <div class="chat-avatar">u</div>
+              <div class="bubble">make me a starter note for it.</div>
+            </div>
+            <div class="chat-msg ai" style="animation-delay: 750ms">
+              <div class="chat-avatar">
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="3" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="7" cy="11" r="1.5"/><line x1="3.7" y1="3.7" x2="6.3" y2="10.3"/><line x1="10.3" y1="3.7" x2="7.7" y2="10.3"/></svg>
+              </div>
+              <div class="bubble">created
+                <span class="ref">positional encoding</span>
+                — linked to attention &amp; transformers. open it?
+              </div>
+            </div>
+            <div class="chat-input">
+              <span>ask anything about your graph</span>
+              <span class="caret"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── How it works ─────────────────────────────────────────────────── -->
+<section class="how" id="how">
+  <div class="container">
+    <span class="label">how it works</span>
+    <h2 class="section-title">three steps to a thinking graph.</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="num">01</div>
+        <h4>write a note.</h4>
+        <p>a topic, a body, optional tags. that's it. no folders, no templates to choose, no syntax to memorize.</p>
+      </div>
+      <div class="step">
+        <div class="num">02</div>
+        <h4>connect prerequisites.</h4>
+        <p>mark which notes a note depends on. the graph emerges automatically — depth, structure, gaps and all.</p>
+      </div>
+      <div class="step">
+        <div class="num">03</div>
+        <h4>study, search, ask.</h4>
+        <p>generate flashcards, browse the graph, or ask the assistant questions grounded in your own notes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 14 14">
+          <line class="ln" x1="3" y1="3" x2="11" y2="7"/>
+          <line class="ln" x1="3" y1="3" x2="7" y2="11"/>
+          <line class="ln" x1="11" y1="7" x2="7" y2="11"/>
+          <circle class="dot" cx="3" cy="3" r="2"/>
+          <circle class="dot" cx="11" cy="7" r="1.5"/>
+          <circle class="dot" cx="7" cy="11" r="1.5"/>
+        </svg>
+      </div>
+      <span style="font-size:11px;color:var(--text-3);letter-spacing:0.04em;">GraphNoteLM · knowledge graphs</span>
+    </div>
+    <div class="footer-links">
+      <a href="/">app</a>
+      <a href="#features">features</a>
+      <a href="#how">how it works</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ── Theme ────────────────────────────────────────────────────────────
+  const TWEAKS_KEY = 'graph-notes-tweaks';
+  let TWEAKS = { theme: 'dark', accentHue: 70 };
+  try {
+    const t = localStorage.getItem(TWEAKS_KEY);
+    if (t) Object.assign(TWEAKS, JSON.parse(t));
+  } catch {}
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    TWEAKS.theme = t;
+    const icon = document.getElementById('theme-icon');
+    if (t === 'light') {
+      icon.innerHTML = '<path d="M13 9.5 A5 5 0 1 1 6.5 3 A4 4 0 0 0 13 9.5 Z"/>';
+    } else {
+      icon.innerHTML = '<circle cx="8" cy="8" r="3"/><line x1="8" y1="1.5" x2="8" y2="3"/><line x1="8" y1="13" x2="8" y2="14.5"/><line x1="1.5" y1="8" x2="3" y2="8"/><line x1="13" y1="8" x2="14.5" y2="8"/><line x1="3.3" y1="3.3" x2="4.4" y2="4.4"/><line x1="11.6" y1="11.6" x2="12.7" y2="12.7"/><line x1="3.3" y1="12.7" x2="4.4" y2="11.6"/><line x1="11.6" y1="4.4" x2="12.7" y2="3.3"/>';
+    }
+  }
+  function applyAccent(hue) {
+    const isLight = TWEAKS.theme === 'light';
+    document.documentElement.style.setProperty('--accent',
+      isLight ? `oklch(0.55 0.16 ${hue})` : `oklch(0.78 0.14 ${hue})`);
+    document.documentElement.style.setProperty('--accent-2',
+      isLight ? `oklch(0.55 0.16 ${hue} / 0.12)` : `oklch(0.78 0.14 ${hue} / 0.12)`);
+  }
+  function toggleTheme() {
+    const next = TWEAKS.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    applyAccent(TWEAKS.accentHue || 70);
+    localStorage.setItem(TWEAKS_KEY, JSON.stringify(TWEAKS));
+    drawHero(); drawFeatureGraph();
+  }
+  applyTheme(TWEAKS.theme);
+  applyAccent(TWEAKS.accentHue || 70);
+
+  // ── Reveal-on-scroll ────────────────────────────────────────────────
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // ── Sample data ─────────────────────────────────────────────────────
+  const sampleData = {
+    "calculus":      { subtopics: ["algebra", "limits"], tag: "math" },
+    "linear algebra":{ subtopics: ["algebra"], tag: "math" },
+    "algebra":       { subtopics: ["arithmetic"], tag: "math" },
+    "arithmetic":    { subtopics: [], tag: "math" },
+    "limits":        { subtopics: ["algebra"], tag: "math" },
+    "neural nets":   { subtopics: ["linear algebra", "calculus", "probability"], tag: "ml" },
+    "backprop":      { subtopics: ["neural nets", "calculus"], tag: "ml" },
+    "transformers":  { subtopics: ["neural nets", "attention"], tag: "ml" },
+    "attention":     { subtopics: ["linear algebra"], tag: "ml" },
+    "probability":   { subtopics: ["arithmetic"], tag: "math" },
+  };
+
+  function tagColor(tag) {
+    const isLight = TWEAKS.theme === 'light';
+    const hueMap = { math: 70, ml: 305, cs: 240, none: 70 };
+    let hue = hueMap[tag] ?? 70;
+    return isLight ? `oklch(0.50 0.13 ${hue})` : `oklch(0.78 0.13 ${hue})`;
+  }
+
+  function getCSS(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  // ── Hero graph ──────────────────────────────────────────────────────
+  function drawHero() {
+    const svgEl = document.getElementById('hero-graph');
+    const svg = d3.select(svgEl);
+    svg.selectAll('*').remove();
+
+    const W = svgEl.clientWidth;
+    const H = svgEl.clientHeight;
+    if (!W || !H) return;
+
+    const ids = Object.keys(sampleData);
+    const nodes = ids.map(id => ({ id, tag: sampleData[id].tag }));
+    const links = [];
+    ids.forEach(s => sampleData[s].subtopics.forEach(t => {
+      if (sampleData[t]) links.push({ source: s, target: t });
+    }));
+
+    const text2 = getCSS('--text-2');
+    const bg = getCSS('--bg-2');
+
+    const defs = svg.append('defs');
+    defs.append('marker')
+      .attr('id', 'arr-hero')
+      .attr('viewBox', '0 -3 7 6')
+      .attr('refX', 17).attr('refY', 0)
+      .attr('markerWidth', 5).attr('markerHeight', 5)
+      .attr('orient', 'auto')
+      .append('path').attr('d', 'M0,-2.5L6,0L0,2.5').attr('fill', text2);
+
+    const g = svg.append('g');
+
+    const sim = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(70).strength(0.4))
+      .force('charge', d3.forceManyBody().strength(-220))
+      .force('center', d3.forceCenter(W/2, H/2))
+      .force('collision', d3.forceCollide(22))
+      .alpha(1).alphaDecay(0.03);
+
+    const link = g.append('g').selectAll('path')
+      .data(links).join('path')
+      .attr('class', 'graph-link-svg')
+      .attr('stroke-width', 0.9)
+      .attr('marker-end', 'url(#arr-hero)')
+      .attr('opacity', 0);
+
+    const node = g.append('g').selectAll('g')
+      .data(nodes).join('g')
+      .attr('class', 'graph-node-svg');
+
+    node.append('circle')
+      .attr('r', 0)
+      .attr('fill', getCSS('--bg-3'))
+      .attr('stroke', d => tagColor(d.tag))
+      .attr('stroke-width', 1.4);
+
+    node.append('text')
+      .text(d => d.id)
+      .attr('x', 14).attr('y', 0)
+      .attr('opacity', 0)
+      .attr('font-size', 10);
+
+    nodes.forEach((d, i) => {
+      const sel = node.filter(n => n.id === d.id);
+      sel.select('circle')
+        .transition().delay(80 * i).duration(450)
+        .attr('r', 6.5);
+      sel.select('text')
+        .transition().delay(80 * i + 200).duration(300)
+        .attr('opacity', 1);
+    });
+    setTimeout(() => {
+      link.transition().duration(800).attr('opacity', 1);
+    }, nodes.length * 80 + 150);
+
+    sim.on('tick', () => {
+      nodes.forEach(d => {
+        d.x = Math.max(40, Math.min(W - 80, d.x));
+        d.y = Math.max(20, Math.min(H - 20, d.y));
+      });
+      link.attr('d', d => {
+        const dx = d.target.x - d.source.x, dy = d.target.y - d.source.y;
+        const dr = Math.sqrt(dx*dx + dy*dy) * 1.6;
+        return `M${d.source.x},${d.source.y} A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+      });
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+
+    node.on('mouseover', (event, d) => {
+      const connected = new Set([d.id]);
+      links.forEach(l => {
+        const s = typeof l.source === 'object' ? l.source.id : l.source;
+        const t = typeof l.target === 'object' ? l.target.id : l.target;
+        if (s === d.id || t === d.id) { connected.add(s); connected.add(t); }
+      });
+      node.style('opacity', n => connected.has(n.id) ? 1 : 0.2);
+      link.style('opacity', l => {
+        const s = typeof l.source === 'object' ? l.source.id : l.source;
+        const t = typeof l.target === 'object' ? l.target.id : l.target;
+        return connected.has(s) && connected.has(t) ? 1 : 0.08;
+      });
+    }).on('mouseout', () => {
+      node.style('opacity', 1);
+      link.style('opacity', 1);
+    });
+  }
+
+  // ── Feature graph ───────────────────────────────────────────────────
+  function drawFeatureGraph() {
+    const svgEl = document.getElementById('feature-graph');
+    const svg = d3.select(svgEl);
+    svg.selectAll('*').remove();
+
+    const W = svgEl.clientWidth || 500;
+    const H = svgEl.clientHeight || 360;
+    svg.attr('viewBox', `0 0 ${W} ${H}`);
+
+    const ids = Object.keys(sampleData);
+    const nodes = ids.map(id => ({ id, tag: sampleData[id].tag }));
+    const links = [];
+    ids.forEach(s => sampleData[s].subtopics.forEach(t => {
+      if (sampleData[t]) links.push({ source: s, target: t });
+    }));
+
+    const level = {};
+    ids.forEach(id => level[id] = 0);
+    for (let it = 0; it < ids.length; it++) {
+      let changed = false;
+      ids.forEach(id => {
+        const prereqs = sampleData[id].subtopics.filter(p => level[p] !== undefined);
+        if (prereqs.length > 0) {
+          const next = Math.max(...prereqs.map(p => level[p])) + 1;
+          if (next > level[id]) { level[id] = next; changed = true; }
+        }
+      });
+      if (!changed) break;
+    }
+    const maxLevel = Math.max(...Object.values(level));
+    const padding = 36;
+    const levelSpacing = maxLevel > 0 ? (H - padding * 2) / maxLevel : 0;
+
+    const text2 = getCSS('--text-2');
+    const text3 = getCSS('--text-3');
+    const border = getCSS('--border');
+
+    const defs = svg.append('defs');
+    defs.append('marker')
+      .attr('id', 'arr-feat')
+      .attr('viewBox', '0 -3 7 6')
+      .attr('refX', 14).attr('refY', 0)
+      .attr('markerWidth', 5).attr('markerHeight', 5)
+      .attr('orient', 'auto')
+      .append('path').attr('d', 'M0,-2.5L6,0L0,2.5').attr('fill', text2);
+
+    for (let l = 0; l <= maxLevel; l++) {
+      const y = padding + l * levelSpacing;
+      svg.append('line')
+        .attr('x1', 14).attr('x2', W - 80)
+        .attr('y1', y).attr('y2', y)
+        .attr('stroke', border)
+        .attr('stroke-dasharray', '1 5')
+        .attr('stroke-width', 1);
+      svg.append('text')
+        .attr('x', W - 14).attr('y', y)
+        .attr('text-anchor', 'end')
+        .attr('dominant-baseline', 'middle')
+        .attr('font-family', 'JetBrains Mono')
+        .attr('font-size', 8.5)
+        .attr('letter-spacing', '0.08em')
+        .attr('fill', text3)
+        .text(l === 0 ? 'foundational' : `depth ${String(l).padStart(2,'0')}`);
+    }
+
+    const sim = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(80).strength(0.35))
+      .force('charge', d3.forceManyBody().strength(-260))
+      .force('x', d3.forceX(W/2 - 30).strength(0.05))
+      .force('y', d3.forceY(d => padding + level[d.id] * levelSpacing).strength(0.7))
+      .force('collision', d3.forceCollide(28))
+      .alpha(1).alphaDecay(0.04);
+
+    const link = svg.append('g').selectAll('path')
+      .data(links).join('path')
+      .attr('class', 'graph-link-svg')
+      .attr('stroke-width', 0.9)
+      .attr('marker-end', 'url(#arr-feat)');
+
+    const node = svg.append('g').selectAll('g')
+      .data(nodes).join('g')
+      .attr('class', 'graph-node-svg');
+
+    node.append('circle')
+      .attr('r', 7)
+      .attr('fill', getCSS('--bg-3'))
+      .attr('stroke', d => tagColor(d.tag))
+      .attr('stroke-width', 1.4);
+
+    node.append('text')
+      .text(d => d.id)
+      .attr('x', 14).attr('y', 0)
+      .attr('font-size', 10);
+
+    sim.on('tick', () => {
+      nodes.forEach(d => {
+        d.x = Math.max(20, Math.min(W - 90, d.x));
+      });
+      link.attr('d', d => {
+        const dx = d.target.x - d.source.x, dy = d.target.y - d.source.y;
+        const dr = Math.sqrt(dx*dx + dy*dy) * 1.6;
+        return `M${d.source.x},${d.source.y} A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+      });
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+
+    setTimeout(() => sim.stop(), 4000);
+  }
+
+  function init() {
+    drawHero();
+    drawFeatureGraph();
+  }
+  if (document.readyState === 'complete') init();
+  else window.addEventListener('load', init);
+
+  let rt;
+  window.addEventListener('resize', () => {
+    clearTimeout(rt);
+    rt = setTimeout(() => { drawHero(); drawFeatureGraph(); }, 200);
+  });
+</script>
+
+</body>
+</html>

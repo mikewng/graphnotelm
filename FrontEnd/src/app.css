@@ -1,0 +1,407 @@
+/* ── Reset ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Design Tokens ──────────────────────────────────────────────────────── */
+:root {
+  --bg:            oklch(0.18 0.005 60);
+  --bg-2:          oklch(0.21 0.006 60);
+  --bg-3:          oklch(0.24 0.006 60);
+  --hover:         oklch(0.27 0.008 60);
+  --border:        oklch(0.30 0.008 60);
+  --border-strong: oklch(0.38 0.010 60);
+  --text:          oklch(0.92 0.008 75);
+  --text-2:        oklch(0.70 0.010 70);
+  --text-3:        oklch(0.50 0.010 65);
+  --accent:        oklch(0.78 0.14 70);
+  --accent-2:      oklch(0.78 0.14 70 / 0.12);
+  --red:           oklch(0.72 0.16 25);
+  --radius:        4px;
+  --radius-lg:     6px;
+  --font-ui:       'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-body:     'Inter', system-ui, sans-serif;
+  --t-fast:        120ms cubic-bezier(.4,0,.2,1);
+  --t-med:         220ms cubic-bezier(.4,0,.2,1);
+
+  /* Aliases for component CSS */
+  --surface:      var(--bg-2);
+  --text-muted:   var(--text-2);
+  --header-bg:    var(--bg-2);
+  --header-text:  var(--text);
+  --sidebar-bg:   var(--bg-2);
+  --danger:       var(--red);
+  --danger-hover: var(--red);
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+html, body { min-height: 100%; }
+
+body {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--t-med), color var(--t-med);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(var(--border) 0.5px, transparent 0.5px);
+  background-size: 22px 22px;
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+  position: relative;
+  z-index: 1;
+}
+
+.layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-2);
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 44px;
+  background: var(--bg-2);
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  backdrop-filter: blur(8px);
+}
+
+header h2 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.header-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+button {
+  padding: 5px 12px;
+  background: var(--bg-3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  line-height: 1.4;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+
+button:hover {
+  background: var(--hover);
+  border-color: var(--border-strong);
+}
+
+button.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+button.btn-ghost:hover {
+  background: var(--hover);
+  border-color: var(--border-strong);
+}
+
+button.btn-danger {
+  background: var(--red);
+  color: var(--bg);
+  border-color: var(--red);
+}
+
+button.btn-danger:hover {
+  filter: brightness(0.85);
+  border-color: var(--red);
+}
+
+button.btn-outline {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+button.btn-outline:hover {
+  background: var(--hover);
+  border-color: var(--border-strong);
+}
+
+/* ── Inputs ─────────────────────────────────────────────────────────────── */
+input,
+textarea,
+select {
+  padding: 5px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  transition: border-color var(--t-fast);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+}
+
+/* ── Form helpers ───────────────────────────────────────────────────────── */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ── Section headings ───────────────────────────────────────────────────── */
+.section-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--text-3);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+
+/* ── Graph overlay ──────────────────────────────────────────────────────── */
+.graph-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.graph-svg {
+  flex: 1;
+  width: 100%;
+}
+
+/* ── Modal ───────────────────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: oklch(0 0 0 / 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  backdrop-filter: blur(2px);
+  animation: modalFadeIn 160ms ease both;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-box {
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px 20px;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.45);
+  animation: modalSlideIn 160ms cubic-bezier(.4,0,.2,1) both;
+}
+
+@keyframes modalSlideIn {
+  from { transform: translateY(10px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.modal-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.modal-message {
+  font-size: 12.5px;
+  color: var(--text-2);
+  line-height: 1.55;
+  margin-bottom: 18px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.modal-field-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--text-3);
+}
+
+.modal-optional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-3);
+  opacity: 0.6;
+}
+
+.modal-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 18px;
+  transition: border-color var(--t-fast);
+}
+
+.modal-field .modal-input {
+  margin-bottom: 0;
+}
+
+.modal-toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+
+.modal-toggle.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.modal-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-3);
+  transition: left var(--t-fast), background var(--t-fast);
+}
+
+.modal-toggle.on .modal-toggle-thumb {
+  left: 18px;
+  background: var(--bg);
+}
+
+.modal-color-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-color-input {
+  width: 40px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.modal-color-value {
+  font-size: 11.5px;
+  color: var(--text-3);
+  font-family: var(--font-ui);
+  letter-spacing: 0.04em;
+}
+
+.modal-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
