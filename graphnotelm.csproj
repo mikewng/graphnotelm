@@ -30,4 +30,8 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.*" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="FrontEnd\" />
+  </ItemGroup>
+
 </Project>
