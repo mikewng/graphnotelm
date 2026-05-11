@@ -47,6 +47,11 @@ You can use this NoteGraphs instead for learning, but keep an organized and visu
 ### Interactive Grid Game
 Aside from being a primarily note-taking application, there are ways to make NoteGraphLM an interactable game with the LLM. You can define nodes as tiles or rooms, and separate unconnected nodes as "Characters" which house character specific metadata. The LLM reads your context, identifies story events and can even call BFS to get a list of all exploreable rooms for your character. After each iteration with your chatbot, they update your character's metadata on what room you are on and such.
 
+## Planned Integrations
+### WaniKani API and Progress Integration
+I am a daily user of WaniKani, which is a flashcards review platform for learning Japanese Kanji and Vocabulary in a curated way. This integration aims to get a list of all the current user's learning kanji and vocab. Relationship edges will be automatically linked between vocab and kanji. This is simply an API call fetch to the WaniKani API and an adapter layer that transforms the data into a NoteGraph document, which then loads to an existing or new NoteGraph.
+
+
 ## Process
 
 
