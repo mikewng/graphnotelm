@@ -70,10 +70,13 @@ NoteGraph Node controller would handle anything related to creating, editting, o
 NoteGraph Relationship and Tag controllers would handle creating or deleting the edges or tags at a NoteGraph scale. Deleting a tag within this would remove all tags that are attached to nodes within the graph, same for relationship edges.
 
 After getting this prototype working, it was time to identify or write down what I have already identified as potential issues if this were to be scaled.
+
 Firstly, the way I was saving and patching the node content was wrong. I should be separating the mutation of tags and relationships within the node to be its own service, as it gives the edit endpoint too much responsibility. (aka violates single responsibility principle in that we are expecting this one service method to do multiple OPTIONAL things). Furthermore, I want to give the user ability in the frontend an autosave after the user stops type for a few seconds, and sending over tags, relationships, and metadata each time when only the title and or note content is changed can cause issues.
 - The solution would be to just make a separate controller for tags and relationships in which is responsible for patching tags and relationships only within the node. It essentially does the same thing, but isolates that specific functionality and allows it to be open to extra implementation.
+
 Secondly, SQL database hosting on AWS costs surprisingly ALOT compared to DynamoDB. This might not be a problem going forward for most people, but it is a problem for me (because I am broke).
 - The solution would probably be to create a separate DynamoDB from the NoteGraph Document DynamoDB, the reasoning being what I mentioned above on how I would like to swap implementations of notegraph document storage.
+
 Thirdly, the document storage might become an issue as the NoteGraph becomes large. I did not realize until doing further research that each DynamoDB document has a 400KB limit, which means that if the JSON file exceeds it, the document would break. In addition, as the file becomes large, saving and editting within the NoteGraph becomes slower as well.
 - The solution currently would be to break the document into different tables -> One for the Notegraph, its tags and relationships, and a list of IDs that reference -> NoteGraphNodes, which contain the actual data of the nodes. This would not only allow the notegraph to scale much better, but also prevents long saving times because we would be querying and editting a single node document, not the entire document itself.
 
