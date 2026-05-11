@@ -1,4 +1,21 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: graphnotelm
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
   app:
     build:
       context: .
@@ -7,19 +24,14 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__PrimaryDB=Host=host.docker.internal;Port=5432;Database=graphnotelm;Username=postgres;Password=123456
+      - ConnectionStrings__PrimaryDB=Host=postgres;Port=5432;Database=graphnotelm;Username=postgres;Password=postgres
       - Jwt__Key=57ff8cb7-ed21-482d-810b-7e784dfd4ba0
       - Jwt__Issuer=graphnotelm
       - Jwt__Audience=graphnotelm_client
       - Jwt__AccessTokenMinutes=60
-
-  dynamodb:
-    image: amazon/dynamodb-local:latest
-    ports:
-      - "8000:8000"
-    volumes:
-      - dynamodb_data:/home/dynamodblocal
-    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
-  dynamodb_data:
+  postgres_data:
