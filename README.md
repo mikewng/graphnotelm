@@ -51,15 +51,34 @@ Aside from being a primarily note-taking application, there are ways to make Not
 ### WaniKani API and Progress Integration
 I am a daily user of WaniKani, which is a flashcards review platform for learning Japanese Kanji and Vocabulary in a curated way. This integration aims to get a list of all the current user's learning kanji and vocab alongside the current mastery of the vocab/kanji as a numerical value. Relationship edges will be automatically linked between vocab and kanji. This is simply an API call fetch to the WaniKani API and an adapter layer that transforms the data into a NoteGraph document, which then loads to an existing or new NoteGraph.
 
+## My Process and What I Learned
+I learned that transforming a local application in which all your logic and storage happens within your personal computer to something that is usable across many users is fundamentally different in terms of architecture. My old personal local copy was a basic datastructure in which exports a structured JSON and can be imported again to parse the JSON to be editted again. Everything happened on your computer, from writing, editting, they make live changes to the JSON document by writing directly into it from your computer. However, there eventually came a time in which I wanted access to these notes anywhere I go without the need to download and import the JSON each time I move devices, and that led me to try and build this as an API server. This brought up so many different questions even beyond architectural decisions like setting up file structure, naming, and dependency injection, for example:
+- How should I store this document data, and how do users retreive that document data?
+- How can users edit the document data without my API server blowing up or my database engine conducting too many read and write queries?
+- How can these documents be read as graphs and conduct graph search algorihms at scale?
 
-## Process
+This got me into a rabbit hole of looking into how document editting services like Google Docs handle saving and changes, in which gave me a bunch of methods and ideas, as well as a good understanding of tradeoffs with each.
 
+At this point, my first idea was to actually get the application running, working, and testable. This did not mean it had to work at scale, but for an individual user, it all functions should be correct. Thus, I chose to do a structured prototype, in which I set up the application infrastructure, and prototyped services and repositories that followed that pattern so that I could swap them later for more optimized versions. The current flow would be that:
+- We retain the same JSON structure, and do so by having each NoteGraph be a document of the JSON within some DynamoDB or in-memory storage
+- For allowing the ability to save and access NoteGraphs only specific to you, I decided to keep a small PostgreSQL of users, and graph metadata which has an ID that points to the NoteGraph document. I separate these databases because although we may change the document storage solution, users and their metadata rarely change, allowing us to swap document storage solutions with ease without having to write new tables or storage for users each time.
+- Mapped out entry points by NoteGraph, NoteGraph Node, NoteGraph Relationships, and NoteGraph Tags.
+- GraphView utility class in which turns the document into a graph, allowing for graph algorithms.
 
-## What I Learned
+NoteGraph controller would handle anything related to creating an initial blank notegraph. This ties the notegraph with the user, creates metadata, and links that metadata with the actual notegraph document
+NoteGraph Node controller would handle anything related to creating, editting, or deleting notegraph nodes. This ALSO meant editting tags and relationships within the Node.
+NoteGraph Relationship and Tag controllers would handle creating or deleting the edges or tags at a NoteGraph scale. Deleting a tag within this would remove all tags that are attached to nodes within the graph, same for relationship edges.
+
+After getting this prototype working, it was time to identify or write down what I have already identified as potential issues if this were to be scaled.
+Firstly, the way I was saving and patching the node content was wrong. I should be separating the mutation of tags and relationships within the node to be its own service, as it gives the edit endpoint too much responsibility. (aka violates single responsibility principle in that we are expecting this one service method to do multiple OPTIONAL things). Furthermore, I want to give the user ability in the frontend an autosave after the user stops type for a few seconds, and sending over tags, relationships, and metadata each time when only the title and or note content is changed can cause issues.
+- The solution would be to just make a separate controller for tags and relationships in which is responsible for patching tags and relationships only within the node. It essentially does the same thing, but isolates that specific functionality and allows it to be open to extra implementation.
+Secondly, SQL database hosting on AWS costs surprisingly ALOT compared to DynamoDB. This might not be a problem going forward for most people, but it is a problem for me (because I am broke).
+- The solution would probably be to create a separate DynamoDB from the NoteGraph Document DynamoDB, the reasoning being what I mentioned above on how I would like to swap implementations of notegraph document storage.
+Thirdly, the document storage might become an issue as the NoteGraph becomes large. I did not realize until doing further research that each DynamoDB document has a 400KB limit, which means that if the JSON file exceeds it, the document would break. In addition, as the file becomes large, saving and editting within the NoteGraph becomes slower as well.
+- The solution currently would be to break the document into different tables -> One for the Notegraph, its tags and relationships, and a list of IDs that reference -> NoteGraphNodes, which contain the actual data of the nodes. This would not only allow the notegraph to scale much better, but also prevents long saving times because we would be querying and editting a single node document, not the entire document itself.
 
 
 ## Options to Run
-
 ### Publicly Deployed Service
 You can access the service publicly through the url: xxx. You can create an account to have your notes be saved on the cloud. Otherwise, you must handle manual saving by exporting your notegraph every so often (you still have this option as a user).
 
