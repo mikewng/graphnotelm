@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 export default function NodeSidebar({
   nodesList,
   tagsList,
@@ -10,9 +12,16 @@ export default function NodeSidebar({
   onSelectNode,
   onCreateNode,
 }) {
+  const [sortAsc, setSortAsc] = useState(true)
+
   const filteredNodes = nodesList
     .filter(n => !search || (n.title || '').toLowerCase().includes(search.toLowerCase()))
     .filter(n => !tagFilter || (n.tags || []).includes(tagFilter))
+    .sort((a, b) => {
+      const ta = (a.title || '').toLowerCase()
+      const tb = (b.title || '').toLowerCase()
+      return sortAsc ? ta.localeCompare(tb) : tb.localeCompare(ta)
+    })
 
   return (
     <div className="sidebar">
@@ -27,6 +36,13 @@ export default function NodeSidebar({
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
+        <button
+          className="sidebar-sort-btn"
+          onClick={() => setSortAsc(v => !v)}
+          title={sortAsc ? 'Sorted A→Z' : 'Sorted Z→A'}
+        >
+          {sortAsc ? 'A↑' : 'Z↓'}
+        </button>
       </div>
       <div className="sidebar-tag-filter">
         <button

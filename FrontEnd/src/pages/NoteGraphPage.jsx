@@ -45,6 +45,8 @@ export default function NoteGraphPage() {
   const [addTagId, setAddTagId] = useState('')
   const [connTarget, setConnTarget] = useState('')
   const [connRelType, setConnRelType] = useState('')
+  const [connInverseTarget, setConnInverseTarget] = useState('')
+  const [connInverseRelType, setConnInverseRelType] = useState('')
 
   // ── Auto-save ──────────────────────────────────────────────────────────────
   const [saveStatus, setSaveStatus] = useState('idle') // 'idle' | 'saving' | 'saved'
@@ -60,7 +62,6 @@ export default function NoteGraphPage() {
     try {
       const data = await noteGraphApi.get(id)
       setGraph(data)
-      setError('')
     } catch (err) {
       setError(err.message)
     }
@@ -262,6 +263,16 @@ export default function NoteGraphPage() {
       await noteNodeApi.addRelationship(id, selectedNodeId, connTarget, connRelType)
       setConnTarget('')
       setConnRelType('')
+      await loadGraph()
+    } catch (err) { setError(err.message) }
+  }
+
+  async function handleAddInverseConnection() {
+    if (!connInverseTarget || !connInverseRelType || connInverseTarget === selectedNodeId) return
+    try {
+      await noteNodeApi.addRelationship(id, connInverseTarget, selectedNodeId, connInverseRelType)
+      setConnInverseTarget('')
+      setConnInverseRelType('')
       await loadGraph()
     } catch (err) { setError(err.message) }
   }
@@ -480,18 +491,22 @@ export default function NoteGraphPage() {
             relTypesList={relTypesList}
             nodeTitle={nodeTitle} setNodeTitle={handleTitleChange}
             nodeNote={nodeNote} setNodeNote={handleNoteChange}
+            confidenceRate={selectedNodeId ? graph.nodes?.[selectedNodeId]?.metadata?.userConfidenceRate ?? null : null}
             saveStatus={saveStatus}
             localTags={localTags}
             localRelDict={localRelDict}
             addTagId={addTagId} setAddTagId={setAddTagId}
             connTarget={connTarget} setConnTarget={setConnTarget}
             connRelType={connRelType} setConnRelType={setConnRelType}
+            connInverseTarget={connInverseTarget} setConnInverseTarget={setConnInverseTarget}
+            connInverseRelType={connInverseRelType} setConnInverseRelType={setConnInverseRelType}
             onSave={handleSaveNode}
             onDelete={handleDeleteNode}
             onToggleMetadata={() => setShowMetadataSidebar(v => !v)}
             onAddTag={handleAddTag}
             onRemoveTag={handleRemoveTag}
             onAddConnection={handleAddConnection}
+            onAddInverseConnection={handleAddInverseConnection}
             onRemoveConnection={handleRemoveConnection}
             onNavigate={navigateTo}
           />

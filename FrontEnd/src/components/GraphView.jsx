@@ -11,6 +11,7 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
   const svgRef = useRef(null)
   const [tagFilter, setTagFilter] = useState(new Set())
   const [hierarchical, setHierarchical] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   function toggleTag(id) {
     setTagFilter(prev => {
@@ -37,9 +38,11 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
     const accent = cssVars.getPropertyValue('--accent').trim()
     const text2  = cssVars.getPropertyValue('--text-2').trim()
 
-    const visibleNodes = nodes.filter(n =>
+    let visibleNodes = nodes.filter(n =>
       tagFilter.size === 0 || (n.tags || []).some(t => tagFilter.has(t))
     )
+
+
     const visibleIds = new Set(visibleNodes.map(n => n.id))
 
     const nodeData = visibleNodes.map(n => ({ ...n }))
@@ -48,6 +51,14 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
         .filter(r => visibleIds.has(r.targetNodeId))
         .map(r => ({ source: n.id, target: r.targetNodeId, relationshipId: r.relationshipId }))
     )
+
+    // Compute incoming edge count and scale radius accordingly
+    const incomingCount = {}
+    nodeData.forEach(n => { incomingCount[n.id] = 0 })
+    linkData.forEach(l => { incomingCount[l.target] = (incomingCount[l.target] || 0) + 1 })
+    const maxIncoming = Math.max(...Object.values(incomingCount), 1)
+    const rScale = d3.scaleSqrt().domain([0, maxIncoming]).range([NODE_R, NODE_R * 2]).clamp(true)
+    nodeData.forEach(n => { n._r = rScale(incomingCount[n.id] || 0) })
 
     const levels = {}
     if (hierarchical) {
@@ -96,7 +107,7 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
         ? d3.forceY(d => padding + (levels[d.id] || 0) * levelSpacing).strength(0.6)
         : d3.forceY(height / 2).strength(0.05)
       )
-      .force('collision', d3.forceCollide(NODE_R + 30))
+      .force('collision', d3.forceCollide(d => d._r + 12))
 
     const tooltip = d3.select(svgEl.parentElement)
       .selectAll('.graph-tooltip').data([null])
@@ -156,12 +167,28 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
         onSelectNode(d)
       })
       .on('mouseover', (event, d) => {
-        const connected = new Set([d.id])
+        // Build adjacency list for outgoing edges
+        const outEdges = {}
         linkData.forEach(l => {
           const src = typeof l.source === 'object' ? l.source.id : l.source
           const tgt = typeof l.target === 'object' ? l.target.id : l.target
-          if (src === d.id || tgt === d.id) { connected.add(src); connected.add(tgt) }
+          if (!outEdges[src]) outEdges[src] = []
+          outEdges[src].push(tgt)
         })
+
+        // BFS from hovered node following only outgoing edges
+        const connected = new Set([d.id])
+        const queue = [d.id]
+        while (queue.length > 0) {
+          const current = queue.shift()
+          for (const tgt of (outEdges[current] || [])) {
+            if (!connected.has(tgt)) {
+              connected.add(tgt)
+              queue.push(tgt)
+            }
+          }
+        }
+
         node.classed('dimmed', n => !connected.has(n.id))
             .classed('focused', n => n.id === d.id)
         link.classed('dimmed', l => {
@@ -176,7 +203,7 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
       })
 
     node.append('circle')
-      .attr('r', NODE_R)
+      .attr('r', d => d._r)
       .style('stroke', d => {
         const primaryTagId = (d.tags || [])[0]
         return primaryTagId && tagDefs[primaryTagId]?.color ? tagDefs[primaryTagId].color : accent
@@ -198,10 +225,25 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
 
     node.append('text')
       .text(d => {
+        const rate = d.metadata?.userConfidenceRate
+        return (rate != null && rate > 0) ? rate : ''
+      })
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('text-anchor', 'middle')
+      .attr('dominant-baseline', 'middle')
+      .attr('font-size', d => Math.max(9, Math.round(d._r * 0.5)))
+      .attr('font-weight', '600')
+      .style('fill', '#000')
+      .style('stroke', 'none')
+      .style('pointer-events', 'none')
+
+    node.append('text')
+      .text(d => {
         const t = d.title || ''
         return t.length > 18 ? t.slice(0, 17) + '…' : t
       })
-      .attr('x', NODE_R + 6)
+      .attr('x', d => d._r + 6)
       .attr('y', 0)
 
     simulation.on('tick', () => {
@@ -211,8 +253,8 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
         const dist = Math.sqrt(dx * dx + dy * dy)
         if (dist === 0) return ''
         const ux = dx / dist, uy = dy / dist
-        const x1 = sx + ux * NODE_R, y1 = sy + uy * NODE_R
-        const x2 = tx - ux * NODE_R, y2 = ty - uy * NODE_R
+        const x1 = sx + ux * d.source._r, y1 = sy + uy * d.source._r
+        const x2 = tx - ux * d.target._r, y2 = ty - uy * d.target._r
         const dr = dist * 1.6
         return `M${x1},${y1} A${dr},${dr} 0 0,1 ${x2},${y2}`
       })
@@ -222,11 +264,43 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
     return () => simulation.stop()
   }, [nodes, tagDefs, relDefs, tagFilter, selectedNodeId, hierarchical])
 
+  // Lightweight search — just toggles CSS classes, no simulation restart
+  useEffect(() => {
+    if (!svgRef.current) return
+    const allNodes = d3.select(svgRef.current).selectAll('.graph-node')
+    const allLinks = d3.select(svgRef.current).selectAll('.graph-link')
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) {
+      allNodes.classed('search-match', false).classed('search-dimmed', false)
+      allLinks.classed('search-dimmed', false)
+      return
+    }
+    const matches = new Set()
+    allNodes.each(d => { if ((d.title || '').toLowerCase().includes(q)) matches.add(d.id) })
+    allNodes
+      .classed('search-match', d => matches.has(d.id))
+      .classed('search-dimmed', d => !matches.has(d.id))
+    allLinks.classed('search-dimmed', l => {
+      const src = typeof l.source === 'object' ? l.source.id : l.source
+      const tgt = typeof l.target === 'object' ? l.target.id : l.target
+      return !matches.has(src) || !matches.has(tgt)
+    })
+  }, [searchQuery])
+
   return (
     <div className="graph-overlay">
       <div className="graph-view-header">
         <button className="btn-ghost" onClick={onClose}>← Back</button>
-        <span>Click node to open · Scroll to zoom · Drag to pan</span>
+
+        <input
+          className="graph-search"
+          type="text"
+          placeholder="Search nodes…"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          autoComplete="off"
+        />
+
         <button
           className={hierarchical ? '' : 'btn-ghost'}
           onClick={() => setHierarchical(v => !v)}

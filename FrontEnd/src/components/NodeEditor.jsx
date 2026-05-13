@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import SearchSelect from './SearchSelect'
 
 export default function NodeEditor({
   graph,
@@ -13,6 +14,9 @@ export default function NodeEditor({
   addTagId, setAddTagId,
   connTarget, setConnTarget,
   connRelType, setConnRelType,
+  connInverseTarget, setConnInverseTarget,
+  connInverseRelType, setConnInverseRelType,
+  confidenceRate,
   saveStatus,
   onSave,
   onDelete,
@@ -20,17 +24,36 @@ export default function NodeEditor({
   onAddTag,
   onRemoveTag,
   onAddConnection,
+  onAddInverseConnection,
   onRemoveConnection,
   onNavigate,
 }) {
   const noteRef = useRef(null)
 
+  // Sync contenteditable when switching nodes — read directly from graph
+  // so we always get the correct content regardless of when nodeNote state updates
   useEffect(() => {
     const el = noteRef.current
     if (!el) return
-    el.style.height = 'auto'
-    el.style.height = el.scrollHeight + 'px'
-  }, [nodeNote])
+    el.innerHTML = graph.nodes?.[selectedNodeId]?.note || ''
+  }, [selectedNodeId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleNoteInput(e) {
+    setNodeNote(e.currentTarget.innerHTML)
+  }
+
+  function applyFormat(command) {
+    noteRef.current?.focus()
+    document.execCommand(command, false, null)
+  }
+
+  function handleNoteKeyDown(e) {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === 'b') { e.preventDefault(); applyFormat('bold') }
+      if (e.key === 'i') { e.preventDefault(); applyFormat('italic') }
+      if (e.key === 'u') { e.preventDefault(); applyFormat('underline') }
+    }
+  }
 
   function getNodeTitle(nodeId) { return graph.nodes?.[nodeId]?.title || nodeId }
   function getTagName(tagId) { return graph.tags?.[tagId]?.name || tagId }
@@ -73,6 +96,12 @@ export default function NodeEditor({
               Saved
             </span>
           )}
+          <span
+            className="confidence-badge"
+            title={confidenceRate != null ? `Confidence: ${confidenceRate}/10` : 'No confidence score set'}
+          >
+            {confidenceRate != null ? 'Confidence: ' + confidenceRate : 'Confidence: —'}
+          </span>
           <button className="btn-meta-info" onClick={onToggleMetadata} title="Node metadata">i</button>
         </div>
       </div>
@@ -80,12 +109,14 @@ export default function NodeEditor({
       {/* Note */}
       <div className="field">
         <div className="field-label">Note</div>
-        <textarea
+        <div
           ref={noteRef}
-          className="note-textarea"
-          value={nodeNote}
-          onChange={e => setNodeNote(e.target.value)}
-          placeholder="start writing..."
+          className="note-editor"
+          contentEditable
+          suppressContentEditableWarning
+          onInput={handleNoteInput}
+          onKeyDown={handleNoteKeyDown}
+          data-placeholder="start writing..."
         />
       </div>
 
@@ -124,17 +155,40 @@ export default function NodeEditor({
       <div className="field">
         <div className="field-label">Add Connection</div>
         <div className="link-row">
-          <select value={connTarget} onChange={e => setConnTarget(e.target.value)}>
-            <option value="">target node...</option>
-            {nodesList
+          <span className="link-row-source">{nodeTitle || '(untitled)'}</span>
+          <SearchSelect
+            value={connRelType}
+            onChange={setConnRelType}
+            options={relTypesList.map(r => ({ id: r.id, label: r.name }))}
+            placeholder="connects to..."
+          />
+          <SearchSelect
+            value={connTarget}
+            onChange={setConnTarget}
+            options={nodesList
               .filter(n => n.id !== selectedNodeId && !localRelDict[n.id])
-              .map(n => <option key={n.id} value={n.id}>{n.title || '(untitled)'}</option>)}
-          </select>
-          <select value={connRelType} onChange={e => setConnRelType(e.target.value)}>
-            <option value="">type...</option>
-            {relTypesList.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-          </select>
+              .map(n => ({ id: n.id, label: n.title || '(untitled)' }))}
+            placeholder="target node..."
+          />
           <button className="btn-outline" onClick={onAddConnection}>Add</button>
+        </div>
+        <div className="link-row">
+          <SearchSelect
+            value={connInverseTarget}
+            onChange={setConnInverseTarget}
+            options={nodesList
+              .filter(n => n.id !== selectedNodeId && !incoming.some(r => r.sourceNodeId === n.id))
+              .map(n => ({ id: n.id, label: n.title || '(untitled)' }))}
+            placeholder="source node..."
+          />
+          <SearchSelect
+            value={connInverseRelType}
+            onChange={setConnInverseRelType}
+            options={relTypesList.map(r => ({ id: r.id, label: r.name }))}
+            placeholder="connects to..."
+          />
+          <span className="link-row-source">{nodeTitle || '(untitled)'}</span>
+          <button className="btn-outline" onClick={onAddInverseConnection}>Add</button>
         </div>
         {relTypesList.length === 0 && <p className="hint">Create relationship types in Manage Types.</p>}
       </div>
