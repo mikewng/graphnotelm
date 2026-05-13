@@ -102,7 +102,7 @@ export default function NodeEditor({
           >
             {confidenceRate != null ? 'Confidence: ' + confidenceRate : 'Confidence: —'}
           </span>
-          <button className="btn-meta-info" onClick={onToggleMetadata} title="Node metadata">i</button>
+          <button className="btn-meta-info" onClick={onToggleMetadata} title="Node metadata"><span className="app-icon icon-info" /></button>
         </div>
       </div>
 
@@ -134,7 +134,7 @@ export default function NodeEditor({
                 style={tagColor ? { color: tagColor, borderColor: tagColor, background: tagColor + '20' } : undefined}
               >
                 {getTagName(tagId)}
-                <button className="pill-remove" onClick={() => onRemoveTag(tagId)}>×</button>
+                <button className="pill-remove" onClick={() => onRemoveTag(tagId)}><span className="app-icon icon-close" /></button>
               </span>
             )
           })}
@@ -215,7 +215,7 @@ export default function NodeEditor({
                         onClick={() => onNavigate(r.targetNodeId)}
                       >
                         <span>{r.relTypeId ? `${getRelTypeName(r.relTypeId)} · ` : ''}{getNodeTitle(r.targetNodeId)}</span>
-                        <span className="x" onClick={e => { e.stopPropagation(); onRemoveConnection(r.targetNodeId) }}>×</span>
+                        <span className="x" onClick={e => { e.stopPropagation(); onRemoveConnection(r.targetNodeId) }}><span className="app-icon icon-close" /></span>
                       </div>
                     )
                   })

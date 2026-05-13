@@ -235,6 +235,26 @@ label {
   margin-bottom: 10px;
 }
 
+/* ── Icon mask utility ──────────────────────────────────────────────────── */
+.app-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  background-color: currentColor;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+.icon-edit   { mask-image: url('/assets/icons/editicon.svg');        -webkit-mask-image: url('/assets/icons/editicon.svg'); }
+.icon-delete { mask-image: url('/assets/icons/deleteicon.svg');      -webkit-mask-image: url('/assets/icons/deleteicon.svg'); }
+.icon-info   { mask-image: url('/assets/icons/infoicon.svg');        -webkit-mask-image: url('/assets/icons/infoicon.svg'); }
+.icon-gear   { mask-image: url('/assets/icons/settingsgearicon.svg'); -webkit-mask-image: url('/assets/icons/settingsgearicon.svg'); }
+.icon-graph  { mask-image: url('/assets/icons/graphicon.svg');       -webkit-mask-image: url('/assets/icons/graphicon.svg'); }
+.icon-export { mask-image: url('/assets/icons/exporticon.svg');      -webkit-mask-image: url('/assets/icons/exporticon.svg'); }
+.icon-close  { mask-image: url('/assets/icons/closeicon.svg');       -webkit-mask-image: url('/assets/icons/closeicon.svg'); }
+
 /* ── Graph overlay ──────────────────────────────────────────────────────── */
 .graph-overlay {
   position: fixed;

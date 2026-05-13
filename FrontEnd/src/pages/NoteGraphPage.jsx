@@ -84,6 +84,11 @@ export default function NoteGraphPage() {
     if (!node) return
     setNodeTitle(node.title || '')
     setNodeNote(node.note || '')
+    setAddTagId('')
+    setConnTarget('')
+    setConnRelType('')
+    setConnInverseTarget('')
+    setConnInverseRelType('')
   }, [selectedNodeId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep tags + relationships in sync with every graph reload
@@ -463,9 +468,9 @@ export default function NoteGraphPage() {
           </h2>
         </div>
         <div className="header-actions">
-          <button className="btn-ghost" onClick={handleExport}>Export JSON</button>
-          <button className="btn-ghost" onClick={() => setShowGraph(true)}>Graph View</button>
-          <button className="btn-ghost" onClick={() => setShowManageTypes(true)}>Manage Types</button>
+          <button className="btn-icon-header" onClick={handleExport}><span className="app-icon icon-export" />Export JSON</button>
+          <button className="btn-icon-header" onClick={() => setShowGraph(true)}><span className="app-icon icon-graph" />Graph View</button>
+          <button className="btn-icon-header" onClick={() => setShowManageTypes(true)}><span className="app-icon icon-gear" />Manage Types</button>
         </div>
       </header>
 

@@ -342,10 +342,12 @@
   padding: 0;
   cursor: pointer;
   color: var(--text-3);
-  font-size: 13px;
   line-height: 1;
   opacity: 0.6;
+  display: flex;
+  align-items: center;
 }
+.tag-pill .pill-remove .app-icon { width: 9px; height: 9px; }
 
 .tag-pill .pill-remove:hover {
   background: none;
@@ -457,9 +459,11 @@
 
 .relation-tag .x {
   opacity: 0.55;
-  font-size: 13px;
   line-height: 1;
+  display: flex;
+  align-items: center;
 }
+.relation-tag .x .app-icon { width: 9px; height: 9px; }
 .relation-tag .x:hover { opacity: 1; }
 
 .relation-empty {
@@ -526,6 +530,11 @@
 .manage-sidebar-header button {
   padding: 3px 10px;
   font-size: 12px;
+}
+.manage-sidebar-header .btn-icon-sm {
+  padding: 0;
+  display: grid;
+  place-items: center;
 }
 
 .manage-sidebar-body {
@@ -750,19 +759,47 @@
   white-space: nowrap;
 }
 
+.btn-icon-header {
+  height: 30px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-2);
+  font-size: 12px;
+  transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+}
+.btn-icon-header:hover {
+  background: var(--hover);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn-icon-header .app-icon { width: 13px; height: 13px; }
+
+.btn-icon-sm {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.btn-icon-sm .app-icon { width: 12px; height: 12px; }
+
 .btn-meta-info {
   width: 26px;
   height: 26px;
   padding: 0;
-  font-style: italic;
-  font-weight: 700;
-  font-size: 13px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
+.btn-meta-info .app-icon { width: 13px; height: 13px; }
 
 .metadata-panel {
   flex: 1;
@@ -795,6 +832,11 @@
 .metadata-panel-header button {
   padding: 3px 10px;
   font-size: 12px;
+}
+.metadata-panel-header .btn-icon-sm {
+  padding: 0;
+  display: grid;
+  place-items: center;
 }
 
 .metadata-fields {

@@ -44,7 +44,7 @@ export default function MetadataSidebar({ node, isOpen, onToggle, onSave }) {
           {node && !editing && (
             <button className="btn-ghost" onClick={() => setEditing(true)}>Edit</button>
           )}
-          <button className="btn-ghost" onClick={onToggle} title="Close">×</button>
+          <button className="btn-ghost btn-icon-sm" onClick={onToggle} title="Close"><span className="app-icon icon-close" /></button>
         </div>
       </div>
 
