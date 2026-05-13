@@ -1,6 +1,11 @@
 # GraphNoteLM
 A graph based note-taking application for students, researchers, and creatives for relational learning, study, and discovery, powered with AI insights using notebook-enclosed context.
 
+<img width="1444" height="864" alt="image" src="https://github.com/user-attachments/assets/4bad7e72-d02d-4ec8-bc3a-c395b2fb9510" />
+
+<img width="1916" height="937" alt="image" src="https://github.com/user-attachments/assets/f77cd55e-5e16-44c7-838a-884f81873837" />
+
+https://github.com/user-attachments/assets/44c44208-c97f-447a-88e7-17891f9705fa
 
 ## Why GraphNoteLM?
 GraphNoteLM started when I wanted a local relational note taking tool for learning AWS technologies and needing to understand which concepts I was weak on to identify bottlenecks in what I need to study before subsequent concepts.
@@ -55,6 +60,9 @@ If privacy is a big concern to you, a major option is running everything encased
 
 ## Cool Applications of NoteGraphLM
 ### Learning Pacing Tool
+
+<img width="1420" height="865" alt="image" src="https://github.com/user-attachments/assets/d1e84a9e-e3da-45b2-854d-fe6d774b99b5" />
+
 This was the main motivation for me to build this tool, as a way to find the best way to learn concepts and what order to learn them. For example, you can set nodes as concepts, write note and content within them, and then connect each node to other nodes as "prerequisite to" or "has prerequisite" relationships. With the built-in confidence rate within each node's metadata, you can gage how well you have the node's concept learned and whether or not you are ready to move onto the subsequent nodes.
 
 ### Worldbuilding and Storytelling for Large Book Projects and Tabletop RPGs
