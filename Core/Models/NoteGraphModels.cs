@@ -11,9 +11,17 @@
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
+        public GraphContext Context { get; set; } = new();
         public Dictionary<Guid, TagDefinition> Tags { get; set; } = new();
         public Dictionary<Guid, RelationshipDefinition> Relationships { get; set; } = new();
         public Dictionary<Guid, NoteNode> Nodes { get; set; } = new();
+    }
+
+    public class GraphContext
+    {
+        public string Domain { get; set; } = "";
+        public string SystemPrompt { get; set; } = "";
+        public string MetadataSchemaHint { get; set; } = "summary";
     }
 
     public class NoteNode
