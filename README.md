@@ -24,15 +24,31 @@ Deployment
 
 ## Features
 ### Topic-Agnostic Graph Algorithm Applications
-#### Dijkstra's Shortest Path on note nodes' user confidence rating
-#### Breadth First Search on minimum confidence rating
-#### Topological sort for automatic node sequencing
+Applications of graphs algorithms to have enrich your notetaking and analysis of its content.
+
+#### - Dijkstra's Shortest Path on note nodes' user confidence rating
+This can allow you to get either the hardest or easiest path of learning concepts. By conducting shortest paths on your note's confidence rates, you can find the hardest topics and concepts that you should cover. By reversing the value of the confidence score to be negative, we can find the easiest path in which you should cover.
+
+#### - Breadth First Search on minimum confidence rating
+This gives the you the ability to find your "knowledge frontiers". Use this to conduct a search of all notes that you have a good grasp of, and where that grasp ends. This gives you a better idea of where and what concepts you should start refining and honing.
+
+#### - Topological sort for automatic node sequencing
+Using Kahn's algorithm for topological sort, given a target node, we are able to find the best sequence of notes that you should review in that order to best understand the topic. For example, let's say you are taking an AWS Data Engineering Certification, and you need to find the best order to review and learn AWS services. Applying topological sort gives you a good idea of where to start and how to continue.
 
 ### Importable and Exportable NoteGraphs as JSON
 This gives you to option to create notegraphs without creating an account. Once you are at a good stopping point within the NoteGraph, you're able to export the notegraph as a json and reimport it again to begin writing. In addition, since all information is encapsulated within the JSON, this means that you are not limited to the NoteGraph UI. As long as your UI is able to parse the JSON file, you can create your own views.
 
 ### Cloud Storage via DynamoDB
 If you want to streamline the saving process of notegraphs, you can utilize the publicly deployed GraphNoteLM. We will handle the storage of your notes securely. Furthermore, you will have access to connected LLMs through a chat, in which has access to conduct graph algorithm and gather notebook-contexted insights for you.
+
+### Metadata and AI Insights
+This is where the "LM" comes from I guess... Like I mentioned, I really liked Google's NotebookLM and how they used AI as an assistant for answering questions within the notebook, but I wanted to find a way to integrate LLMs with this graph-based note architecture. 
+
+#### - General Chat and Notebook-Enclosed Context
+Like with NotebookLM, this is the most basic feature of the AI layer. You are able to ask the LLM questions through the built-in chat feature in regards to context specific to this notebook itself. It also has access to said graph algorithms mentioned, which gives users a more curated response and analysis of the algorithm results.
+
+### - LLM Metadata
+The AI has the ability to read (but not write!) to your node content. However, they do have a scratchpad for reading and writing within their own dedicated LLM Metadata section. This section can be fully customizable... you can set schemas or just have the LLM write notes to this metadata section in regards to the note content itself. Use cases for regular LLM writes would be for critcisim or review on certain note nodes, and use cases for schemas could be providing structured statistics of different data types (numericals, text, etc.)
 
 ### Ability to Run the Application Locally (Without LLM Capabilities)
 If privacy is a big concern to you, a major option is running everything encased within the application within a single docker command. The docker compose will spin up everything - from Frontend, to .NET Backend Service, to even the PostgreSQL and InternalJSONStorage as volumes. All you need is to install docker, clone the repo, and run docker compose --build. The application should be lightweight enough to be run in the background, but contains graceful shutdowns that does not disrupt data.
@@ -56,8 +72,6 @@ I learned that transforming a local application in which all your logic and stor
 - How should I store this document data, and how do users retreive that document data?
 - How can users edit the document data without my API server blowing up or my database engine conducting too many read and write queries?
 - How can these documents be read as graphs and conduct graph search algorihms at scale?
-
-This got me into a rabbit hole of looking into how document editting services like Google Docs handle saving and changes, in which gave me a bunch of methods and ideas, as well as a good understanding of tradeoffs with each.
 
 At this point, my first idea was to actually get the application running, working, and testable. This did not mean it had to work at scale, but for an individual user, it all functions should be correct. Thus, I chose to do a structured prototype, in which I set up the application infrastructure, and prototyped services and repositories that followed that pattern so that I could swap them later for more optimized versions. The current flow would be that:
 - We retain the same JSON structure, and do so by having each NoteGraph be a document of the JSON within some DynamoDB or in-memory storage
