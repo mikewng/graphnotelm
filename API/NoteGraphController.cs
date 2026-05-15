@@ -84,6 +84,12 @@ namespace graphnotelm.API
             return Result<EditGraphMetadataResponse>.Ok(editGraphMetadataResponse.Value);
         }
 
+        [HttpPatch("edit/{noteGraphId:guid}/graphcontext", Name = "EditNoteGraphContext")]
+        public async Task<ActionResult<Result<EditGraphMetadataResponse>>> EditGraphContext([FromBody] EditGraphMetadataRequest editGraphMetadataRequest, Guid noteGraphId, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
         [HttpPost("create/import")]
         public async Task<ActionResult<Result<CreateGraphResponse>>> ImportNoteGraph([FromBody] NoteGraphDocumentREADONLY document, CancellationToken ct)
         {

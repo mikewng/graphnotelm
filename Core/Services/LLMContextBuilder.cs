@@ -42,12 +42,16 @@ namespace graphnotelm.Core.Services
                 neighbors and produce structured metadata. You have
                 access to previously computed graph metrics and your
                 own prior analysis. Build on your prior analysis —
-                don't start from scratch each time.
+                don't start from scratch each time. Furthermore, always include a 
+                'summary' field for a general analysis.
 
                 Respond ONLY with a raw JSON object containing your
                 analysis fields. Do NOT wrap it in any key such as
                 "llm" — return the object itself directly.
                 No markdown, no preamble, no explanation.
+
+                Schema guidance for your output:
+                {document.Context.MetadataSchemaHint}
                 """;
 
             var userPrompt = $"""
