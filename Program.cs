@@ -1,3 +1,4 @@
+using graphnotelm.API;
 using graphnotelm.Core;
 using graphnotelm.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -43,11 +45,18 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins("http://localhost:5173")
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
 var app = builder.Build();
+
+// Service registration
+
+// Route mapping (alongside your controller mapping)
+app.MapControllers();
+app.MapHub<AIChatHub>("/hub/chat");
 
 if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
 {
@@ -68,6 +77,5 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseCors("LocalFrontend");
 app.UseAuthorization();
-app.MapControllers();
 
 app.Run();
