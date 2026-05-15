@@ -21,11 +21,22 @@ namespace graphnotelm.API
         {
             var userId = _currentUserContext.UserId;
 
-            await foreach (var chunk in _chatService.StreamResponseAsync(userId, graphId, messages)) {
-                await Clients.Caller.SendAsync("ReceiveChunk", chunk);
+            try
+            {
+                await foreach (var chunk in _chatService.StreamResponseAsync(userId, graphId, messages))
+                {
+                    await Clients.Caller.SendAsync("ReceiveChunk", chunk);
+                }
+                await Clients.Caller.SendAsync("ResponseComplete");
             }
-
-            await Clients.Caller.SendAsync("ResponseComplete");
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", "Rate limited — please wait a moment before sending another message.");
+            }
+            catch (HttpRequestException ex)
+            {
+                await Clients.Caller.SendAsync("ReceiveError", $"AI provider error ({(int?)ex.StatusCode}). Please try again.");
+            }
         }
     }
 }

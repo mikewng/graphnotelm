@@ -67,11 +67,10 @@ namespace graphnotelm.Core.Services
                 sb.AppendLine();
             }
 
-            sb.AppendLine("Nodes:");
+            sb.AppendLine($"Nodes ({document.Nodes.Count} total):");
             foreach (var (_, node) in document.Nodes)
             {
-                var note = node.Note.Length > 200 ? node.Note[..200] + "…" : node.Note;
-                sb.AppendLine($"  [{node.Title} (Confidence: {node.Metadata.UserConfidenceRate})]: {note}");
+                sb.AppendLine($"  - {node.Title} (confidence: {node.Metadata.UserConfidenceRate:F2})");
 
                 foreach (var rel in node.Relationships)
                 {
@@ -79,7 +78,7 @@ namespace graphnotelm.Core.Services
                         ? r.Name : "relates to";
                     var targetTitle = document.Nodes.TryGetValue(rel.TargetNodeId, out var target)
                         ? target.Title : "unknown";
-                    sb.AppendLine($"    → [{relName}] {targetTitle}");
+                    sb.AppendLine($"      → [{relName}] {targetTitle}");
                 }
             }
 
