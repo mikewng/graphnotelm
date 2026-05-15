@@ -13,13 +13,17 @@ namespace graphnotelm.API
     {
         private readonly ILogger<NoteNodeController> _logger;
         private readonly INoteNodeService _noteNodeService;
+        private readonly ILLMAnalysisService _llmAnalysisService;
+
 
         public NoteNodeController(
             ILogger<NoteNodeController> logger,
-            INoteNodeService noteNodeService)
+            INoteNodeService noteNodeService,
+            ILLMAnalysisService llmAnalysisService)
         {
             _logger = logger;
             _noteNodeService = noteNodeService;
+            _llmAnalysisService = llmAnalysisService;
         }
 
         [HttpPost("id/{noteGraphId:guid}/node/create")]
@@ -81,6 +85,18 @@ namespace graphnotelm.API
             }
 
             return Result<EditNodeMetadataResponse>.Ok(editNodeMetadataResponse.Value);
+        }
+
+        [HttpPatch("id/{noteGraphId:guid}/node/{nodeId:guid}/metadata/llmanalysis")]
+        public async Task<ActionResult<Result<EditNodeMetadataResponse>>> EditNoteByLMMAnalysis(Guid noteGraphId, Guid nodeId, CancellationToken ct)
+        {
+            var editMetadataResponse = await _llmAnalysisService.AnalyzeNodeAsync(noteGraphId, nodeId, ct);
+            if (!editMetadataResponse.Success || editMetadataResponse.Value == null)
+            {
+                return BadRequest(Result<EditNodeMetadataResponse>.Fail("Failed to edit node metadata."));
+            }
+
+            return Result<EditNodeMetadataResponse>.Ok(editMetadataResponse.Value);
         }
     }
 }
