@@ -60,7 +60,7 @@ The AI has the ability to read (but not write!) to your node content. However, t
 #### - Agentic Access to LLM Metadata, Graph Algorithms, etc.
 This is currently to TBI - the plan is to connect the existing LLM ChatBot to functions that can read and edit LLM Metadata and graph algorithms as agentic tools. If you need a wide range of node metadata editted, this chatbot gives you the ability to do so.
 
-### Ability to Run the Application Locally (Without LLM Capabilities)
+### Native Support to Run Entire Application Locally via Docker (Without LLM Capabilities)
 If privacy is a big concern to you, a major option is running everything encased within the application within a single docker command. The docker compose will spin up everything - from Frontend, to .NET Backend Service, to even the PostgreSQL and InternalJSONStorage as volumes. All you need is to install docker, clone the repo, and run docker compose --build. The application should be lightweight enough to be run in the background, but contains graceful shutdowns that does not disrupt data.
 
 ## Cool Applications of NoteGraphLM
