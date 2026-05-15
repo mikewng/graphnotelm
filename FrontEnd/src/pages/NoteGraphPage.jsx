@@ -223,6 +223,14 @@ export default function NoteGraphPage() {
     } catch (err) { setError(err.message) }
   }
 
+  async function handleGenerateLlmMetadata() {
+    if (!selectedNodeId) return
+    try {
+      await noteNodeApi.generateLlmMetadata(id, selectedNodeId)
+      await loadGraph()
+    } catch (err) { setError(err.message) }
+  }
+
   function handleDeleteNode() {
     if (!selectedNodeId) return
     const node = graph.nodes?.[selectedNodeId]
@@ -523,6 +531,7 @@ export default function NoteGraphPage() {
         isOpen={showMetadataSidebar}
         onToggle={() => setShowMetadataSidebar(v => !v)}
         onSave={handleSaveMetadata}
+        onGenerate={handleGenerateLlmMetadata}
       />
 
     </div>

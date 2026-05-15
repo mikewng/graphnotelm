@@ -71,6 +71,10 @@ export const noteNodeApi = {
   // Node metadata
   updateMetadata: (graphId, nodeId, data) =>
     request(`/NoteGraph/id/${graphId}/node/${nodeId}/metadata`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // LLM-generated metadata analysis
+  generateLlmMetadata: (graphId, nodeId) =>
+    request(`/NoteGraph/id/${graphId}/node/${nodeId}/metadata/llmanalysis`, { method: 'PATCH' }),
 }
 
 // Tag definitions CRUD — tagName + tagColor
