@@ -51,9 +51,14 @@ This is where the "LM" comes from I guess... Like I mentioned, I really liked Go
 
 #### - General Chat and Notebook-Enclosed Context
 Like with NotebookLM, this is the most basic feature of the AI layer. You are able to ask the LLM questions through the built-in chat feature in regards to context specific to this notebook itself. It also has access to said graph algorithms mentioned, which gives users a more curated response and analysis of the algorithm results.
+<img width="1361" height="944" alt="image" src="https://github.com/user-attachments/assets/c7c1a0fc-6276-4158-a977-7102e1148d9f" />
 
-### - LLM Metadata
+#### - LLM Metadata
 The AI has the ability to read (but not write!) to your node content. However, they do have a scratchpad for reading and writing within their own dedicated LLM Metadata section. This section can be fully customizable... you can set schemas or just have the LLM write notes to this metadata section in regards to the note content itself. Use cases for regular LLM writes would be for critcisim or review on certain note nodes, and use cases for schemas could be providing structured statistics of different data types (numericals, text, etc.)
+<img width="1284" height="933" alt="image" src="https://github.com/user-attachments/assets/a2c046cc-cce0-4175-ab1d-bd6e42c4ab7e" />
+
+#### - Agentic Access to LLM Metadata, Graph Algorithms, etc.
+This is currently to TBI - the plan is to connect the existing LLM ChatBot to functions that can read and edit LLM Metadata and graph algorithms as agentic tools. If you need a wide range of node metadata editted, this chatbot gives you the ability to do so.
 
 ### Ability to Run the Application Locally (Without LLM Capabilities)
 If privacy is a big concern to you, a major option is running everything encased within the application within a single docker command. The docker compose will spin up everything - from Frontend, to .NET Backend Service, to even the PostgreSQL and InternalJSONStorage as volumes. All you need is to install docker, clone the repo, and run docker compose --build. The application should be lightweight enough to be run in the background, but contains graceful shutdowns that does not disrupt data.
