@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IGraphAnalysisService, GraphAnalysisService>();
         services.AddScoped<ILLMContextBuilder, LLMContextBuilder>();
         services.AddScoped<ILLMAnalysisService, LLMAnalysisService>();
+        services.AddScoped<IChatService, ChatService>();
 
         // Register Clients
         services.AddHttpClient<ILLMClient, AnthropicAIClient>();
@@ -57,6 +58,22 @@ public static class DependencyInjection
 
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.FromSeconds(30)
+                };
+
+                // SignalR WebSocket upgrades can't send Authorization headers,
+                // so the token arrives as ?access_token= in the query string.
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var token = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(token) &&
+                            context.Request.Path.StartsWithSegments("/hub/chat"))
+                        {
+                            context.Token = token;
+                        }
+                        return Task.CompletedTask;
+                    }
                 };
             });
 

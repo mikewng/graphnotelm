@@ -1,10 +1,12 @@
 ﻿using graphnotelm.Core.Contexts.Contracts;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Services.Contracts;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace graphnotelm.API
 {
+    [Authorize]
     public class AIChatHub : Hub
     {
 
@@ -19,9 +21,9 @@ namespace graphnotelm.API
         {
             var userId = _currentUserContext.UserId;
 
-            //await foreach (var chunk in _chatService.StreamResponseAsync(userId, graphId, message) {
-            //    await Clients.Caller.SendAsync("ReceiveChunk", chunk);
-            //}
+            await foreach (var chunk in _chatService.StreamResponseAsync(userId, graphId, messages)) {
+                await Clients.Caller.SendAsync("ReceiveChunk", chunk);
+            }
 
             await Clients.Caller.SendAsync("ResponseComplete");
         }

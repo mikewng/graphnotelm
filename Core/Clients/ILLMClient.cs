@@ -1,7 +1,10 @@
-﻿namespace graphnotelm.Core.Clients
+﻿using graphnotelm.Core.Models;
+
+namespace graphnotelm.Core.Clients
 {
     public interface ILLMClient
     {
-        public Task<string> CompleteAsync(string systemPrompt, string userPrompt);
+        Task<string> CompleteAsync(string systemPrompt, string userPrompt);
+        IAsyncEnumerable<string> StreamAsync(string systemPrompt, IEnumerable<LLMChatMessage> messages, CancellationToken ct = default);
     }
 }
