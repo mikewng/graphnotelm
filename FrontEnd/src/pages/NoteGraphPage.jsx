@@ -5,6 +5,7 @@ import GraphView from '../components/GraphView'
 import NodeSidebar from '../components/NodeSidebar'
 import NodeEditor from '../components/NodeEditor'
 import MetadataSidebar from '../components/MetadataSidebar'
+import ChatSideBar from '../components/ChatSideBar'
 import ManageTypesOverlay from '../components/ManageTypesOverlay'
 import Modal from '../components/Modal'
 import './NoteGraphPage.css'
@@ -30,6 +31,7 @@ export default function NoteGraphPage() {
   const [showGraph, setShowGraph] = useState(false)
   const [showManageTypes, setShowManageTypes] = useState(false)
   const [showMetadataSidebar, setShowMetadataSidebar] = useState(false)
+  const [showChat, setShowChat] = useState(false)
   const [modal, setModal] = useState(null)
 
   // ── Node selection + history ───────────────────────────────────────────────
@@ -432,19 +434,18 @@ export default function NoteGraphPage() {
         />
       )}
 
-      {showManageTypes && (
-        <ManageTypesOverlay
-          tagsList={tagsList}
-          relTypesList={relTypesList}
-          onAddTag={handleCreateTag}
-          onEditTag={handleEditTag}
-          onDeleteTag={handleDeleteTag}
-          onAddRelType={handleCreateRelType}
-          onEditRelType={handleEditRelType}
-          onDeleteRelType={handleDeleteRelType}
-          onClose={() => setShowManageTypes(false)}
-        />
-      )}
+      <ManageTypesOverlay
+        isOpen={showManageTypes}
+        tagsList={tagsList}
+        relTypesList={relTypesList}
+        onAddTag={handleCreateTag}
+        onEditTag={handleEditTag}
+        onDeleteTag={handleDeleteTag}
+        onAddRelType={handleCreateRelType}
+        onEditRelType={handleEditRelType}
+        onDeleteRelType={handleDeleteRelType}
+        onClose={() => setShowManageTypes(false)}
+      />
 
       <header>
         <div className="header-actions" style={{ marginRight: 'auto' }}>
@@ -479,6 +480,17 @@ export default function NoteGraphPage() {
           <button className="btn-icon-header" onClick={handleExport}><span className="app-icon icon-export" />Export JSON</button>
           <button className="btn-icon-header" onClick={() => setShowGraph(true)}><span className="app-icon icon-graph" />Graph View</button>
           <button className="btn-icon-header" onClick={() => setShowManageTypes(true)}><span className="app-icon icon-gear" />Manage Types</button>
+          <button
+            className={`btn-icon-header${showChat ? ' btn-icon-header--active' : ''}`}
+            onClick={() => setShowChat(v => !v)}
+            title="Assistant (Ctrl+/)"
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13, flexShrink: 0 }}>
+              <path d="M2.5 4L13.5 4A1 1 0 0114.5 5L14.5 11A1 1 0 0113.5 12L6 12L3.5 14L3.5 12A1 1 0 012.5 11Z" />
+              <line x1="5.5" y1="7" x2="5.5" y2="7.01" /><line x1="8" y1="7" x2="8" y2="7.01" /><line x1="10.5" y1="7" x2="10.5" y2="7.01" />
+            </svg>
+            Assistant
+          </button>
         </div>
       </header>
 
@@ -526,6 +538,13 @@ export default function NoteGraphPage() {
         </div>
       </div>
 
+      <ChatSideBar
+        isOpen={showChat}
+        onClose={() => setShowChat(false)}
+        graphId={id}
+        graphName={graphName}
+        selectedNodeTitle={selectedNodeId ? graph.nodes?.[selectedNodeId]?.title : null}
+      />
       <MetadataSidebar
         node={selectedNodeId ? graph.nodes?.[selectedNodeId] : null}
         isOpen={showMetadataSidebar}

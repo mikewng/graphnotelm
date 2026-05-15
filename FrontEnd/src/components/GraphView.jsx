@@ -125,15 +125,6 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
       .style('pointer-events', 'stroke')
       .style('stroke-width', '2px')
       .on('mouseover', (event, d) => {
-        const src = typeof d.source === 'object' ? d.source.id : d.source
-        const tgt = typeof d.target === 'object' ? d.target.id : d.target
-        const connected = new Set([src, tgt])
-        node.classed('dimmed', n => !connected.has(n.id))
-        link.classed('dimmed', l => {
-          const ls = typeof l.source === 'object' ? l.source.id : l.source
-          const lt = typeof l.target === 'object' ? l.target.id : l.target
-          return ls !== src || lt !== tgt
-        })
         const label = relDefs[d.relationshipId]?.name || ''
         if (label) {
           tooltip.text(label)
@@ -146,8 +137,6 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
         tooltip.style('left', (event.offsetX + 12) + 'px').style('top', (event.offsetY - 8) + 'px')
       })
       .on('mouseout', () => {
-        node.classed('dimmed', false)
-        link.classed('dimmed', false)
         tooltip.style('opacity', '0')
       })
 
@@ -167,37 +156,38 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
         onSelectNode(d)
       })
       .on('mouseover', (event, d) => {
-        // Build adjacency list for outgoing edges
-        const outEdges = {}
-        linkData.forEach(l => {
-          const src = typeof l.source === 'object' ? l.source.id : l.source
-          const tgt = typeof l.target === 'object' ? l.target.id : l.target
-          if (!outEdges[src]) outEdges[src] = []
-          outEdges[src].push(tgt)
-        })
+        d._hoverTimer = setTimeout(() => {
+          const outEdges = {}
+          linkData.forEach(l => {
+            const src = typeof l.source === 'object' ? l.source.id : l.source
+            const tgt = typeof l.target === 'object' ? l.target.id : l.target
+            if (!outEdges[src]) outEdges[src] = []
+            outEdges[src].push(tgt)
+          })
 
-        // BFS from hovered node following only outgoing edges
-        const connected = new Set([d.id])
-        const queue = [d.id]
-        while (queue.length > 0) {
-          const current = queue.shift()
-          for (const tgt of (outEdges[current] || [])) {
-            if (!connected.has(tgt)) {
-              connected.add(tgt)
-              queue.push(tgt)
+          const connected = new Set([d.id])
+          const queue = [d.id]
+          while (queue.length > 0) {
+            const current = queue.shift()
+            for (const tgt of (outEdges[current] || [])) {
+              if (!connected.has(tgt)) {
+                connected.add(tgt)
+                queue.push(tgt)
+              }
             }
           }
-        }
 
-        node.classed('dimmed', n => !connected.has(n.id))
-            .classed('focused', n => n.id === d.id)
-        link.classed('dimmed', l => {
-          const src = typeof l.source === 'object' ? l.source.id : l.source
-          const tgt = typeof l.target === 'object' ? l.target.id : l.target
-          return !connected.has(src) || !connected.has(tgt)
-        })
+          node.classed('dimmed', n => !connected.has(n.id))
+              .classed('focused', n => n.id === d.id)
+          link.classed('dimmed', l => {
+            const src = typeof l.source === 'object' ? l.source.id : l.source
+            const tgt = typeof l.target === 'object' ? l.target.id : l.target
+            return !connected.has(src) || !connected.has(tgt)
+          })
+        }, 100)
       })
-      .on('mouseout', () => {
+      .on('mouseout', (event, d) => {
+        clearTimeout(d._hoverTimer)
         node.classed('dimmed', false).classed('focused', false)
         link.classed('dimmed', false)
       })
