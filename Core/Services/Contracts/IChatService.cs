@@ -1,4 +1,4 @@
-﻿namespace graphnotelm.Core.Services
+﻿namespace graphnotelm.Core.Services.Contracts
 {
     public interface IChatService
     {
