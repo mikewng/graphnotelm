@@ -19,7 +19,6 @@
 
     public class GraphContext
     {
-        public string Domain { get; set; } = "";
         public string SystemPrompt { get; set; } = "";
         public string MetadataSchemaHint { get; set; } = "summary";
     }

@@ -44,5 +44,20 @@ namespace graphnotelm.Core.Utils
             dict[ns] = JsonSerializer.SerializeToElement(value);
             metadata.LLMMetadata = JsonSerializer.Serialize(dict);
         }
+
+        public static void SetRawNamespace(this NoteNodeMetadata metadata, string ns, JsonElement value)
+        {
+            Dictionary<string, JsonElement> dict;
+            try
+            {
+                dict = !string.IsNullOrWhiteSpace(metadata.LLMMetadata)
+                    ? JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(metadata.LLMMetadata) ?? new()
+                    : new();
+            }
+            catch (JsonException) { dict = new(); }
+
+            dict[ns] = value;
+            metadata.LLMMetadata = JsonSerializer.Serialize(dict);
+        }
     }
 }

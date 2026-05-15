@@ -1,4 +1,5 @@
-﻿using graphnotelm.Core.Contexts;
+﻿using graphnotelm.Core.Clients;
+using graphnotelm.Core.Contexts;
 using graphnotelm.Core.Contexts.Contracts;
 using graphnotelm.Core.Services;
 using graphnotelm.Core.Services.Contracts;
@@ -23,6 +24,13 @@ public static class DependencyInjection
 
         services.AddScoped<INoteGraphTagService, NoteGraphTagService>();
         services.AddScoped<INoteGraphRelationshipService, NoteGraphRelationshipService>();
+
+        services.AddScoped<IGraphAnalysisService, GraphAnalysisService>();
+        services.AddScoped<ILLMContextBuilder, LLMContextBuilder>();
+        services.AddScoped<ILLMAnalysisService, LLMAnalysisService>();
+
+        // Register Clients
+        services.AddHttpClient<ILLMClient, AnthropicAIClient>();
 
         // Register Contexts
         services.AddHttpContextAccessor();
