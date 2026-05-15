@@ -16,10 +16,10 @@ In addition to each notebook, or "notegraph", being powered by a graph datastruc
 Stack
 - ReactJS + Vite (JavaScript, HTML & CSS)
 - .NET Core 9.0 (C#)
+- SignalR Websocket Connection
 - PostgreSQL
 - DynamoDB
-- Environment Dockerization
-- Redis Caching
+- Environment-based Dockerization
 Deployment
 - AWS ECS Fargate
 - AWS RDS
@@ -61,9 +61,9 @@ The AI has the ability to read (but not write!) to your node content. However, t
 <img width="1284" height="933" alt="image" src="https://github.com/user-attachments/assets/a2c046cc-cce0-4175-ab1d-bd6e42c4ab7e" />
 
 #### Agentic Access to LLM Metadata, Graph Algorithms, etc.
-This is currently to TBI - the plan is to connect the existing LLM ChatBot to functions that can read and edit LLM Metadata and graph algorithms as agentic tools. If you need a wide range of node metadata editted, this chatbot gives you the ability to do so.
+This is currently to TBI - the plan is to connect the existing LLM ChatBot to functions that can read and edit LLM Metadata and graph algorithms as agentic tools. If you need a wide range of node metadata editted, this chatbot gives you the ability to do so. This essentially ties the "LM" portion with the "Graph" portion of notes, as it gives LLMs access to graph algorithm tools to make use and curate their answers for their users. This is great for non-CS or math-oriented users who have no idea how and why graphs work the way they do. The user asks questions related to graphs in natural language, and the LLM can then abstract the graph algorithm that applies to the question and give a curated answer.
 
-## 💻 Options to Run NoteGraphLM
+## 💻 Options to Run/Use NoteGraphLM
 ### Publicly Hosted Website
 We have NoteGraphLM as a publicly hosted service. However, due to hosting costs and LLM API costs, and the fact that I am broke, there is a free vs. pro version of the service. The base free version gives you all the mentioned functionalities from basic note taking (notes, tags, relationships, notes as graphs, autosaving to cloud), and you cannot use the AI Insights unless you have your own claude API key. Furthermore, you are limited up to only 5 notegraphs per user. However, only the PRO would allow you to have access to AI Insights without the need for a claude API key, and you are allowed to have unlimited notegraphs.
 
