@@ -996,25 +996,29 @@
 
 .chat-bubble--error { color: var(--red); }
 
-.chat-msg.assistant .chat-bubble p { margin: 0 0 0.2em; }
-.chat-msg.assistant .chat-bubble p:last-child { margin-bottom: 0; }
+.chat-msg.assistant .chat-bubble * { margin: 0; padding: 0; }
+.chat-msg.assistant .chat-bubble ul,
+.chat-msg.assistant .chat-bubble ol { padding-left: 1.1em; }
+.chat-msg.assistant .chat-bubble li { line-height: 1.45; }
+.chat-msg.assistant .chat-bubble p + p,
+.chat-msg.assistant .chat-bubble p + ul,
+.chat-msg.assistant .chat-bubble p + ol { margin-top: 0.15em; }
+.chat-msg.assistant .chat-bubble ul + p,
+.chat-msg.assistant .chat-bubble ol + p { margin-top: 0.15em; }
+.chat-msg.assistant .chat-bubble * + pre,
+.chat-msg.assistant .chat-bubble pre + * { margin-top: 0.35em; }
+.chat-msg.assistant .chat-bubble * + h1,
+.chat-msg.assistant .chat-bubble * + h2,
+.chat-msg.assistant .chat-bubble * + h3 { margin-top: 0.5em; }
+.chat-msg.assistant .chat-bubble h1 + *,
+.chat-msg.assistant .chat-bubble h2 + *,
+.chat-msg.assistant .chat-bubble h3 + * { margin-top: 0.1em; }
 .chat-msg.assistant .chat-bubble h1,
 .chat-msg.assistant .chat-bubble h2,
-.chat-msg.assistant .chat-bubble h3 {
-  font-family: var(--font-ui);
-  font-weight: 600;
-  margin: 0.4em 0 -2.5em;
-  letter-spacing: -0.01em;
-}
-.chat-msg.assistant .chat-bubble h1 { font-size: 1.15em; }
-.chat-msg.assistant .chat-bubble h2 { font-size: 1.05em; }
+.chat-msg.assistant .chat-bubble h3 { font-family: var(--font-ui); font-weight: 600; letter-spacing: -0.01em; }
+.chat-msg.assistant .chat-bubble h1 { font-size: 1.1em; }
+.chat-msg.assistant .chat-bubble h2 { font-size: 1em; }
 .chat-msg.assistant .chat-bubble h3 { font-size: 0.95em; }
-.chat-msg.assistant .chat-bubble ul,
-.chat-msg.assistant .chat-bubble ol { padding-left: 1.2em; margin: 0.1em 0 0.2em; }
-.chat-msg.assistant .chat-bubble ul ul,
-.chat-msg.assistant .chat-bubble ol ul { margin: 0.05em 0; }
-.chat-msg.assistant .chat-bubble li { margin-bottom: 0; line-height: 1.5; }
-.chat-msg.assistant .chat-bubble li + li { margin-top: 0.05em; }
 .chat-msg.assistant .chat-bubble code {
   font-family: var(--font-ui);
   font-size: 0.85em;
@@ -1027,16 +1031,14 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 8px 12px;
+  padding: 6px 10px;
   overflow-x: auto;
-  margin-bottom: 0.6em;
 }
 .chat-msg.assistant .chat-bubble pre code { background: none; border: none; padding: 0; }
 .chat-msg.assistant .chat-bubble blockquote {
   border-left: 2px solid var(--accent);
-  padding-left: 10px;
+  padding-left: 8px;
   color: var(--text-2);
-  margin: 0 0 0.6em;
 }
 .chat-msg.assistant .chat-bubble strong { font-weight: 600; }
 .chat-msg.assistant .chat-bubble em { font-style: italic; }

@@ -60,14 +60,23 @@ export default function ChatSideBar({ isOpen, onClose, graphId, graphName, selec
       })
     })
 
-    conn.onreconnecting(() => setConnStatus('connecting'))
+    conn.onreconnecting(err => {
+      setConnStatus('connecting')
+      if (err) console.warn('[SignalR] Reconnecting:', err.message)
+    })
     conn.onreconnected(() => setConnStatus('connected'))
-    conn.onclose(() => setConnStatus('disconnected'))
+    conn.onclose(err => {
+      setConnStatus('disconnected')
+      if (err) console.error('[SignalR] Connection closed:', err.message)
+    })
 
     setConnStatus('connecting')
     conn.start()
       .then(() => setConnStatus('connected'))
-      .catch(() => setConnStatus('error'))
+      .catch(err => {
+        setConnStatus('error')
+        console.error('[SignalR] Failed to connect:', err.message)
+      })
 
     connectionRef.current = conn
 
@@ -89,14 +98,26 @@ export default function ChatSideBar({ isOpen, onClose, graphId, graphName, selec
 
     try {
       await connectionRef.current.invoke('SendMessage', graphId, historyRef.current)
-    } catch {
+    } catch (err) {
       setStreaming(false)
-      setMessages(prev => [...prev, { role: 'assistant', text: '⚠ Failed to send message.', error: true }])
+      const detail = err?.message || String(err)
+      console.error('[SignalR] SendMessage failed:', detail)
+      const label = detail.includes('Unauthorized') || detail.includes('401')
+        ? '⚠ Unauthorized — check your session.'
+        : detail.includes('HubException')
+          ? `⚠ Server error: ${detail.replace(/.*HubException:\s*/i, '')}`
+          : `⚠ Failed to send: ${detail}`
+      setMessages(prev => [...prev, { role: 'assistant', text: label, error: true }])
+      // Remove the failed user message from history so it doesn't corrupt future sends
+      historyRef.current.pop()
     }
   }, [input, streaming, connStatus, graphId])
 
   function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+      e.preventDefault()
+      handleSend()
+    }
   }
 
   function handleInput(e) {
@@ -120,7 +141,7 @@ export default function ChatSideBar({ isOpen, onClose, graphId, graphName, selec
     error: 'connection error',
   }[connStatus]
 
-  const { width, onMouseDown: onResizeMouseDown } = useResizable(360)
+  const { width, onMouseDown: onResizeMouseDown } = useResizable(500)
   const ctx = selectedNodeTitle || graphName || 'your graph'
   const canSend = input.trim() && !streaming && connStatus === 'connected'
 
