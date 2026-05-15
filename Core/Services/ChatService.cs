@@ -71,7 +71,7 @@ namespace graphnotelm.Core.Services
             foreach (var (_, node) in document.Nodes)
             {
                 var note = node.Note.Length > 200 ? node.Note[..200] + "…" : node.Note;
-                sb.AppendLine($"  [{node.Title}]: {note}");
+                sb.AppendLine($"  [{node.Title} (Confidence: {node.Metadata.UserConfidenceRate})]: {note}");
 
                 foreach (var rel in node.Relationships)
                 {
