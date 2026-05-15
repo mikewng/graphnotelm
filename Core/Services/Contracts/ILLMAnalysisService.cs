@@ -9,5 +9,6 @@ namespace graphnotelm.Core.Services.Contracts
     {
         public Task<Result<EditNodeMetadataResponse>> AnalyzeNodeAsync(Guid noteGraphId, Guid noteNodeId, CancellationToken ct);
         public Task<Result<EditNodeMetadataResponse>> AnalyzeNodeBatchAsync(Guid noteGraphId, List<Guid> noteNodeId);
+        public Task<Result<bool>> ProcessChatStream(string messages);
     }
 }

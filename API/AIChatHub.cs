@@ -1,5 +1,6 @@
 ﻿using graphnotelm.Core.Contexts.Contracts;
-using graphnotelm.Core.Services;
+using graphnotelm.Core.Models;
+using graphnotelm.Core.Services.Contracts;
 using Microsoft.AspNetCore.SignalR;
 
 namespace graphnotelm.API
@@ -14,13 +15,13 @@ namespace graphnotelm.API
             _currentUserContext = currentUserContext;
             _chatService = chatService;
         }
-        public async Task SendMessage(Guid graphId, string message)
+        public async Task SendMessage(Guid graphId, List<LLMChatMessage> messages)
         {
             var userId = _currentUserContext.UserId;
 
-            await foreach (var chunk in _chatService.StreamResponseAsync(userId, graphId, message) {
-                await Clients.Caller.SendAsync("ReceiveChunk", chunk);
-            }
+            //await foreach (var chunk in _chatService.StreamResponseAsync(userId, graphId, message) {
+            //    await Clients.Caller.SendAsync("ReceiveChunk", chunk);
+            //}
 
             await Clients.Caller.SendAsync("ResponseComplete");
         }
