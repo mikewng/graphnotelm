@@ -1,5 +1,6 @@
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Services.Contracts;
+using graphnotelm.Core.Utils;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using Microsoft.Extensions.AI;
 using System.Runtime.CompilerServices;
@@ -11,11 +12,13 @@ namespace graphnotelm.Core.Services
     {
         private readonly IChatClient _chatClient;
         private readonly INoteGraphRepository _noteGraphRepository;
+        private readonly GraphToolFactory _toolFactory;
 
-        public ChatService(IChatClient chatClient, INoteGraphRepository noteGraphRepository)
+        public ChatService(IChatClient chatClient, INoteGraphRepository noteGraphRepository, GraphToolFactory toolFactory)
         {
             _chatClient = chatClient;
             _noteGraphRepository = noteGraphRepository;
+            _toolFactory = toolFactory;
         }
 
         public async IAsyncEnumerable<string> StreamResponseAsync(
@@ -25,18 +28,50 @@ namespace graphnotelm.Core.Services
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var document = await _noteGraphRepository.GetByIdAsync(graphId, cancellationToken);
-
             if (document == null || document.UserId != userId)
             {
                 yield return "[Error: graph not found or access denied]";
                 yield break;
             }
 
-            var systemPrompt = BuildSystemPrompt(document);
+            var view = new GraphView(document);
+            var tools = _toolFactory.Build(document, view);
+            var toolOptions = new ChatOptions { Tools = [.. tools] };
 
-            var messages = new List<ChatMessage> { new(ChatRole.System, systemPrompt) };
+            var messages = new List<ChatMessage> { new(ChatRole.System, BuildSystemPrompt(document)) };
             messages.AddRange(messageHistory);
 
+            // Non-streaming tool loop — runs only when the model decides to call tools.
+            // Exits as soon as a response contains no tool calls, leaving messages ready
+            // for the streaming final turn below.
+            while (true)
+            {
+                var response = await _chatClient.GetResponseAsync(messages, toolOptions, cancellationToken);
+
+                var toolCalls = response.Messages
+                    .SelectMany(m => m.Contents.OfType<FunctionCallContent>())
+                    .ToList();
+
+                if (toolCalls.Count == 0)
+                    break;
+
+                messages.AddRange(response.Messages);
+
+                foreach (var call in toolCalls)
+                {
+                    var tool = tools.FirstOrDefault(t => t.Name == call.Name);
+                    if (tool is null) continue;
+
+                    var result = await tool.InvokeAsync(
+                        new AIFunctionArguments(call.Arguments ?? new Dictionary<string, object>()),
+                        cancellationToken);
+
+                    messages.Add(new ChatMessage(ChatRole.Tool,
+                        [new FunctionResultContent(call.CallId, result)]));
+                }
+            }
+
+            // Final turn — stream the answer. Tools are omitted so the model responds directly.
             await foreach (var update in _chatClient.GetStreamingResponseAsync(messages, cancellationToken: cancellationToken))
             {
                 if (update.Text is not null)
