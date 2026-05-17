@@ -35,6 +35,10 @@ Third Party Libraries
 ## 📓 Basic Note Taking and Saving
 The application gives you basic note taking features like editting and tagging notes. Has autosave functionality so that there is no manual button you have to press to save your note.
 
+### Basic Markdown Support
+Basic markdown support is included with the note content, allowing you to underline, bolden, italicize, and even embed image urls to your notes.
+<img width="925" height="693" alt="image" src="https://github.com/user-attachments/assets/b1a21a56-a788-46fc-ae79-14af4eb37c04" />
+
 ### Importable and Exportable NoteGraphs as JSON
 This gives you to option to create notegraphs without creating an account. Once you are at a good stopping point within the NoteGraph, you're able to export the notegraph as a json and reimport it again to begin writing. In addition, since all information is encapsulated within the JSON, this means that you are not limited to the NoteGraph UI. As long as your UI is able to parse the JSON file, you can create your own views.
 
