@@ -28,17 +28,8 @@ namespace graphnotelm.Core.Utils.Tools
             [Description("The ID of the node to start from.")]
             Guid noteNodeId)
         {
-            var path = _graphAnalysisService.FindLeastConfidentPath(noteNodeId);
-            if (!path.Success)
-            {
-                return new List<NodeSummary>();
-            }
-
-            return path.Value!.Where(p => _document.Nodes.ContainsKey(p)).Select(p =>
-            {
-                var node = _document.Nodes[p];
-                return new NodeSummary(node.Id, node.Title, node.Metadata.UserConfidenceRate);
-            }).ToList();
+            return PathingAlgorithms.DijkstrasById(noteNodeId, _view, 
+                node => new NodeSummary(node.Id, node.Title, node.Metadata.UserConfidenceRate));
         }
 
         [Description("Finds nodes reachable from a starting node whose confidence is at or above the given threshold, using BFS. Useful for exploring what the user already understands well.")]
@@ -48,16 +39,8 @@ namespace graphnotelm.Core.Utils.Tools
             [Description("Minimum confidence score (0–10) a node must have to be included. Defaults to 3.")]
             float minConfidence = 3.0f)
         {
-            var nodeIds = PathingAlgorithms.BreadthFirstSearchById(noteNodeId, minConfidence, _view);
-
-            return nodeIds
-                .Where(id => _document.Nodes.ContainsKey(id))
-                .Select(id =>
-                {
-                    var node = _document.Nodes[id];
-                    return new NodeSummary(node.Id, node.Title, node.Metadata.UserConfidenceRate);
-                })
-                .ToList();
+            return PathingAlgorithms.BreadthFirstSearchById(noteNodeId, minConfidence, _view, 
+                node => new NodeSummary(node.Id, node.Title, node.Metadata.UserConfidenceRate));
         }
     }
 }

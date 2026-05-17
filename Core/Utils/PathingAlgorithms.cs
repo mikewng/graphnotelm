@@ -1,21 +1,21 @@
-﻿using graphnotelm.Core.Models;
+using graphnotelm.Core.Models;
 
 namespace graphnotelm.Core.Utils
 {
-    public class GuidMetadataPair() 
-    { 
+    public class GuidMetadataPair()
+    {
         public Guid Id { get; set; }
         public string Metadata { get; set; } = string.Empty;
     }
 
     public class PathingAlgorithms
     {
-        public static List<GuidMetadataPair> DijkstrasById(Guid noteNodeId, GraphView graph)
+        public static List<T> DijkstrasById<T>(Guid noteNodeId, GraphView graph, Func<NoteNode, T> selector)
         {
             var pq = new PriorityQueue<Guid, float>();
             var dist = new Dictionary<Guid, float>();
             var visited = new HashSet<Guid>();
-            var result = new List<GuidMetadataPair>();
+            var result = new List<T>();
 
             foreach (var id in graph.AllNodes.Keys)
                 dist[id] = float.MaxValue;
@@ -29,7 +29,7 @@ namespace graphnotelm.Core.Utils
                 if (!visited.Add(curr)) continue;
 
                 NoteNode node = graph.GetNode(curr);
-                result.Add(new GuidMetadataPair { Id = curr, Metadata = node.Metadata.LLMMetadata });
+                result.Add(selector(node));
 
                 foreach (Guid neighbor in graph.GetNeighbors(curr))
                 {
@@ -46,9 +46,10 @@ namespace graphnotelm.Core.Utils
             return result;
         }
 
-        public static List<Guid> BreadthFirstSearchById(Guid noteNodeId, float minConfidence, GraphView graph)
+        public static List<T> BreadthFirstSearchById<T>(Guid noteNodeId, float minConfidence, GraphView graph, Func<NoteNode, T> selector)
         {
-            List<Guid> nodes = new List<Guid>() { noteNodeId };
+            NoteNode startNode = graph.GetNode(noteNodeId);
+            List<T> nodes = new List<T>() { selector(startNode) };
 
             HashSet<Guid> visited = new HashSet<Guid>();
             Queue<Guid> queue = new Queue<Guid>();
@@ -69,7 +70,7 @@ namespace graphnotelm.Core.Utils
                     if (currNeighbor.Metadata.UserConfidenceRate >= minConfidence)
                     {
                         queue.Enqueue(neighbor);
-                        nodes.Add(neighbor);
+                        nodes.Add(selector(currNeighbor));
                     }
                 }
             }
