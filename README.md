@@ -61,7 +61,9 @@ The AI has the ability to read (but not write!) to your node content. However, t
 <img width="1284" height="933" alt="image" src="https://github.com/user-attachments/assets/a2c046cc-cce0-4175-ab1d-bd6e42c4ab7e" />
 
 #### Agentic Access to LLM Metadata, Graph Algorithms, etc.
-This is currently to TBI - the plan is to connect the existing LLM ChatBot to functions that can read and edit LLM Metadata and graph algorithms as agentic tools. If you need a wide range of node metadata editted, this chatbot gives you the ability to do so. This essentially ties the "LM" portion with the "Graph" portion of notes, as it gives LLMs access to graph algorithm tools to make use and curate their answers for their users. This is great for non-CS or math-oriented users who have no idea how and why graphs work the way they do. The user asks questions related to graphs in natural language, and the LLM can then abstract the graph algorithm that applies to the question and give a curated answer.
+The LLM Chatbot also has the ability to access to said services - algorithms, general read of node content, etc. - as tools. If you need a wide range of node metadata editted, this chatbot gives you the ability to do so. This essentially ties the "LM" portion with the "Graph" portion of notes, as it gives LLMs access to graph algorithm tools to make use and curate their answers for their users. This is great for non-CS or math-oriented users who have no idea how and why graphs work the way they do. The user asks questions related to graphs in natural language, and the LLM can then abstract the graph algorithm that applies to the question and give a curated answer.
+<img width="1730" height="925" alt="image" src="https://github.com/user-attachments/assets/e45ccffc-f2d0-423a-9e81-591764fdd58a" />
+
 
 ## 💻 Options to Run/Use NoteGraphLM
 ### Publicly Hosted Website
