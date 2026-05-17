@@ -2,12 +2,6 @@ using graphnotelm.Core.Models;
 
 namespace graphnotelm.Core.Utils
 {
-    public class GuidMetadataPair()
-    {
-        public Guid Id { get; set; }
-        public string Metadata { get; set; } = string.Empty;
-    }
-
     public class PathingAlgorithms
     {
         public static List<T> DijkstrasById<T>(Guid noteNodeId, GraphView graph, Func<NoteNode, T> selector)
