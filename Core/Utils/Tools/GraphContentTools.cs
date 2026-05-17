@@ -1,26 +1,55 @@
-﻿using graphnotelm.Core.Models;
-using graphnotelm.Core.Services.Contracts;
+using graphnotelm.Core.Models;
 using System.ComponentModel;
 
 namespace graphnotelm.Core.Utils.Tools
 {
+    public record NodeResult(
+        Guid Id,
+        string Title,
+        string Note,
+        float ConfidenceScore,
+        IReadOnlyList<NodeRelationshipResult> Relationships
+    );
+
+    public record NodeRelationshipResult(
+        Guid TargetNodeId,
+        string TargetNodeTitle,
+        string RelationshipType
+    );
+
     public class GraphContentTools
     {
-        private readonly INoteNodeService _nodeService;
-        public GraphContentTools(INoteNodeService noteNodeService)
+        private readonly NoteGraphDocument _document;
+
+        public GraphContentTools(NoteGraphDocument document)
         {
-            _nodeService = noteNodeService;
+            _document = document;
         }
 
-        [Description("Gets a single node's full content based off node ID. This includes the title, confidence score, note content, and relationships")]
-        public NoteNode GetNodeById(
-            [Description("The graph note ID based off of type Guid in C#.")]
-            Guid graphNoteId,
-            [Description("The node ID based off of type Guid in C#.")]
-            Guid noteNodeId
-            )
+        [Description("Gets a single node's full content by its ID. Returns the title, note content, confidence score, and all relationships.")]
+        public NodeResult? GetNodeById(
+            [Description("The ID of the node to retrieve.")]
+            Guid noteNodeId)
         {
-            return new NoteNode();
+            if (!_document.Nodes.TryGetValue(noteNodeId, out var node))
+                return null;
+
+            var relationships = node.Relationships.Select(r =>
+            {
+                var typeName = _document.Relationships.TryGetValue(r.RelationshipId, out var rel)
+                    ? rel.Name : "relates to";
+                var targetTitle = _document.Nodes.TryGetValue(r.TargetNodeId, out var target)
+                    ? target.Title : "unknown";
+                return new NodeRelationshipResult(r.TargetNodeId, targetTitle, typeName);
+            }).ToList();
+
+            return new NodeResult(
+                node.Id,
+                node.Title,
+                node.Note,
+                node.Metadata.UserConfidenceRate,
+                relationships
+            );
         }
     }
 }
