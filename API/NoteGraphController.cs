@@ -72,6 +72,18 @@ namespace graphnotelm.API
             return Result<DeleteGraphResponse>.Ok(deleteGraphResponse.Value);
         }
 
+        [HttpDelete("harddelete/{noteGraphId:guid}", Name = "HardDeleteNoteGraph")]
+        public async Task<ActionResult<Result<DeleteGraphResponse>>> HardDeleteGraph(Guid noteGraphId, CancellationToken ct)
+        {
+            var hardDeleteGraphResponse = await _noteGraphService.DeleteNoteGraphById(noteGraphId, ct);
+            if (!hardDeleteGraphResponse.Success || hardDeleteGraphResponse.Value == null)
+            {
+                return Result<DeleteGraphResponse>.Fail("Could not delete graph of given id.");
+            }
+
+            return Result<DeleteGraphResponse>.Ok(hardDeleteGraphResponse.Value);
+        }
+
         [HttpPatch("edit/{noteGraphId:guid}/metadata", Name = "EditNoteGraphMetadata")]
         public async Task<ActionResult<Result<EditGraphMetadataResponse>>> EditGraphMetadata([FromBody] EditGraphMetadataRequest editGraphMetadataRequest, Guid noteGraphId, CancellationToken ct)
         {

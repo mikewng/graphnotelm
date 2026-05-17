@@ -1,14 +1,19 @@
-﻿using graphnotelm.Core.Clients;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Utils;
+using Microsoft.Extensions.AI;
 using System.Text.Json;
 
 namespace graphnotelm.Core.Services
 {
     public class GraphContextService : IGraphContextService
     {
-        private readonly ILLMClient _llm;
+        private readonly IChatClient _chatClient;
+
+        public GraphContextService(IChatClient chatClient)
+        {
+            _chatClient = chatClient;
+        }
 
         public async Task<Result<GraphContext>> InferContextAsync(NoteGraphDocument graph)
         {
@@ -31,7 +36,7 @@ namespace graphnotelm.Core.Services
             var relationshipTypes = graph.Relationships.Values
                 .Select(r => $"{r.Name} / {r.Inverse}");
 
-            var prompt = $$"""
+            var userPrompt = $$"""
             Analyze these nodes and relationships from a knowledge graph
             and infer the graph's domain and purpose.
 
@@ -49,9 +54,14 @@ namespace graphnotelm.Core.Services
             }
             """;
 
-            var response = await _llm.CompleteAsync(
-                "You infer the domain and purpose of knowledge graphs. Respond only with JSON.",
-                prompt);
+            var messages = new List<ChatMessage>
+            {
+                new(ChatRole.System, "You infer the domain and purpose of knowledge graphs. Respond only with JSON."),
+                new(ChatRole.User, userPrompt),
+            };
+
+            var completion = await _chatClient.GetResponseAsync(messages);
+            var response = completion.Messages.LastOrDefault()?.Text ?? "";
 
             return Result<GraphContext>.Ok(JsonSerializer.Deserialize<GraphContext>(response) ?? new());
         }

@@ -1,9 +1,14 @@
-﻿using graphnotelm.Core.Models;
+using graphnotelm.Core.Models;
+using Microsoft.Extensions.AI;
 
 namespace graphnotelm.Core.Services.Contracts
 {
     public interface IChatService
     {
-        IAsyncEnumerable<string> StreamResponseAsync(Guid userId, Guid graphId, List<LLMChatMessage> messageHistory, CancellationToken cancellationToken = default);
+        IAsyncEnumerable<AgentEvent> RunAsync(
+            Guid userId,
+            Guid graphId,
+            IEnumerable<ChatMessage> messageHistory,
+            CancellationToken ct = default);
     }
 }

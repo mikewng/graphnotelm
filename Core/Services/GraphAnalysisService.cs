@@ -13,8 +13,14 @@ namespace graphnotelm.Core.Services
             return new GraphView(document);
         }
 
-        public Result<List<Guid>> FindLeastConfidentPath(Guid noteNodeId) => throw new NotImplementedException();
-        public Result<List<Guid>> FindKnowledgeFrontier(Guid noteNodeId) => throw new NotImplementedException();
-        public Result<List<Guid>> FindBestPathWithBudget(Guid noteNodeId, float budget) => throw new NotImplementedException();
+        public Result<List<string>> FindLeastConfidentPath(Guid noteNodeId) {
+            return Result<List<string>>.Ok(new List<string>() { "none - this method is to be implemented." });
+        }
+        public Result<List<string>> FindKnowledgeFrontier(Guid noteNodeId) {
+            return Result<List<string>>.Ok(new List<string>() { "none - this method is to be implemented." });
+        }
+        public Result<List<string>> FindBestPathWithBudget(Guid noteNodeId, float budget) {
+            return Result<List<string>>.Ok(new List<string>() { "none - this method is to be implemented." });
+        }
     }
 }

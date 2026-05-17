@@ -4,6 +4,7 @@ using graphnotelm.Core.Contexts.Contracts;
 using graphnotelm.Core.Services;
 using graphnotelm.Core.Services.Contracts;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.AI;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -31,7 +32,20 @@ public static class DependencyInjection
         services.AddScoped<IChatService, ChatService>();
 
         // Register Clients
-        services.AddHttpClient<ILLMClient, AnthropicAIClient>();
+        services.AddHttpClient("anthropic", http =>
+        {
+            http.BaseAddress = new Uri("https://api.anthropic.com/");
+            http.DefaultRequestHeaders.Add("x-api-key", configuration["Anthropic:ApiKey"]!);
+            http.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
+        });
+        services.AddSingleton<IChatClient>(sp =>
+        {
+            var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient("anthropic");
+            return new AnthropicChatClient(http, configuration["Anthropic:Model"] ?? "claude-sonnet-4-20250514");
+        });
+
+        // Register LLM Factory
+        services.AddScoped<GraphToolFactory>();
 
         // Register Contexts
         services.AddHttpContextAccessor();

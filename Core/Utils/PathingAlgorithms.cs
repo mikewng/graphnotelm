@@ -1,71 +1,49 @@
-﻿using graphnotelm.Core.Models;
+using graphnotelm.Core.Models;
 
 namespace graphnotelm.Core.Utils
 {
-    public class GuidMetadataPair() 
-    { 
-        public Guid Id { get; set; }
-        public string Metadata { get; set; } = string.Empty;
-    }
-
     public class PathingAlgorithms
     {
-        public static List<GuidMetadataPair> DijkstrasById(Guid noteNodeId, GraphView graph)
+        public static List<T> DijkstrasById<T>(Guid noteNodeId, GraphView graph, Func<NoteNode, T> selector)
         {
-            List<GuidMetadataPair> path = new List<GuidMetadataPair>();
-            NoteNode startingNode = graph.GetNode(noteNodeId);
+            var pq = new PriorityQueue<Guid, float>();
+            var dist = new Dictionary<Guid, float>();
+            var visited = new HashSet<Guid>();
+            var result = new List<T>();
 
-            HashSet<Guid> visited = new HashSet<Guid>();
-            Queue<Guid> queue = new Queue<Guid>();
+            foreach (var id in graph.AllNodes.Keys)
+                dist[id] = float.MaxValue;
 
-            visited.Add(noteNodeId);
-            queue.Enqueue(noteNodeId);
+            dist[noteNodeId] = 0f;
+            pq.Enqueue(noteNodeId, 0f);
 
-            while (queue.Count > 0)
+            while (pq.Count > 0)
             {
-                Guid currNode = queue.Dequeue();
-                List<Guid> neighbors = graph.GetNeighbors(currNode);
+                Guid curr = pq.Dequeue();
+                if (!visited.Add(curr)) continue;
 
-                float currentMinDistance = int.MaxValue;
-                Guid currentMinNode = Guid.Empty;
-                string currentMinNodeMetadata = string.Empty;
+                NoteNode node = graph.GetNode(curr);
+                result.Add(selector(node));
 
-                foreach (Guid neighbor in neighbors)
+                foreach (Guid neighbor in graph.GetNeighbors(curr))
                 {
-                    if (!visited.Contains(neighbor))
+                    if (visited.Contains(neighbor)) continue;
+                    float newDist = dist[curr] + graph.GetNode(neighbor).Metadata.UserConfidenceRate;
+                    if (newDist < dist[neighbor])
                     {
-                        NoteNode currNeighbor = graph.GetNode(neighbor);
-                        float currentDistance = currNeighbor.Metadata.UserConfidenceRate;
-                        string currentMetadata = currNeighbor.Metadata.LLMMetadata;
-
-                        if (currentDistance <= currentMinDistance)
-                        {
-                            currentMinDistance = currentDistance;
-                            currentMinNode = neighbor;
-                            currentMinNodeMetadata = currentMetadata;
-                        }
+                        dist[neighbor] = newDist;
+                        pq.Enqueue(neighbor, newDist);
                     }
-                }
-                if (currentMinNode != Guid.Empty)
-                {
-                    path.Add(new GuidMetadataPair() { Id = currentMinNode, Metadata = currentMinNodeMetadata});
-
-                    queue.Enqueue(currentMinNode);
-                    visited.Add(currentMinNode);
-                }
-                if (graph.GetNeighbors(currentMinNode).Count == 0)
-                {
-                    break;
                 }
             }
 
-            return path;
+            return result;
         }
 
-        public static List<Guid> BreadthFirstSearchById(Guid noteNodeId, float minConfidence, GraphView graph)
+        public static List<T> BreadthFirstSearchById<T>(Guid noteNodeId, float minConfidence, GraphView graph, Func<NoteNode, T> selector)
         {
-            List<Guid> nodes = new List<Guid>() { noteNodeId };
-            NoteNode startingNode = graph.GetNode(noteNodeId);
+            NoteNode startNode = graph.GetNode(noteNodeId);
+            List<T> nodes = new List<T>() { selector(startNode) };
 
             HashSet<Guid> visited = new HashSet<Guid>();
             Queue<Guid> queue = new Queue<Guid>();
@@ -80,20 +58,13 @@ namespace graphnotelm.Core.Utils
 
                 foreach (Guid neighbor in neighbors)
                 {
-                    if (!visited.Contains(neighbor))
-                    {
-                        NoteNode currNeighbor = graph.GetNode(neighbor);
-                        float currentConfidenceRate = currNeighbor.Metadata.UserConfidenceRate;
+                    if (!visited.Add(neighbor)) continue;
 
-                        if (currentConfidenceRate >= minConfidence)
-                        {
-                            queue.Enqueue(neighbor);
-                            visited.Add(neighbor);
-                            nodes.Add(neighbor);
-                        } else
-                        {
-                            continue;
-                        }
+                    NoteNode currNeighbor = graph.GetNode(neighbor);
+                    if (currNeighbor.Metadata.UserConfidenceRate >= minConfidence)
+                    {
+                        queue.Enqueue(neighbor);
+                        nodes.Add(selector(currNeighbor));
                     }
                 }
             }

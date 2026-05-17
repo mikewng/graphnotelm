@@ -177,6 +177,39 @@ namespace graphnotelm.Core.Services
             }
         }
 
+        public async Task<Result<DeleteGraphResponse>> HardDeleteNoteGraphById(Guid noteGraphId, CancellationToken ct) 
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success || metadataResult.Value == null)
+            {
+                return Result<DeleteGraphResponse>.Fail(metadataResult.Error!);
+            }
+            if (!metadataResult.Value.IsDeleted)
+            {
+                return Result<DeleteGraphResponse>.Fail(metadataResult.Error!);
+            }
+
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
+            {
+                return Result<DeleteGraphResponse>.Fail(graphDataResult.Error!);
+            }
+
+            try
+            {
+                // Hard Delete Metadata Content
+
+                // Hard Delete Repository Content
+                await _noteGraphRepository.DeleteByIdAsync(noteGraphId);
+                await _unitOfWork.SaveChangesAsync(ct);
+                return Result<DeleteGraphResponse>.Ok(new DeleteGraphResponse{id = metadataResult.Value.Id,isDeleted = true});
+            }
+            catch
+            {
+                return Result<DeleteGraphResponse>.Fail("Failed to hard delete graph.");
+            }
+        }
+
         public async Task<Result<CreateGraphResponse>> ImportNoteGraphFromJSON(NoteGraphDocumentREADONLY document, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(document.Name))
