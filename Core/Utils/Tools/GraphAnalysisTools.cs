@@ -1,5 +1,5 @@
 using graphnotelm.Core.Models;
-using graphnotelm.Core.Utils;
+using graphnotelm.Core.Services.Contracts;
 using System.ComponentModel;
 
 namespace graphnotelm.Core.Utils.Tools
@@ -14,11 +14,13 @@ namespace graphnotelm.Core.Utils.Tools
     {
         private readonly NoteGraphDocument _document;
         private readonly GraphView _view;
+        private readonly IGraphAnalysisService _graphAnalysisService;
 
-        public GraphAnalysisTools(NoteGraphDocument document)
+        public GraphAnalysisTools(NoteGraphDocument document, IGraphAnalysisService graphAnalysisService)
         {
             _document = document;
             _view = new GraphView(document);
+            _graphAnalysisService = graphAnalysisService;
         }
 
         [Description("Finds the path of lowest-confidence nodes from a starting node using Dijkstra's algorithm. Useful for identifying what the user should study next.")]
@@ -26,16 +28,17 @@ namespace graphnotelm.Core.Utils.Tools
             [Description("The ID of the node to start from.")]
             Guid noteNodeId)
         {
-            var path = PathingAlgorithms.DijkstrasById(noteNodeId, _view);
+            var path = _graphAnalysisService.FindLeastConfidentPath(noteNodeId);
+            if (!path.Success)
+            {
+                return new List<NodeSummary>();
+            }
 
-            return path
-                .Where(p => _document.Nodes.ContainsKey(p.Id))
-                .Select(p =>
-                {
-                    var node = _document.Nodes[p.Id];
-                    return new NodeSummary(node.Id, node.Title, node.Metadata.UserConfidenceRate);
-                })
-                .ToList();
+            return path.Value!.Where(p => _document.Nodes.ContainsKey(p)).Select(p =>
+            {
+                var node = _document.Nodes[p];
+                return new NodeSummary(node.Id, node.Title, node.Metadata.UserConfidenceRate);
+            }).ToList();
         }
 
         [Description("Finds nodes reachable from a starting node whose confidence is at or above the given threshold, using BFS. Useful for exploring what the user already understands well.")]

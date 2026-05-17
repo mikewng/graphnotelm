@@ -44,6 +44,9 @@ public static class DependencyInjection
             return new AnthropicChatClient(http, configuration["Anthropic:Model"] ?? "claude-sonnet-4-20250514");
         });
 
+        // Register LLM Factory
+        services.AddScoped<GraphToolFactory>();
+
         // Register Contexts
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
