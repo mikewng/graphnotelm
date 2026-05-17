@@ -13,19 +13,23 @@ In addition to each notebook, or "notegraph", being powered by a graph datastruc
 
 
 # Technologies
-Stack
+Tech Stack
 - ReactJS + Vite (JavaScript, HTML & CSS)
 - .NET Core 9.0 (C#)
 - SignalR Websocket Connection
 - PostgreSQL
 - DynamoDB
 - Environment-based Dockerization
+
 Deployment
 - AWS ECS Fargate
 - AWS RDS
 - AWS DynamoDB
 - AWS S3 + CloudFront
 
+Third Party Libraries
+- Anthropic Client
+- OpenAI Client
 
 # Features
 ## 📓 Basic Note Taking and Saving
