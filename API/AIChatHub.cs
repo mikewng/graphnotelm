@@ -29,11 +29,24 @@ namespace graphnotelm.API
 
             try
             {
-                await foreach (var chunk in _chatService.StreamResponseAsync(userId, graphId, chatMessages, Context.ConnectionAborted))
+                await foreach (var evt in _chatService.RunAsync(userId, graphId, chatMessages, Context.ConnectionAborted))
                 {
-                    await Clients.Caller.SendAsync("ReceiveChunk", chunk);
+                    switch (evt)
+                    {
+                        case ContentDelta d:
+                            await Clients.Caller.SendAsync("ReceiveChunk", d.Text);
+                            break;
+                        case ToolInvoked t:
+                            await Clients.Caller.SendAsync("ReceiveToolCall", t.ToolName);
+                            break;
+                        case ToolResult r:
+                            await Clients.Caller.SendAsync("ReceiveToolResult", r.ToolName);
+                            break;
+                        case TurnComplete:
+                            await Clients.Caller.SendAsync("ResponseComplete");
+                            break;
+                    }
                 }
-                await Clients.Caller.SendAsync("ResponseComplete");
             }
             catch (OperationCanceledException)
             {

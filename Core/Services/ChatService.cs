@@ -21,16 +21,17 @@ namespace graphnotelm.Core.Services
             _toolFactory = toolFactory;
         }
 
-        public async IAsyncEnumerable<string> StreamResponseAsync(
+        public async IAsyncEnumerable<AgentEvent> RunAsync(
             Guid userId,
             Guid graphId,
             IEnumerable<ChatMessage> messageHistory,
-            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+            [EnumeratorCancellation] CancellationToken ct = default)
         {
-            var document = await _noteGraphRepository.GetByIdAsync(graphId, cancellationToken);
+            var document = await _noteGraphRepository.GetByIdAsync(graphId, ct);
             if (document == null || document.UserId != userId)
             {
-                yield return "[Error: graph not found or access denied]";
+                yield return new ContentDelta("[Error: graph not found or access denied]");
+                yield return new TurnComplete();
                 yield break;
             }
 
@@ -46,7 +47,7 @@ namespace graphnotelm.Core.Services
             // for the streaming final turn below.
             while (true)
             {
-                var response = await _chatClient.GetResponseAsync(messages, toolOptions, cancellationToken);
+                var response = await _chatClient.GetResponseAsync(messages, toolOptions, ct);
 
                 var toolCalls = response.Messages
                     .SelectMany(m => m.Contents.OfType<FunctionCallContent>())
@@ -62,21 +63,27 @@ namespace graphnotelm.Core.Services
                     var tool = tools.FirstOrDefault(t => t.Name == call.Name);
                     if (tool is null) continue;
 
+                    yield return new ToolInvoked(call.Name);
+
                     var result = await tool.InvokeAsync(
                         new AIFunctionArguments(call.Arguments ?? new Dictionary<string, object>()),
-                        cancellationToken);
+                        ct);
 
                     messages.Add(new ChatMessage(ChatRole.Tool,
                         [new FunctionResultContent(call.CallId, result)]));
+
+                    yield return new ToolResult(call.Name);
                 }
             }
 
             // Final turn — stream the answer. Tools are omitted so the model responds directly.
-            await foreach (var update in _chatClient.GetStreamingResponseAsync(messages, cancellationToken: cancellationToken))
+            await foreach (var update in _chatClient.GetStreamingResponseAsync(messages, cancellationToken: ct))
             {
                 if (update.Text is not null)
-                    yield return update.Text;
+                    yield return new ContentDelta(update.Text);
             }
+
+            yield return new TurnComplete();
         }
 
         private static string BuildSystemPrompt(NoteGraphDocument document)
