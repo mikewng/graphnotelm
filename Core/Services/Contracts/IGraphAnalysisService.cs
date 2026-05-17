@@ -9,9 +9,9 @@ namespace graphnotelm.Core.Services.Contracts
     {
         // Algorithmic Search Processes
         public GraphView BuildView(NoteGraphDocument document, Guid nodeId);
-        public Result<List<Guid>> FindLeastConfidentPath(Guid noteNodeId);
-        public Result<List<Guid>> FindKnowledgeFrontier(Guid noteNodeId);
-        public Result<List<Guid>> FindBestPathWithBudget(Guid noteNodeId, float budget);
+        public Result<List<string>> FindLeastConfidentPath(Guid noteNodeId);
+        public Result<List<string>> FindKnowledgeFrontier(Guid noteNodeId);
+        public Result<List<string>> FindBestPathWithBudget(Guid noteNodeId, float budget);
 
     }
 }
