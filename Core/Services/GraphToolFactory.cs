@@ -23,6 +23,7 @@ namespace graphnotelm.Core.Services
             return
             [
                 // Graph Content Functions
+                AIFunctionFactory.Create(content.GetNodeByTitle),
                 AIFunctionFactory.Create(content.GetNodeById),
 
                 // Graph Analysis Functions
