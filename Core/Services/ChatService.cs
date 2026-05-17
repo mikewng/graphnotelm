@@ -1,7 +1,7 @@
-using graphnotelm.Core.Clients;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Infrastructure.Repository.Contracts;
+using Microsoft.Extensions.AI;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -9,12 +9,12 @@ namespace graphnotelm.Core.Services
 {
     public class ChatService : IChatService
     {
-        private readonly ILLMClient _llm;
+        private readonly IChatClient _chatClient;
         private readonly INoteGraphRepository _noteGraphRepository;
 
-        public ChatService(ILLMClient llm, INoteGraphRepository noteGraphRepository)
+        public ChatService(IChatClient chatClient, INoteGraphRepository noteGraphRepository)
         {
-            _llm = llm;
+            _chatClient = chatClient;
             _noteGraphRepository = noteGraphRepository;
         }
 
@@ -34,9 +34,15 @@ namespace graphnotelm.Core.Services
 
             var systemPrompt = BuildSystemPrompt(document);
 
-            await foreach (var chunk in _llm.StreamAsync(systemPrompt, messageHistory, cancellationToken))
+            var messages = new List<ChatMessage> { new(ChatRole.System, systemPrompt) };
+            messages.AddRange(messageHistory.Select(m => new ChatMessage(
+                m.Role == "user" ? ChatRole.User : ChatRole.Assistant,
+                m.Content)));
+
+            await foreach (var update in _chatClient.GetStreamingResponseAsync(messages, cancellationToken: cancellationToken))
             {
-                yield return chunk;
+                if (update.Text is not null)
+                    yield return update.Text;
             }
         }
 

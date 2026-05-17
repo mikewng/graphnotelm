@@ -1,30 +1,30 @@
-using graphnotelm.Core.Clients;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Core.Utils;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
+using Microsoft.Extensions.AI;
 using System.Text.Json;
 
 namespace graphnotelm.Core.Services
 {
     public class LLMAnalysisService : ILLMAnalysisService
     {
-        private readonly ILLMClient _llm;
+        private readonly IChatClient _chatClient;
         private readonly ILLMContextBuilder _contextBuilder;
         private readonly IGraphAnalysisService _graphAnalysis;
         private readonly INoteGraphAccessService _noteGraphAccessService;
         private readonly INoteGraphRepository _noteGraphRepository;
 
         public LLMAnalysisService(
-            ILLMClient llm,
+            IChatClient chatClient,
             ILLMContextBuilder contextBuilder,
             IGraphAnalysisService graphAnalysis,
             INoteGraphAccessService noteGraphAccess,
             INoteGraphRepository noteGraphRepository)
         {
-            _llm = llm;
+            _chatClient = chatClient;
             _contextBuilder = contextBuilder;
             _graphAnalysis = graphAnalysis;
             _noteGraphAccessService = noteGraphAccess;
@@ -48,7 +48,13 @@ namespace graphnotelm.Core.Services
             var view = _graphAnalysis.BuildView(document, nodeId);
             var prompt = _contextBuilder.BuildNodeAnalysisPrompt(document, view, nodeId);
 
-            var response = await _llm.CompleteAsync(prompt.System, prompt.User);
+            var messages = new List<ChatMessage>
+            {
+                new(ChatRole.System, prompt.System),
+                new(ChatRole.User, prompt.User),
+            };
+            var completion = await _chatClient.GetResponseAsync(messages, cancellationToken: ct);
+            var response = completion.Messages.LastOrDefault()?.Text ?? "";
 
             var clean = response.Replace("```json", "").Replace("```", "").Trim();
 

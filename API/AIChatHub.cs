@@ -3,6 +3,7 @@ using graphnotelm.Core.Models;
 using graphnotelm.Core.Services.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.AI;
 
 namespace graphnotelm.API
 {
@@ -11,21 +12,26 @@ namespace graphnotelm.API
     {
 
         private readonly ICurrentUserContext _currentUserContext;
-        private readonly IChatService _chatService;
-        public AIChatHub(ICurrentUserContext currentUserContext, IChatService chatService)
+        private readonly IChatClient _chatClient;
+        public AIChatHub(ICurrentUserContext currentUserContext, IChatClient chatClient)
         {
             _currentUserContext = currentUserContext;
-            _chatService = chatService;
+            _chatClient = chatClient;
         }
-        public async Task SendMessage(Guid graphId, List<LLMChatMessage> messages)
+        public async Task SendMessage(Guid graphId, IEnumerable<LLMChatMessage> messages)
         {
             var userId = _currentUserContext.UserId;
 
+            var chatMessages = messages.Select(m => new ChatMessage(
+                m.Role == "user" ? ChatRole.User : ChatRole.Assistant,
+                m.Content)).ToList();
+
             try
             {
-                await foreach (var chunk in _chatService.StreamResponseAsync(userId, graphId, messages))
+                await foreach (var update in _chatClient.GetStreamingResponseAsync(chatMessages, cancellationToken: new CancellationToken()))
                 {
-                    await Clients.Caller.SendAsync("ReceiveChunk", chunk);
+                    if (update.Text is not null)
+                        await Clients.Caller.SendAsync("ReceiveChunk", update.Text);
                 }
                 await Clients.Caller.SendAsync("ResponseComplete");
             }
