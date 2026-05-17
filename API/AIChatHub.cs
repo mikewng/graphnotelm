@@ -1,4 +1,4 @@
-﻿using graphnotelm.Core.Contexts.Contracts;
+using graphnotelm.Core.Contexts.Contracts;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Services.Contracts;
 using Microsoft.AspNetCore.Authorization;
@@ -10,14 +10,15 @@ namespace graphnotelm.API
     [Authorize]
     public class AIChatHub : Hub
     {
-
         private readonly ICurrentUserContext _currentUserContext;
-        private readonly IChatClient _chatClient;
-        public AIChatHub(ICurrentUserContext currentUserContext, IChatClient chatClient)
+        private readonly IChatService _chatService;
+
+        public AIChatHub(ICurrentUserContext currentUserContext, IChatService chatService)
         {
             _currentUserContext = currentUserContext;
-            _chatClient = chatClient;
+            _chatService = chatService;
         }
+
         public async Task SendMessage(Guid graphId, IEnumerable<LLMChatMessage> messages)
         {
             var userId = _currentUserContext.UserId;
@@ -28,12 +29,15 @@ namespace graphnotelm.API
 
             try
             {
-                await foreach (var update in _chatClient.GetStreamingResponseAsync(chatMessages, cancellationToken: new CancellationToken()))
+                await foreach (var chunk in _chatService.StreamResponseAsync(userId, graphId, chatMessages, Context.ConnectionAborted))
                 {
-                    if (update.Text is not null)
-                        await Clients.Caller.SendAsync("ReceiveChunk", update.Text);
+                    await Clients.Caller.SendAsync("ReceiveChunk", chunk);
                 }
                 await Clients.Caller.SendAsync("ResponseComplete");
+            }
+            catch (OperationCanceledException)
+            {
+                // Client disconnected — nothing to do
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
             {

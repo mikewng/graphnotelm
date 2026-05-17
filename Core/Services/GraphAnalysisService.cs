@@ -8,33 +8,14 @@ namespace graphnotelm.Core.Services
 {
     public class GraphAnalysisService : IGraphAnalysisService
     {
-        public GraphView graph;
-        public GraphAnalysisService(NoteGraphDocument document) { 
-            graph = new GraphView(document);
-        }
-
         public GraphView BuildView(NoteGraphDocument document, Guid nodeId)
         {
             return new GraphView(document);
         }
 
-        public Result<List<Guid>> FindLeastConfidentPath(Guid noteNodeId) { 
-            List<Guid> nodes = new List<Guid>();
+        public Result<List<Guid>> FindLeastConfidentPath(Guid noteNodeId) => throw new NotImplementedException();
 
-            List<GuidMetadataPair> lowestScorePath = PathingAlgorithms.DijkstrasById(noteNodeId, graph);
-
-            foreach (GuidMetadataPair pair in lowestScorePath)
-            {
-                nodes.Add(pair.Id);
-            }
-
-            return Result<List<Guid>>.Ok(nodes);
-        }
-
-        public Result<List<Guid>> FindKnowledgeFrontier(Guid noteNodeId) {
-            List<Guid> nodes = PathingAlgorithms.BreadthFirstSearchById(noteNodeId, 3.0f, graph);
-            return Result<List<Guid>>.Ok(nodes);
-        }
+        public Result<List<Guid>> FindKnowledgeFrontier(Guid noteNodeId) => throw new NotImplementedException();
         public Result<List<Guid>> FindBestPathWithBudget(Guid noteNodeId, float budget) => throw new NotImplementedException();
     }
 }

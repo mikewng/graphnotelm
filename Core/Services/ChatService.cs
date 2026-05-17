@@ -21,7 +21,7 @@ namespace graphnotelm.Core.Services
         public async IAsyncEnumerable<string> StreamResponseAsync(
             Guid userId,
             Guid graphId,
-            List<LLMChatMessage> messageHistory,
+            IEnumerable<ChatMessage> messageHistory,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             var document = await _noteGraphRepository.GetByIdAsync(graphId, cancellationToken);
@@ -35,9 +35,7 @@ namespace graphnotelm.Core.Services
             var systemPrompt = BuildSystemPrompt(document);
 
             var messages = new List<ChatMessage> { new(ChatRole.System, systemPrompt) };
-            messages.AddRange(messageHistory.Select(m => new ChatMessage(
-                m.Role == "user" ? ChatRole.User : ChatRole.Assistant,
-                m.Content)));
+            messages.AddRange(messageHistory);
 
             await foreach (var update in _chatClient.GetStreamingResponseAsync(messages, cancellationToken: cancellationToken))
             {
