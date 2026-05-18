@@ -84,6 +84,9 @@ If privacy is a big concern to you, a major option is running everything encased
 ### More Efficient Writes, Saves, and Loads for NoteGraphs
 Currently, the backend architecture for NoteGraphLM is that everything is ACTUALLY stored within a single JSON document locally or on DynamoDB. The goal is to move these implementations to store nodes individually from the NoteGraph, allow saves to be more efficient in writing only to a specific document instead of the entire document itself. The architecture to support this is already in place, as it does not disrupt IMPORT/EXPORT capabilities. We just need to write and link the implementation. Elaborating on that, pre-existing JSON files that you have exported will still work, as the core system still relies on the same structure, just broken into individual pieces.
 
+### Autogenerateable Flashcards and Quizzes
+Allows you to autogenerate flashcards and quizzes with the help of AI. This allows you to skip the menial task of creating these things and go straight to studying. It also directly connects to your confidence score, so reviews that you get wrong directly decrease your confidence score, and reviews you get right directly increase your score.
+
 ### LLM Long Term Memory
 A more long lasting memory for the AI Assistant, allowing you to be more efficient with your AI usage and makes the AI more curated and scoped to the chat.
 
