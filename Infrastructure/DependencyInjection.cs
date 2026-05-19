@@ -25,9 +25,14 @@ namespace graphnotelm.Infrastructure
             if (env.IsDevelopment())
             {
                 if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true")
+                {
                     services.AddSingleton<INoteGraphRepository, JsonFileNoteGraphRepository>();
-                else
+                    services.AddSingleton<INoteNodeRepository, JsonFileNoteNodeRepository>();
+                } else
+                {
                     services.AddSingleton<INoteGraphRepository, InMemoryDBNoteGraphRepository>();
+                    services.AddSingleton<INoteNodeRepository, InMemoryDBNoteNodeRepository>();
+                }
             }
             else
             {
