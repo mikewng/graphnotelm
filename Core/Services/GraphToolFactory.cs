@@ -19,6 +19,7 @@ namespace graphnotelm.Core.Services
         {
             var content = new GraphContentTools(document);
             var analysis = new GraphAnalysisTools(document, _graphAnalysis);
+            var general = new GeneralContextTools();
 
             return
             [
@@ -32,6 +33,10 @@ namespace graphnotelm.Core.Services
                 // Graph Analysis Functions
                 AIFunctionFactory.Create(analysis.FindWeakestPath),
                 AIFunctionFactory.Create(analysis.FindKnowledgeFrontier),
+
+
+                // General Help Functions
+                AIFunctionFactory.Create(general.GetTimeDate),
             ];
         }
     }
