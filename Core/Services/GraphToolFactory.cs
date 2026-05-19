@@ -25,9 +25,13 @@ namespace graphnotelm.Core.Services
                 // Graph Content Functions
                 AIFunctionFactory.Create(content.GetNodeByTitle),
                 AIFunctionFactory.Create(content.GetNodeById),
+                AIFunctionFactory.Create(content.GetNodeByTag),
+                AIFunctionFactory.Create(content.GetListOfTags),
+
 
                 // Graph Analysis Functions
-                AIFunctionFactory.Create(analysis.FindWeakestPath)
+                AIFunctionFactory.Create(analysis.FindWeakestPath),
+                AIFunctionFactory.Create(analysis.FindKnowledgeFrontier),
             ];
         }
     }

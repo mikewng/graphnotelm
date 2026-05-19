@@ -71,6 +71,36 @@ namespace graphnotelm.Core.Utils
 
             return nodes;
         }
+
+        // TBI
+        public static List<T> KahnTopologicalSortById<T>(Guid noteNodeId, GraphView graph, Func<NoteNode, T> selector)
+        {
+            NoteNode startNode = graph.GetNode(noteNodeId);
+            List<T> order = new List<T>() { selector(startNode) };
+
+            HashSet<Guid> visited = new HashSet<Guid>();
+            Queue<Guid> queue = new Queue<Guid>();
+
+            visited.Add(noteNodeId);
+            queue.Enqueue(noteNodeId);
+
+            while (queue.Count > 0) {
+
+                Guid currNode = queue.Dequeue();
+                order.Add(selector(graph.GetNode(currNode)));
+                List<Guid> neighbors = graph.GetNeighbors(currNode);
+
+                foreach (Guid neighbor in neighbors)
+                {
+                    if (!visited.Add(neighbor)) continue;
+
+                    NoteNode currNeighbor = graph.GetNode(neighbor);
+                    queue.Enqueue(neighbor);
+                    order.Add(selector(currNeighbor));
+                }
+            }
+            return order;
+        }
     }
 
 }

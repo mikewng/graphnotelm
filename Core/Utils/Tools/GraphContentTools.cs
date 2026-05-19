@@ -78,5 +78,34 @@ namespace graphnotelm.Core.Utils.Tools
                 relationships
             );
         }
+
+        [Description("Gets the list of tags that are associated with the graph.")]
+        public List<string> GetListOfTags()
+        {
+            return _document.Tags.Values.Select(t => t.Name).ToList();
+        }
+
+        [Description("Gets a list of nodes that are associated with the tag name")]
+        public List<NodeResult?> GetNodeByTag(
+            [Description("The ID of the node to retrieve.")]
+            string tagName)
+        {
+            List<NodeResult?> resultList = new List<NodeResult?>();
+
+            Guid tagGuid = _document.Tags.FirstOrDefault(t => t.Value.Name == tagName).Key;
+            var nodes = _document.Nodes.ToList().Where(node => node.Value.Tags.Contains(tagGuid));
+            foreach (var node in nodes)
+            {
+                resultList.Add(new NodeResult(
+                    node.Key,
+                    node.Value.Title,
+                    node.Value.Note,
+                    node.Value.Metadata.UserConfidenceRate,
+                    new List<NodeRelationshipResult>()
+                    ));
+            }
+
+            return resultList;
+        }
     }
 }
