@@ -15,20 +15,20 @@ namespace graphnotelm.Core.Services
         private readonly ILLMContextBuilder _contextBuilder;
         private readonly IGraphAnalysisService _graphAnalysis;
         private readonly INoteGraphAccessService _noteGraphAccessService;
-        private readonly INoteGraphRepository _noteGraphRepository;
+        private readonly INoteNodeRepository _noteNodeRepository;
 
         public LLMAnalysisService(
             IChatClient chatClient,
             ILLMContextBuilder contextBuilder,
             IGraphAnalysisService graphAnalysis,
             INoteGraphAccessService noteGraphAccess,
-            INoteGraphRepository noteGraphRepository)
+            INoteNodeRepository noteNodeRepository)
         {
             _chatClient = chatClient;
             _contextBuilder = contextBuilder;
             _graphAnalysis = graphAnalysis;
             _noteGraphAccessService = noteGraphAccess;
-            _noteGraphRepository = noteGraphRepository;
+            _noteNodeRepository = noteNodeRepository;
         }
 
         public async Task<Result<EditNodeMetadataResponse>> AnalyzeNodeAsync(Guid noteGraphId, Guid nodeId, CancellationToken ct)
@@ -71,7 +71,7 @@ namespace graphnotelm.Core.Services
 
             try
             {
-                await _noteGraphRepository.SaveAsync(document);
+                await _noteNodeRepository.SaveAsync(noteGraphId, node);
             }
             catch
             {

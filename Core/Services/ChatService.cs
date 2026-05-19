@@ -1,7 +1,6 @@
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Core.Utils;
-using graphnotelm.Infrastructure.Repository.Contracts;
 using Microsoft.Extensions.AI;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -11,29 +10,30 @@ namespace graphnotelm.Core.Services
     public class ChatService : IChatService
     {
         private readonly IChatClient _chatClient;
-        private readonly INoteGraphRepository _noteGraphRepository;
+        private readonly INoteGraphAccessService _noteGraphAccessService;
         private readonly GraphToolFactory _toolFactory;
 
-        public ChatService(IChatClient chatClient, INoteGraphRepository noteGraphRepository, GraphToolFactory toolFactory)
+        public ChatService(IChatClient chatClient, INoteGraphAccessService noteGraphAccessService, GraphToolFactory toolFactory)
         {
             _chatClient = chatClient;
-            _noteGraphRepository = noteGraphRepository;
+            _noteGraphAccessService = noteGraphAccessService;
             _toolFactory = toolFactory;
         }
 
         public async IAsyncEnumerable<AgentEvent> RunAsync(
-            Guid userId,
             Guid graphId,
             IEnumerable<ChatMessage> messageHistory,
             [EnumeratorCancellation] CancellationToken ct = default)
         {
-            var document = await _noteGraphRepository.GetByIdAsync(graphId, ct);
-            if (document == null || document.UserId != userId)
+            var documentResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(graphId, ct);
+            if (!documentResult.Success || documentResult.Value == null)
             {
                 yield return new ContentDelta("[Error: graph not found or access denied]");
                 yield return new TurnComplete();
                 yield break;
             }
+
+            var document = documentResult.Value;
 
             var view = new GraphView(document);
             var tools = _toolFactory.Build(document, view);

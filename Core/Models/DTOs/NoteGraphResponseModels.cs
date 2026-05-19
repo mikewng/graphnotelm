@@ -20,6 +20,7 @@ namespace graphnotelm.Core.Models.DTOs
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
+        public float UserConfidenceRate { get; set; }
         public List<NodeRelationship> Relationships { get; set; } = new();
         public List<Guid> Tags { get; set; } = new();
     }
