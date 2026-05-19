@@ -35,17 +35,34 @@ namespace graphnotelm.Core.Clients
                 input_schema = t.JsonSchema
             }).ToArray();
 
-            var request = new
-            {
-                model = options?.ModelId ?? _model,
-                max_tokens = options?.MaxOutputTokens ?? 4096,
-                system = systemMsg?.Text ?? "",
-                tools = tools?.Length > 0 ? tools : null,
-                messages = nonSystem.Select(BuildAnthropicMessage).ToArray()
-            };
+            var builtMessages = nonSystem.Select(BuildAnthropicMessage).ToArray();
+            object request = tools?.Length > 0
+                ? new
+                {
+                    model = options?.ModelId ?? _model,
+                    max_tokens = options?.MaxOutputTokens ?? 4096,
+                    system = systemMsg?.Text ?? "",
+                    tools,
+                    messages = builtMessages
+                }
+                : new
+                {
+                    model = options?.ModelId ?? _model,
+                    max_tokens = options?.MaxOutputTokens ?? 4096,
+                    system = systemMsg?.Text ?? "",
+                    messages = builtMessages
+                };
 
             var httpResponse = await _http.PostAsJsonAsync("v1/messages", request, cancellationToken);
-            httpResponse.EnsureSuccessStatusCode();
+
+            if (!httpResponse.IsSuccessStatusCode)
+            {
+                var errorBody = await httpResponse.Content.ReadAsStringAsync(cancellationToken);
+                throw new HttpRequestException(
+                    $"Anthropic API error ({(int)httpResponse.StatusCode}): {errorBody}",
+                    null,
+                    httpResponse.StatusCode);
+            }
 
             var result = await httpResponse.Content.ReadFromJsonAsync<AnthropicResponse>(cancellationToken);
 
