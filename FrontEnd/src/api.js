@@ -52,6 +52,10 @@ export const noteNodeApi = {
   delete: (graphId, nodeId) =>
     request(`/NoteGraph/id/${graphId}/node/delete/${nodeId}`, { method: 'DELETE' }),
 
+  // Fetch full node content (note + metadata) — skeleton doesn't include these
+  get: (graphId, nodeId) =>
+    request(`/NoteGraph/id/${graphId}/node/${nodeId}`),
+
   // Save title + note only
   saveContent: (graphId, nodeId, data) =>
     request(`/NoteGraph/id/${graphId}/node/${nodeId}/content`, { method: 'PATCH', body: JSON.stringify(data) }),

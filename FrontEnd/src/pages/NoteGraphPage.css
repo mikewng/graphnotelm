@@ -292,6 +292,9 @@
   white-space: pre-wrap;
 }
 
+.note-editor--loading { opacity: 0.4; cursor: wait; }
+.topic-input:disabled  { opacity: 0.4; cursor: wait; }
+
 .note-editor:empty::before {
   content: attr(data-placeholder);
   color: var(--text-3);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { noteGraphApi, noteNodeApi, tagApi, relationshipApi } from '../api'
 import GraphView from '../components/GraphView'
@@ -9,6 +9,8 @@ import ChatSideBar from '../components/ChatSideBar'
 import ManageTypesOverlay from '../components/ManageTypesOverlay'
 import Modal from '../components/Modal'
 import './NoteGraphPage.css'
+
+const DRAFT_ID = '__draft__'
 
 function dictToArray(dict) {
   if (!dict) return []
@@ -41,7 +43,7 @@ export default function NoteGraphPage() {
 
   // ── Node editor form ───────────────────────────────────────────────────────
   const [nodeTitle, setNodeTitle] = useState('')
-  const [nodeNote, setNodeNote] = useState('')
+  const nodeNoteRef = useRef('')         // ref — no re-render on every keystroke
   const [localTags, setLocalTags] = useState([])
   const [localRelDict, setLocalRelDict] = useState({})
   const [addTagId, setAddTagId] = useState('')
@@ -55,15 +57,83 @@ export default function NoteGraphPage() {
   const autoSaveTimer = useRef(null)
   const isUserEdit = useRef(false)
 
-  function handleTitleChange(v) { isUserEdit.current = true; setNodeTitle(v) }
-  function handleNoteChange(v) { isUserEdit.current = true; setNodeNote(v) }
+  // ── Node content lazy-load ─────────────────────────────────────────────────
+  const [noteLoadVersion, setNoteLoadVersion] = useState(0)
+  const [nodeLoading, setNodeLoading] = useState(false)
+
+  // Keep selectedNodeId accessible in async callbacks without stale closure
+  const selectedNodeIdRef = useRef(selectedNodeId)
+  useEffect(() => { selectedNodeIdRef.current = selectedNodeId }, [selectedNodeId])
+
+  function handleTitleChange(v) {
+    setNodeTitle(v)
+    if (selectedNodeId === DRAFT_ID) {
+      clearTimeout(autoSaveTimer.current)
+      if (v.trim()) {
+        autoSaveTimer.current = setTimeout(async () => {
+          try {
+            const created = await noteNodeApi.create(id, { title: v.trim(), note: nodeNoteRef.current })
+            if (created?.id) {
+              await loadGraph()
+              setNodeHistory(prev => prev.map(nid => nid === DRAFT_ID ? created.id : nid))
+              setSelectedNodeId(created.id)
+            }
+          } catch (err) { setError(err.message) }
+        }, 1500)
+      }
+    } else {
+      isUserEdit.current = true
+      scheduleSave()
+    }
+  }
+
+  function handleNoteChange(v) {
+    isUserEdit.current = true
+    nodeNoteRef.current = v   // ref update — zero re-renders
+    scheduleSave()
+  }
+
+  function scheduleSave() {
+    clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(async () => {
+      const nodeId = selectedNodeIdRef.current
+      if (!nodeId || !isUserEdit.current) return
+      setSaveStatus('saving')
+      try {
+        const title = nodeTitle  // captured at schedule time — fine for debounce
+        const note  = nodeNoteRef.current
+        await noteNodeApi.saveContent(id, nodeId, { title, note })
+        mergeNodeIntoGraph(nodeId, { title, note })
+        await loadGraph()
+        setSaveStatus('saved')
+        setTimeout(() => setSaveStatus('idle'), 2000)
+      } catch (err) {
+        setError(err.message)
+        setSaveStatus('idle')
+      }
+    }, 1500)
+  }
 
 
   // ── Data fetching ──────────────────────────────────────────────────────────
   async function loadGraph() {
     try {
       const data = await noteGraphApi.get(id)
-      setGraph(data)
+      setGraph(prev => {
+        if (!prev?.nodes) return data
+        // Re-merge full node data (note, metadata) that was already fetched —
+        // the skeleton endpoint omits these fields so we must preserve them
+        const mergedNodes = {}
+        for (const [nodeId, skeletonNode] of Object.entries(data.nodes || {})) {
+          const cached = prev.nodes[nodeId]
+          mergedNodes[nodeId] = {
+            ...skeletonNode,
+            ...(cached?.note      !== undefined && { note:     cached.note }),
+            ...(cached?.metadata  !== undefined && { metadata: cached.metadata }),
+          }
+        }
+        return { ...data, nodes: mergedNodes }
+      })
     } catch (err) {
       setError(err.message)
     }
@@ -79,18 +149,49 @@ export default function NoteGraphPage() {
     }).catch(() => {})
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Reset title + note only when switching to a different node
+  // Reset form fields when switching to a different node
+  // Note: nodeNote is set by the full-node fetch below, not here
   useEffect(() => {
-    if (!graph || !selectedNodeId) return
+    if (!graph || !selectedNodeId || selectedNodeId === DRAFT_ID) return
     const node = graph.nodes?.[selectedNodeId]
     if (!node) return
     setNodeTitle(node.title || '')
-    setNodeNote(node.note || '')
+    nodeNoteRef.current = ''
     setAddTagId('')
     setConnTarget('')
     setConnRelType('')
     setConnInverseTarget('')
     setConnInverseRelType('')
+  }, [selectedNodeId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch full node content on selection (skeleton omits note + metadata)
+  useEffect(() => {
+    if (!selectedNodeId || selectedNodeId === DRAFT_ID) return
+    setNodeLoading(true)
+    noteNodeApi.get(id, selectedNodeId)
+      .then(fullNode => {
+        // Merge note + metadata into graph so NodeEditor and MetadataSidebar stay correct
+        setGraph(prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            nodes: {
+              ...prev.nodes,
+              [selectedNodeId]: {
+                ...prev.nodes?.[selectedNodeId],
+                note:     fullNode.note,
+                metadata: fullNode.metadata,
+                title:    fullNode.title,
+              },
+            },
+          }
+        })
+        setNodeTitle(fullNode.title || '')
+        nodeNoteRef.current = fullNode.note || ''
+        setNoteLoadVersion(v => v + 1)   // signal NodeEditor to re-sync contenteditable
+      })
+      .catch(err => setError(err.message))
+      .finally(() => setNodeLoading(false))
   }, [selectedNodeId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep tags + relationships in sync with every graph reload
@@ -113,24 +214,6 @@ export default function NoteGraphPage() {
     clearTimeout(autoSaveTimer.current)
   }, [selectedNodeId])
 
-  // Debounced auto-save — fires 1.5s after user stops typing
-  useEffect(() => {
-    if (!selectedNodeId || !isUserEdit.current) return
-    clearTimeout(autoSaveTimer.current)
-    autoSaveTimer.current = setTimeout(async () => {
-      setSaveStatus('saving')
-      try {
-        await noteNodeApi.saveContent(id, selectedNodeId, { title: nodeTitle, note: nodeNote })
-        await loadGraph()
-        setSaveStatus('saved')
-        setTimeout(() => setSaveStatus('idle'), 2000)
-      } catch (err) {
-        setError(err.message)
-        setSaveStatus('idle')
-      }
-    }, 1500)
-    return () => clearTimeout(autoSaveTimer.current)
-  }, [nodeTitle, nodeNote]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keyboard shortcuts for back/forward navigation
   useEffect(() => {
@@ -145,13 +228,15 @@ export default function NoteGraphPage() {
   }, [historyIdx, nodeHistory]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Navigation ─────────────────────────────────────────────────────────────
-  function navigateTo(nodeId) {
+  const navigateTo = useCallback((nodeId) => {
     if (!nodeId || nodeId === selectedNodeId) return
-    const newHistory = [...nodeHistory.slice(0, historyIdx + 1), nodeId]
+    if (selectedNodeId === DRAFT_ID) clearTimeout(autoSaveTimer.current)
+    const base = nodeHistory.slice(0, historyIdx + 1).filter(nid => nid !== DRAFT_ID)
+    const newHistory = [...base, nodeId]
     setNodeHistory(newHistory)
     setHistoryIdx(newHistory.length - 1)
     setSelectedNodeId(nodeId)
-  }
+  }, [selectedNodeId, nodeHistory, historyIdx])
 
   function navBack() {
     if (historyIdx <= 0) return
@@ -167,27 +252,28 @@ export default function NoteGraphPage() {
     setSelectedNodeId(nodeHistory[newIdx])
   }
 
-  if (!graph) return <div style={{ padding: 16 }}>{error || 'Loading...'}</div>
+  const nodesList = useMemo(() => {
+    const list = dictToArray(graph?.nodes)
+    if (selectedNodeId === DRAFT_ID)
+      return [{ id: DRAFT_ID, title: '', tags: [], relationships: [] }, ...list]
+    return list
+  }, [graph?.nodes, selectedNodeId])
+  const tagsList = useMemo(() => dictToArray(graph?.tags), [graph?.tags])
+  const relTypesList = useMemo(() => dictToArray(graph?.relationships), [graph?.relationships])
 
-  const nodesList = dictToArray(graph.nodes)
-  const tagsList = dictToArray(graph.tags)
-  const relTypesList = dictToArray(graph.relationships)
+  if (!graph) return <div style={{ padding: 16 }}>{error || 'Loading...'}</div>
 
   // ── NoteNode CRUD ──────────────────────────────────────────────────────────
   function handleCreateNode() {
-    setModal({
-      type: 'input',
-      title: 'New node',
-      placeholder: 'Node title...',
-      confirmLabel: 'Create',
-      onConfirm: async (title) => {
-        try {
-          const created = await noteNodeApi.create(id, { title, note: '' })
-          await loadGraph()
-          if (created?.id) navigateTo(created.id)
-        } catch (err) { setError(err.message) }
-      },
-    })
+    if (selectedNodeId === DRAFT_ID) return  // already drafting
+    clearTimeout(autoSaveTimer.current)
+    isUserEdit.current = false
+    setNodeTitle('')
+    nodeNoteRef.current = ''
+    const newHistory = [...nodeHistory.slice(0, historyIdx + 1), DRAFT_ID]
+    setNodeHistory(newHistory)
+    setHistoryIdx(newHistory.length - 1)
+    setSelectedNodeId(DRAFT_ID)
   }
 
   async function handleExport() {
@@ -202,12 +288,26 @@ export default function NoteGraphPage() {
     } catch (err) { setError(err.message) }
   }
 
+  function mergeNodeIntoGraph(nodeId, fields) {
+    setGraph(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        nodes: {
+          ...prev.nodes,
+          [nodeId]: { ...prev.nodes?.[nodeId], ...fields },
+        },
+      }
+    })
+  }
+
   async function handleSaveNode() {
     if (!selectedNodeId) return
     clearTimeout(autoSaveTimer.current)
     setSaveStatus('saving')
     try {
-      await noteNodeApi.saveContent(id, selectedNodeId, { title: nodeTitle, note: nodeNote })
+      await noteNodeApi.saveContent(id, selectedNodeId, { title: nodeTitle, note: nodeNoteRef.current })
+      mergeNodeIntoGraph(selectedNodeId, { title: nodeTitle, note: nodeNoteRef.current })
       await loadGraph()
       setSaveStatus('saved')
       setTimeout(() => setSaveStatus('idle'), 2000)
@@ -220,7 +320,8 @@ export default function NoteGraphPage() {
   async function handleSaveMetadata(data) {
     if (!selectedNodeId) return
     try {
-      await noteNodeApi.updateMetadata(id, selectedNodeId, data)
+      const result = await noteNodeApi.updateMetadata(id, selectedNodeId, data)
+      mergeNodeIntoGraph(selectedNodeId, { metadata: result.metadata })
       await loadGraph()
     } catch (err) { setError(err.message) }
   }
@@ -228,7 +329,8 @@ export default function NoteGraphPage() {
   async function handleGenerateLlmMetadata() {
     if (!selectedNodeId) return
     try {
-      await noteNodeApi.generateLlmMetadata(id, selectedNodeId)
+      const result = await noteNodeApi.generateLlmMetadata(id, selectedNodeId)
+      mergeNodeIntoGraph(selectedNodeId, { metadata: result.metadata })
       await loadGraph()
     } catch (err) { setError(err.message) }
   }
@@ -517,7 +619,9 @@ export default function NoteGraphPage() {
             tagsList={tagsList}
             relTypesList={relTypesList}
             nodeTitle={nodeTitle} setNodeTitle={handleTitleChange}
-            nodeNote={nodeNote} setNodeNote={handleNoteChange}
+            setNodeNote={handleNoteChange}
+            noteLoadVersion={noteLoadVersion}
+            nodeLoading={nodeLoading}
             confidenceRate={selectedNodeId ? graph.nodes?.[selectedNodeId]?.metadata?.userConfidenceRate ?? null : null}
             saveStatus={saveStatus}
             localTags={localTags}

@@ -1,14 +1,14 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useMemo, memo } from 'react'
 import SearchSelect from './SearchSelect'
 
-export default function NodeEditor({
+const NodeEditor = memo(function NodeEditor({
   graph,
   selectedNodeId,
   nodesList,
   tagsList,
   relTypesList,
   nodeTitle, setNodeTitle,
-  nodeNote, setNodeNote,
+  setNodeNote,
   localTags,
   localRelDict,
   addTagId, setAddTagId,
@@ -16,6 +16,8 @@ export default function NodeEditor({
   connRelType, setConnRelType,
   connInverseTarget, setConnInverseTarget,
   connInverseRelType, setConnInverseRelType,
+  noteLoadVersion,
+  nodeLoading,
   confidenceRate,
   saveStatus,
   onSave,
@@ -36,7 +38,7 @@ export default function NodeEditor({
     const el = noteRef.current
     if (!el) return
     el.innerHTML = graph.nodes?.[selectedNodeId]?.note || ''
-  }, [selectedNodeId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedNodeId, noteLoadVersion]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleNoteInput(e) {
     setNodeNote(e.currentTarget.innerHTML)
@@ -63,13 +65,21 @@ export default function NodeEditor({
     return rel?.inverse || null
   }
 
-  const outgoing = Object.entries(localRelDict).map(([targetNodeId, relTypeId]) => ({ targetNodeId, relTypeId }))
-  const incoming = nodesList.flatMap(n => {
-    if (n.id === selectedNodeId) return []
-    return (n.relationships || [])
-      .filter(r => r.targetNodeId === selectedNodeId)
-      .map(r => ({ sourceNodeId: n.id, relTypeId: r.relationshipId }))
-  })
+  const outgoing = useMemo(
+    () => Object.entries(localRelDict).map(([targetNodeId, relTypeId]) => ({ targetNodeId, relTypeId })),
+    [localRelDict]
+  )
+  const incoming = useMemo(
+    () => nodesList.flatMap(n => {
+      if (n.id === selectedNodeId) return []
+      return (n.relationships || [])
+        .filter(r => r.targetNodeId === selectedNodeId)
+        .map(r => ({ sourceNodeId: n.id, relTypeId: r.relationshipId }))
+    }),
+    [nodesList, selectedNodeId]
+  )
+
+  const isDraft = selectedNodeId === '__draft__'
 
   if (!selectedNodeId) {
     return <p className="empty-editor">Select a node or create a new one.</p>
@@ -85,6 +95,7 @@ export default function NodeEditor({
           value={nodeTitle}
           onChange={e => setNodeTitle(e.target.value)}
           placeholder="node title..."
+          disabled={nodeLoading}
         />
         <div className="form-actions">
           {saveStatus === 'saving' && <span className="save-indicator save-spinner" title="Saving…" />}
@@ -111,8 +122,8 @@ export default function NodeEditor({
         <div className="field-label">Note</div>
         <div
           ref={noteRef}
-          className="note-editor"
-          contentEditable
+          className={`note-editor${nodeLoading ? ' note-editor--loading' : ''}`}
+          contentEditable={!nodeLoading}
           suppressContentEditableWarning
           onInput={handleNoteInput}
           onKeyDown={handleNoteKeyDown}
@@ -120,9 +131,10 @@ export default function NodeEditor({
         />
       </div>
 
-      {/* Tags */}
-      <div className="field">
-        <div className="field-label">Tags</div>
+      {/* Tags + Connections + Delete — hidden until node is saved */}
+      {!isDraft && <>
+        <div className="field">
+          <div className="field-label">Tags</div>
         <div className="tags-row">
           {localTags.length === 0 && <span className="field-empty">No tags assigned.</span>}
           {localTags.map(tagId => {
@@ -250,10 +262,13 @@ export default function NodeEditor({
         </div>
       </div>
 
-      <div className="editor-delete-row">
-        <button className="btn-delete-node" onClick={onDelete}>Delete node</button>
-      </div>
+        <div className="editor-delete-row">
+          <button className="btn-delete-node" onClick={onDelete}>Delete node</button>
+        </div>
+      </>}
 
     </div>
   )
-}
+})
+
+export default NodeEditor

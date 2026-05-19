@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 
-export default function NodeSidebar({
+const NodeSidebar = memo(function NodeSidebar({
   nodesList,
   tagsList,
   tagDefs,
@@ -12,6 +12,7 @@ export default function NodeSidebar({
   onSelectNode,
   onCreateNode,
 }) {
+
   const [sortAsc, setSortAsc] = useState(true)
 
   const filteredNodes = nodesList
@@ -80,4 +81,6 @@ export default function NodeSidebar({
       </div>
     </div>
   )
-}
+})
+
+export default NodeSidebar
