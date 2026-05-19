@@ -16,11 +16,16 @@ namespace graphnotelm.Core.Models.DTOs
         public string Description { get; set; }
     }
 
+    public class NodeSkeletonMetadata
+    {
+        public float UserConfidenceRate { get; set; }
+    }
+
     public class NodeSkeleton
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
-        public float UserConfidenceRate { get; set; }
+        public NodeSkeletonMetadata Metadata { get; set; } = new();
         public List<NodeRelationship> Relationships { get; set; } = new();
         public List<Guid> Tags { get; set; } = new();
     }
