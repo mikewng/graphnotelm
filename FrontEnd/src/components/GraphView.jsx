@@ -7,7 +7,7 @@ const LINK_DISTANCE = 200
 // nodes: [{id, title, relationships: [{targetNodeId, relationshipId}], tags: [tagId]}]
 // tagDefs: {[tagId]: {name, color}}
 // relDefs: {[relId]: {name, color}}
-export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId, onClose, onSelectNode }) {
+export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId, onClose, onSelectNode, showChat, onToggleChat }) {
   const svgRef = useRef(null)
   const [tagFilter, setTagFilter] = useState(new Set())
   const [hierarchical, setHierarchical] = useState(false)
@@ -36,7 +36,7 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
 
     const cssVars = getComputedStyle(document.documentElement)
     const accent = cssVars.getPropertyValue('--accent').trim()
-    const text2  = cssVars.getPropertyValue('--text-2').trim()
+    const text2 = cssVars.getPropertyValue('--text-2').trim()
 
     let visibleNodes = nodes.filter(n =>
       tagFilter.size === 0 || (n.tags || []).some(t => tagFilter.has(t))
@@ -178,7 +178,7 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
           }
 
           node.classed('dimmed', n => !connected.has(n.id))
-              .classed('focused', n => n.id === d.id)
+            .classed('focused', n => n.id === d.id)
           link.classed('dimmed', l => {
             const src = typeof l.source === 'object' ? l.source.id : l.source
             const tgt = typeof l.target === 'object' ? l.target.id : l.target
@@ -281,7 +281,6 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
     <div className="graph-overlay">
       <div className="graph-view-header">
         <button className="btn-ghost" onClick={onClose}>← Back</button>
-
         <input
           className="graph-search"
           type="text"
@@ -290,15 +289,6 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
           onChange={e => setSearchQuery(e.target.value)}
           autoComplete="off"
         />
-
-        <button
-          className={hierarchical ? '' : 'btn-ghost'}
-          onClick={() => setHierarchical(v => !v)}
-          title="Toggle hierarchical layout"
-          style={{ marginLeft: 'auto' }}
-        >
-          Hierarchical
-        </button>
         <div className="graph-tag-filter">
           <button
             className={tagFilter.size === 0 ? 'active' : ''}
@@ -313,6 +303,25 @@ export default function GraphView({ nodes, tagDefs, relDefs = {}, selectedNodeId
             >{t.name}</button>
           ))}
         </div>
+        <button
+          className={hierarchical ? '' : 'btn-ghost'}
+          onClick={() => setHierarchical(v => !v)}
+          title="Toggle hierarchical layout"
+          style={{ marginLeft: 'auto' }}
+        >
+          Hierarchical View
+        </button>
+        <button
+          className={`btn-icon-header${showChat ? ' btn-icon-header--active' : ''}`}
+          onClick={onToggleChat}
+          title="Assistant"
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13, flexShrink: 0 }}>
+            <path d="M2.5 4L13.5 4A1 1 0 0114.5 5L14.5 11A1 1 0 0113.5 12L6 12L3.5 14L3.5 12A1 1 0 012.5 11Z" />
+            <line x1="5.5" y1="7" x2="5.5" y2="7.01" /><line x1="8" y1="7" x2="8" y2="7.01" /><line x1="10.5" y1="7" x2="10.5" y2="7.01" />
+          </svg>
+          Assistant
+        </button>
       </div>
       <svg ref={svgRef} className="graph-svg" />
     </div>

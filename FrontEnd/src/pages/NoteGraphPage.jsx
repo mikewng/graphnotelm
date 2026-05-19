@@ -431,6 +431,8 @@ export default function NoteGraphPage() {
           selectedNodeId={selectedNodeId}
           onClose={() => setShowGraph(false)}
           onSelectNode={node => { navigateTo(node.id); setShowGraph(false) }}
+          showChat={showChat}
+          onToggleChat={() => setShowChat(v => !v)}
         />
       )}
 

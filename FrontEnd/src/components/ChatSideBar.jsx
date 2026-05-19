@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, Fragment } from 'react'
 import * as signalR from '@microsoft/signalr'
 import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
@@ -6,25 +6,32 @@ import { useResizable } from '../hooks/useResizable'
 
 const HUB_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/hub/chat'
 
+const TOOL_LABELS = {
+  GetNodeById:     { icon: '🔍', label: 'Looking up node' },
+  FindWeakestPath: { icon: '🗺', label: 'Finding weakest path' },
+}
+
+function toolDisplay(name) {
+  return TOOL_LABELS[name] ?? { icon: '⚙', label: name.replace(/([A-Z])/g, ' $1').trim() }
+}
+
 export default function ChatSideBar({ isOpen, onClose, graphId, graphName, selectedNodeTitle }) {
-  // messages: { role: 'user'|'assistant', text: string }
   const [messages, setMessages] = useState([])
-  // history in the format the server expects: { role, content }
   const historyRef = useRef([])
   const [input, setInput] = useState('')
-  const [connStatus, setConnStatus] = useState('disconnected') // 'disconnected'|'connecting'|'connected'|'error'
+  const [connStatus, setConnStatus] = useState('disconnected')
   const [streaming, setStreaming] = useState(false)
+  const [toolActivity, setToolActivity] = useState([])  // live during current turn
+  const currentTurnToolsRef = useRef([])                // accumulates all tool calls this turn
   const streamBufferRef = useRef('')
   const connectionRef = useRef(null)
   const bodyRef = useRef(null)
   const textareaRef = useRef(null)
 
-  // Auto-scroll on new content
   useEffect(() => {
     if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight
-  }, [messages, streaming])
+  }, [messages, streaming, toolActivity])
 
-  // Build and start connection
   useEffect(() => {
     const conn = new signalR.HubConnectionBuilder()
       .withUrl(HUB_URL, {
@@ -45,18 +52,48 @@ export default function ChatSideBar({ isOpen, onClose, graphId, graphName, selec
       })
     })
 
-    conn.on('ResponseComplete', () => {
-      const completed = streamBufferRef.current
-      streamBufferRef.current = ''
+    conn.on('ReceiveToolCall', (toolName) => {
+      console.log('[Chat] ReceiveToolCall:', toolName)
+      currentTurnToolsRef.current = [
+        ...currentTurnToolsRef.current,
+        { name: toolName, done: false },
+      ]
+      setToolActivity([...currentTurnToolsRef.current])
+    })
+
+    conn.on('ReceiveToolResult', (toolName) => {
+      console.log('[Chat] ReceiveToolResult:', toolName)
+      currentTurnToolsRef.current = currentTurnToolsRef.current.map(t =>
+        t.name === toolName && !t.done ? { ...t, done: true } : t
+      )
+      setToolActivity([...currentTurnToolsRef.current])
+    })
+
+    conn.on('ReceiveError', (errorMsg) => {
+      console.error('[Chat] ReceiveError:', errorMsg)
       setStreaming(false)
+      setToolActivity([])
+      currentTurnToolsRef.current = []
+      streamBufferRef.current = ''
+      setMessages(prev => [...prev, { role: 'assistant', text: `⚠ ${errorMsg}`, error: true }])
+      historyRef.current.pop()
+    })
+
+    conn.on('ResponseComplete', () => {
+      console.log('[Chat] ResponseComplete')
+      const completed = streamBufferRef.current
+      const tools = [...currentTurnToolsRef.current]
+      streamBufferRef.current = ''
+      currentTurnToolsRef.current = []
+      setStreaming(false)
+      setToolActivity([])
       setMessages(prev => {
         const last = prev[prev.length - 1]
-        if (last?.role === 'assistant') {
-          const finalMsg = { role: 'assistant', text: completed }
-          historyRef.current.push({ role: 'assistant', content: completed })
-          return [...prev.slice(0, -1), finalMsg]
-        }
-        return prev
+        // embed the tool call history into the completed message
+        const finalMsg = { role: 'assistant', text: completed, tools: tools.length ? tools : undefined }
+        historyRef.current.push({ role: 'assistant', content: completed })
+        if (last?.role === 'assistant') return [...prev.slice(0, -1), finalMsg]
+        return [...prev, finalMsg]
       })
     })
 
@@ -72,14 +109,10 @@ export default function ChatSideBar({ isOpen, onClose, graphId, graphName, selec
 
     setConnStatus('connecting')
     conn.start()
-      .then(() => setConnStatus('connected'))
-      .catch(err => {
-        setConnStatus('error')
-        console.error('[SignalR] Failed to connect:', err.message)
-      })
+      .then(() => { console.log('[SignalR] Connected'); setConnStatus('connected') })
+      .catch(err => { console.error('[SignalR] Failed to connect:', err.message); setConnStatus('error') })
 
     connectionRef.current = conn
-
     return () => { conn.stop() }
   }, [])
 
@@ -87,12 +120,12 @@ export default function ChatSideBar({ isOpen, onClose, graphId, graphName, selec
     const text = input.trim()
     if (!text || streaming || connStatus !== 'connected') return
 
-    const userMsg = { role: 'user', content: text }
-    historyRef.current.push(userMsg)
-
+    historyRef.current.push({ role: 'user', content: text })
+    currentTurnToolsRef.current = []
     setMessages(prev => [...prev, { role: 'user', text }])
     setInput('')
     setStreaming(true)
+    setToolActivity([])
     streamBufferRef.current = ''
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
@@ -100,15 +133,21 @@ export default function ChatSideBar({ isOpen, onClose, graphId, graphName, selec
       await connectionRef.current.invoke('SendMessage', graphId, historyRef.current)
     } catch (err) {
       setStreaming(false)
-      const detail = err?.message || String(err)
-      console.error('[SignalR] SendMessage failed:', detail)
-      const label = detail.includes('Unauthorized') || detail.includes('401')
-        ? '⚠ Unauthorized — check your session.'
-        : detail.includes('HubException')
-          ? `⚠ Server error: ${detail.replace(/.*HubException:\s*/i, '')}`
-          : `⚠ Failed to send: ${detail}`
+      setToolActivity([])
+      currentTurnToolsRef.current = []
+      const raw = err?.message || String(err)
+      const combined = (raw + ' ' + (err?.data ?? '')).toLowerCase()
+      console.error('[SignalR] SendMessage failed:', raw)
+      const label = combined.includes('429') || combined.includes('rate limit')
+        ? '⚠ Rate limited — wait a moment and try again.'
+        : combined.includes('unauthorized') || combined.includes('401')
+          ? '⚠ Unauthorized — your session may have expired.'
+          : raw.includes('HubException')
+            ? `⚠ Server error: ${raw.replace(/.*HubException:\s*/i, '').trim()}`
+            : combined.includes('unexpected error')
+              ? '⚠ The server encountered an error. Check server logs for details.'
+              : `⚠ ${raw}`
       setMessages(prev => [...prev, { role: 'assistant', text: label, error: true }])
-      // Remove the failed user message from history so it doesn't corrupt future sends
       historyRef.current.pop()
     }
   }, [input, streaming, connStatus, graphId])
@@ -131,7 +170,9 @@ export default function ChatSideBar({ isOpen, onClose, graphId, graphName, selec
     setMessages([])
     historyRef.current = []
     streamBufferRef.current = ''
+    currentTurnToolsRef.current = []
     setStreaming(false)
+    setToolActivity([])
   }
 
   const statusLabel = {
@@ -167,24 +208,61 @@ export default function ChatSideBar({ isOpen, onClose, graphId, graphName, selec
         {messages.length === 0 && (
           <p className="chat-empty">Ask anything about your notes…</p>
         )}
+
         {messages.map((m, i) => (
-          <div key={i} className={`chat-msg ${m.role}`}>
-            <div className="chat-avatar">{m.role === 'assistant' ? 'AI' : 'U'}</div>
-            <div className={`chat-bubble${m.error ? ' chat-bubble--error' : ''}`}>
-              {m.role === 'assistant' && !m.error
-                ? <><ReactMarkdown rehypePlugins={[rehypeRaw]}>{m.text}</ReactMarkdown>{m.streaming && <span className="chat-cursor" />}</>
-                : m.text
-              }
+          <Fragment key={i}>
+            {/* Tool calls embedded in completed assistant messages */}
+            {m.tools?.length > 0 && (
+              <div className="chat-tool-activity chat-tool-activity--done">
+                {m.tools.map((t, j) => {
+                  const { icon, label } = toolDisplay(t.name)
+                  return (
+                    <div key={j} className="chat-tool-item done">
+                      <svg className="tool-done-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 6l3 3 5-5"/>
+                      </svg>
+                      <span>{icon} {label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <div className={`chat-msg ${m.role}`}>
+              <div className="chat-avatar">{m.role === 'assistant' ? 'AI' : 'U'}</div>
+              <div className={`chat-bubble${m.error ? ' chat-bubble--error' : ''}`}>
+                {m.role === 'assistant' && !m.error
+                  ? <><ReactMarkdown rehypePlugins={[rehypeRaw]}>{m.text}</ReactMarkdown>{m.streaming && <span className="chat-cursor" />}</>
+                  : m.text
+                }
+              </div>
             </div>
-          </div>
+          </Fragment>
         ))}
-        {streaming && messages[messages.length - 1]?.role !== 'assistant' && (
+
+        {/* Live tool activity during current turn */}
+        {toolActivity.length > 0 && (
+          <div className="chat-tool-activity">
+            {toolActivity.map((t, i) => {
+              const { icon, label } = toolDisplay(t.name)
+              return (
+                <div key={i} className={`chat-tool-item${t.done ? ' done' : ''}`}>
+                  {t.done
+                    ? <svg className="tool-done-icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 6l3 3 5-5"/></svg>
+                    : <span className="tool-spinner" />
+                  }
+                  <span>{icon} {t.done ? label : `${label}…`}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Typing dots only when streaming with no tool activity and no chunks yet */}
+        {streaming && toolActivity.length === 0 && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="chat-msg assistant">
             <div className="chat-avatar">AI</div>
             <div className="chat-bubble">
-              <span className="chat-typing">
-                <span /><span /><span />
-              </span>
+              <span className="chat-typing"><span /><span /><span /></span>
             </div>
           </div>
         )}
@@ -209,7 +287,10 @@ export default function ChatSideBar({ isOpen, onClose, graphId, graphName, selec
         </div>
         <div className="chat-foot">
           <span><kbd>↵</kbd> send · <kbd>⇧↵</kbd> newline</span>
-          <span className={`chat-status chat-status--${connStatus}`}>{statusLabel}</span>
+          {streaming
+            ? <span className="chat-status chat-processing"><span className="tool-spinner" />processing…</span>
+            : <span className={`chat-status chat-status--${connStatus}`}>{statusLabel}</span>
+          }
         </div>
       </div>
     </aside>
