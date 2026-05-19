@@ -22,11 +22,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<GetRelationshipListResponse>> GetRelationshipListByGraphId(Guid noteGraphId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-                return Result<GetRelationshipListResponse>.Fail(metadataResult.Error!);
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<GetRelationshipListResponse>.Fail(graphDataResult.Error!);
 
@@ -38,11 +34,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<CreateRelationshipResponse>> CreateRelationshipByGraphId(CreateRelationshipRequest createRelationshipRequest, Guid noteGraphId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-                return Result<CreateRelationshipResponse>.Fail(metadataResult.Error!);
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<CreateRelationshipResponse>.Fail(graphDataResult.Error!);
 
@@ -68,11 +60,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<EditRelationshipResponse>> EditRelationshipByIds(EditRelationshipRequest editRelationshipRequest, Guid noteGraphId, Guid relationId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-                return Result<EditRelationshipResponse>.Fail(metadataResult.Error!);
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<EditRelationshipResponse>.Fail(graphDataResult.Error!);
 
@@ -97,11 +85,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<DeleteRelationshipResponse>> DeleteRelationshipByIds(Guid noteGraphId, Guid relationId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-                return Result<DeleteRelationshipResponse>.Fail(metadataResult.Error!);
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<DeleteRelationshipResponse>.Fail(graphDataResult.Error!);
 
@@ -125,11 +109,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<AddNodeRelationshipResponse>> AddRelationshipToNode(AddNodeRelationshipRequest request, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-                return Result<AddNodeRelationshipResponse>.Fail(metadataResult.Error!);
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<AddNodeRelationshipResponse>.Fail(graphDataResult.Error!);
 
@@ -160,11 +140,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<RemoveNodeRelationshipResponse>> RemoveRelationshipFromNode(Guid noteGraphId, Guid noteNodeId, Guid targetNodeId, Guid relationshipId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-                return Result<RemoveNodeRelationshipResponse>.Fail(metadataResult.Error!);
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<RemoveNodeRelationshipResponse>.Fail(graphDataResult.Error!);
 

@@ -1,5 +1,6 @@
 using graphnotelm.Core.Contexts.Contracts;
 using graphnotelm.Core.Models;
+using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
@@ -44,6 +45,25 @@ namespace graphnotelm.Core.Services
             {
                 return Result<NoteGraphDocument>.Fail("UserId mismatch. Access to full data of graph denied.");
             }
+            return Result<NoteGraphDocument>.Ok(graphData);
+        }
+
+        public async Task<Result<NoteGraphDocument>> GetAuthorizedFullDocumentAsync(Guid noteGraphId, CancellationToken ct)
+        {
+            var metadataResult = await GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+            {
+                return Result<NoteGraphDocument>.Fail(metadataResult.Error!);
+            }
+
+            var graphDataResult = await GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
+            {
+                return Result<NoteGraphDocument>.Fail(graphDataResult.Error!);
+            }
+
+            var graphData = graphDataResult.Value!;
+
             return Result<NoteGraphDocument>.Ok(graphData);
         }
     }

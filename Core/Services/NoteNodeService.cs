@@ -22,13 +22,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<CreateNodeResponse>> CreateNodeByGraphId(CreateNodeRequest createNodeRequest, Guid noteGraphId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-            {
-                return Result<CreateNodeResponse>.Fail(metadataResult.Error!);
-            }
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
             {
                 return Result<CreateNodeResponse>.Fail(graphDataResult.Error!);
@@ -62,13 +56,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<EditNodeResponse>> EditNodeByIds(EditNodeRequest editNodeRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-            {
-                return Result<EditNodeResponse>.Fail(metadataResult.Error!);
-            }
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
             {
                 return Result<EditNodeResponse>.Fail(graphDataResult.Error!);
@@ -115,13 +103,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<DeleteNodeResponse>> DeleteNodeByIds(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-            {
-                return Result<DeleteNodeResponse>.Fail(metadataResult.Error!);
-            }
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
             {
                 return Result<DeleteNodeResponse>.Fail(graphDataResult.Error!);
@@ -152,13 +134,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<SaveNodeContentResponse>> SaveNodeContentAsync(SaveNodeContentRequest saveNodeContentRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-            {
-                return Result<SaveNodeContentResponse>.Fail(metadataResult.Error!);
-            }
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
             {
                 return Result<SaveNodeContentResponse>.Fail(graphDataResult.Error!);
@@ -193,13 +169,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<EditNodeMetadataResponse>> EditNodeMetadataByIds(EditNodeMetadataRequest editNodeMetadataRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-            {
-                return Result<EditNodeMetadataResponse>.Fail(metadataResult.Error!);
-            }
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
             {
                 return Result<EditNodeMetadataResponse>.Fail(graphDataResult.Error!);

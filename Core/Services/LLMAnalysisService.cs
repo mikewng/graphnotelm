@@ -33,11 +33,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<EditNodeMetadataResponse>> AnalyzeNodeAsync(Guid noteGraphId, Guid nodeId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-                return Result<EditNodeMetadataResponse>.Fail(metadataResult.Error!);
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success || graphDataResult.Value == null)
                 return Result<EditNodeMetadataResponse>.Fail(graphDataResult.Error!);
 

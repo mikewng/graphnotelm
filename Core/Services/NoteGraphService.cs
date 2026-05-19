@@ -33,13 +33,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<GetGraphResponse>> GetNoteGraphById(Guid noteGraphId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success)
-            {
-                return Result<GetGraphResponse>.Fail(metadataResult.Error!);
-            }
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
             {
                 return Result<GetGraphResponse>.Fail(graphDataResult.Error!);
