@@ -52,7 +52,10 @@ namespace graphnotelm.Core.Services
                     {
                         Id = kvp.Value.Id,
                         Title = kvp.Value.Title,
-                        UserConfidenceRate = kvp.Value.Metadata.UserConfidenceRate,
+                        Metadata = new NodeSkeletonMetadata
+                        {
+                            UserConfidenceRate = kvp.Value.Metadata.UserConfidenceRate
+                        },
                         Relationships = kvp.Value.Relationships,
                         Tags = kvp.Value.Tags
                     })
