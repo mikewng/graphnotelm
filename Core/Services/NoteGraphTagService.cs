@@ -12,13 +12,14 @@ namespace graphnotelm.Core.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly INoteGraphAccessService _noteGraphAccessService;
         private readonly INoteGraphRepository _noteGraphRepository;
+        private readonly INoteNodeRepository _noteNodeRepository;
 
-
-        public NoteGraphTagService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository)
+        public NoteGraphTagService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository, INoteNodeRepository noteNodeRepository)
         {
             _unitOfWork = unitOfWork;
             _noteGraphAccessService = noteGraphAccessService;
             _noteGraphRepository = noteGraphRepository;
+            _noteNodeRepository = noteNodeRepository;
         }
 
         public async Task<Result<GetTagListResponse>> GetTagListByGraphId(Guid noteGraphId, CancellationToken ct)
@@ -90,12 +91,18 @@ namespace graphnotelm.Core.Services
 
             graphData.Tags.Remove(tagId);
 
+            var affectedNodes = new List<NoteNode>();
             foreach (var node in graphData.Nodes.Values)
-                node.Tags.Remove(tagId);
+            {
+                if (node.Tags.Remove(tagId))
+                    affectedNodes.Add(node);
+            }
 
             try
             {
                 await _noteGraphRepository.SaveAsync(graphData);
+                foreach (var node in affectedNodes)
+                    await _noteNodeRepository.SaveAsync(noteGraphId, node);
                 return Result<DeleteTagResponse>.Ok(new DeleteTagResponse { TagName = tag.Name });
             }
             catch
@@ -122,7 +129,7 @@ namespace graphnotelm.Core.Services
 
             try
             {
-                await _noteGraphRepository.SaveAsync(graphData);
+                await _noteNodeRepository.SaveAsync(noteGraphId, node);
                 return Result<AddNodeTagResponse>.Ok(new AddNodeTagResponse { NodeId = noteNodeId, Tags = node.Tags });
             }
             catch
@@ -145,7 +152,7 @@ namespace graphnotelm.Core.Services
 
             try
             {
-                await _noteGraphRepository.SaveAsync(graphData);
+                await _noteNodeRepository.SaveAsync(noteGraphId, node);
                 return Result<RemoveNodeTagResponse>.Ok(new RemoveNodeTagResponse { NodeId = noteNodeId, RemovedTagId = tagId });
             }
             catch

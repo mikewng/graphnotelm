@@ -12,12 +12,14 @@ namespace graphnotelm.Core.Services
         private readonly ICurrentUserContext _currentUser;
         private readonly INoteGraphMetadataRepository _noteGraphMetadataRepository;
         private readonly INoteGraphRepository _noteGraphRepository;
+        private readonly INoteNodeRepository _noteNodeRepository;
 
-        public NoteGraphAccessService(ICurrentUserContext currentUser, INoteGraphMetadataRepository noteGraphMetadataRepository, INoteGraphRepository noteGraphRepository)
+        public NoteGraphAccessService(ICurrentUserContext currentUser, INoteGraphMetadataRepository noteGraphMetadataRepository, INoteGraphRepository noteGraphRepository, INoteNodeRepository noteNodeRepository)
         {
             _currentUser = currentUser;
             _noteGraphMetadataRepository = noteGraphMetadataRepository;
             _noteGraphRepository = noteGraphRepository;
+            _noteNodeRepository = noteNodeRepository;
         }
 
         public async Task<Result<NoteGraphMetadata>> GetAuthorizedMetadataAsync(Guid noteGraphId, CancellationToken ct)
@@ -52,17 +54,15 @@ namespace graphnotelm.Core.Services
         {
             var metadataResult = await GetAuthorizedMetadataAsync(noteGraphId, ct);
             if (!metadataResult.Success)
-            {
                 return Result<NoteGraphDocument>.Fail(metadataResult.Error!);
-            }
 
             var graphDataResult = await GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
-            {
                 return Result<NoteGraphDocument>.Fail(graphDataResult.Error!);
-            }
 
             var graphData = graphDataResult.Value!;
+            var nodes = await _noteNodeRepository.GetAllByGraphIdAsync(noteGraphId, ct);
+            graphData.Nodes = nodes.ToDictionary(n => n.Id);
 
             return Result<NoteGraphDocument>.Ok(graphData);
         }

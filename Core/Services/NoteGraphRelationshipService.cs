@@ -12,12 +12,14 @@ namespace graphnotelm.Core.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly INoteGraphAccessService _noteGraphAccessService;
         private readonly INoteGraphRepository _noteGraphRepository;
+        private readonly INoteNodeRepository _noteNodeRepository;
 
-        public NoteGraphRelationshipService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository)
+        public NoteGraphRelationshipService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository, INoteNodeRepository noteNodeRepository)
         {
             _unitOfWork = unitOfWork;
             _noteGraphAccessService = noteGraphAccessService;
             _noteGraphRepository = noteGraphRepository;
+            _noteNodeRepository = noteNodeRepository;
         }
 
         public async Task<Result<GetRelationshipListResponse>> GetRelationshipListByGraphId(Guid noteGraphId, CancellationToken ct)
@@ -93,12 +95,18 @@ namespace graphnotelm.Core.Services
             if (!graphData.Relationships.Remove(relationId))
                 return Result<DeleteRelationshipResponse>.Fail("Relationship not found.");
 
+            var affectedNodes = new List<NoteNode>();
             foreach (var node in graphData.Nodes.Values)
-                node.Relationships.RemoveAll(r => r.RelationshipId == relationId);
+            {
+                if (node.Relationships.RemoveAll(r => r.RelationshipId == relationId) > 0)
+                    affectedNodes.Add(node);
+            }
 
             try
             {
                 await _noteGraphRepository.SaveAsync(graphData);
+                foreach (var node in affectedNodes)
+                    await _noteNodeRepository.SaveAsync(noteGraphId, node);
                 return Result<DeleteRelationshipResponse>.Ok(new DeleteRelationshipResponse());
             }
             catch
@@ -129,7 +137,7 @@ namespace graphnotelm.Core.Services
 
             try
             {
-                await _noteGraphRepository.SaveAsync(graphData);
+                await _noteNodeRepository.SaveAsync(noteGraphId, node);
                 return Result<AddNodeRelationshipResponse>.Ok(new AddNodeRelationshipResponse { NodeId = noteNodeId, Relationships = node.Relationships });
             }
             catch
@@ -154,7 +162,7 @@ namespace graphnotelm.Core.Services
 
             try
             {
-                await _noteGraphRepository.SaveAsync(graphData);
+                await _noteNodeRepository.SaveAsync(noteGraphId, node);
                 return Result<RemoveNodeRelationshipResponse>.Ok(new RemoveNodeRelationshipResponse
                 {
                     NodeId = noteNodeId,

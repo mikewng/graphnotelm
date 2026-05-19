@@ -25,6 +25,7 @@ namespace graphnotelm.Infrastructure
             if (env.IsDevelopment())
             {
                 services.AddSingleton<INoteGraphRepository, InMemoryDBNoteGraphRepository>();
+                services.AddSingleton<INoteNodeRepository, InMemoryDBNoteNodeRepository>();
             }
             else
             {

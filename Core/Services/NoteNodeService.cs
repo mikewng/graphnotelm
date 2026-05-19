@@ -12,12 +12,14 @@ namespace graphnotelm.Core.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly INoteGraphAccessService _noteGraphAccessService;
         private readonly INoteGraphRepository _noteGraphRepository;
+        private readonly INoteNodeRepository _noteNodeRepository;
 
-        public NoteNodeService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository)
+        public NoteNodeService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository, INoteNodeRepository noteNodeRepository)
         {
             _unitOfWork = unitOfWork;
             _noteGraphAccessService = noteGraphAccessService;
             _noteGraphRepository = noteGraphRepository;
+            _noteNodeRepository = noteNodeRepository;
         }
 
         public async Task<Result<CreateNodeResponse>> CreateNodeByGraphId(CreateNodeRequest createNodeRequest, Guid noteGraphId, CancellationToken ct)
@@ -33,7 +35,6 @@ namespace graphnotelm.Core.Services
                 return Result<CreateNodeResponse>.Fail("Failed to create: Title was empty.");
             }
 
-            var graphData = graphDataResult.Value!;
             NoteNode newNode = new NoteNode()
             {
                 Id = Guid.NewGuid(),
@@ -41,11 +42,9 @@ namespace graphnotelm.Core.Services
                 Note = createNodeRequest.Note
             };
 
-            graphData.Nodes[newNode.Id] = newNode;
-
             try
             {
-                await _noteGraphRepository.SaveAsync(graphData);
+                await _noteNodeRepository.SaveAsync(noteGraphId, newNode);
                 return Result<CreateNodeResponse>.Ok(new CreateNodeResponse { Id = newNode.Id, Title = newNode.Title });
             }
             catch
@@ -92,7 +91,7 @@ namespace graphnotelm.Core.Services
 
             try
             {
-                await _noteGraphRepository.SaveAsync(graphData);
+                await _noteNodeRepository.SaveAsync(noteGraphId, existingNode);
                 return Result<EditNodeResponse>.Ok(new EditNodeResponse { NoteNodeContent = existingNode });
             }
             catch
@@ -116,14 +115,19 @@ namespace graphnotelm.Core.Services
             }
 
             graphData.Nodes.Remove(noteNodeId);
+
+            var affectedNodes = new List<NoteNode>();
             foreach (var node in graphData.Nodes.Values)
             {
-                node.Relationships.RemoveAll(r => r.TargetNodeId == noteNodeId);
+                if (node.Relationships.RemoveAll(r => r.TargetNodeId == noteNodeId) > 0)
+                    affectedNodes.Add(node);
             }
 
             try
             {
-                await _noteGraphRepository.SaveAsync(graphData);
+                await _noteNodeRepository.DeleteAsync(noteGraphId, noteNodeId);
+                foreach (var node in affectedNodes)
+                    await _noteNodeRepository.SaveAsync(noteGraphId, node);
                 return Result<DeleteNodeResponse>.Ok(new DeleteNodeResponse { Id = noteNodeId, IsDeleted = true });
             }
             catch
@@ -158,7 +162,7 @@ namespace graphnotelm.Core.Services
 
             try
             {
-                await _noteGraphRepository.SaveAsync(graphData);
+                await _noteNodeRepository.SaveAsync(noteGraphId, existingNode);
                 return Result<SaveNodeContentResponse>.Ok(new SaveNodeContentResponse { IsSuccess = true });
             }
             catch
@@ -188,7 +192,7 @@ namespace graphnotelm.Core.Services
 
             try
             {
-                await _noteGraphRepository.SaveAsync(graphData);
+                await _noteNodeRepository.SaveAsync(noteGraphId, existingNode);
                 return Result<EditNodeMetadataResponse>.Ok(new EditNodeMetadataResponse
                 {
                     NodeId = noteNodeId,

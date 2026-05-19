@@ -13,6 +13,16 @@ namespace graphnotelm.Infrastructure.Repository
             _store.TryGetValue(dictId, out var node);
             return Task.FromResult(node);
         }
+
+        public Task<List<NoteNode>> GetAllByGraphIdAsync(Guid noteGraphId, CancellationToken ct = default)
+        {
+            var prefix = noteGraphId.ToString();
+            var nodes = _store
+                .Where(kvp => kvp.Key.StartsWith(prefix))
+                .Select(kvp => kvp.Value)
+                .ToList();
+            return Task.FromResult(nodes);
+        }
         public Task SaveAsync(Guid noteGraphId, NoteNode node)
         {
             string dictId = noteGraphId.ToString() + node.Id.ToString();
