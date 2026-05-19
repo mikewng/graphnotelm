@@ -7,7 +7,7 @@ namespace graphnotelm.Core.Services.Contracts
     public interface INoteGraphService
     {
         // Note Graph
-        public Task<Result<GetGraphResponse>> GetNoteGraphById(Guid noteGraphId, CancellationToken ct);
+        public Task<Result<GetGraphSkeletonResponse>> GetNoteGraphById(Guid noteGraphId, CancellationToken ct);
         public Task<Result<GetGraphListResponse>> GetNoteGraphList(CancellationToken ct);
         public Task<Result<CreateGraphResponse>> CreateNoteGraph(CreateGraphRequest createGraphRequest, CancellationToken ct);
         public Task<Result<EditGraphMetadataResponse>> EditGraphMetadataById(EditGraphMetadataRequest editGraphMetadataRequest, Guid noteGraphId, CancellationToken ct);

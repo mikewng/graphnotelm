@@ -34,24 +34,28 @@ namespace graphnotelm.Core.Services
             _noteNodeRepository = noteNodeRepository;
         }
 
-        public async Task<Result<GetGraphResponse>> GetNoteGraphById(Guid noteGraphId, CancellationToken ct)
+        public async Task<Result<GetGraphSkeletonResponse>> GetNoteGraphById(Guid noteGraphId, CancellationToken ct)
         {
             var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
-            {
-                return Result<GetGraphResponse>.Fail(graphDataResult.Error!);
-            }
+                return Result<GetGraphSkeletonResponse>.Fail(graphDataResult.Error!);
 
             var graphData = graphDataResult.Value!;
-            GetGraphResponse dto = new GetGraphResponse()
+            return Result<GetGraphSkeletonResponse>.Ok(new GetGraphSkeletonResponse
             {
                 Id = graphData.Id,
                 Tags = graphData.Tags,
                 Relationships = graphData.Relationships,
-                Nodes = graphData.Nodes
-            };
-
-            return Result<GetGraphResponse>.Ok(dto);
+                Nodes = graphData.Nodes.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => new NodeSkeleton
+                    {
+                        Id = kvp.Value.Id,
+                        Title = kvp.Value.Title,
+                        Relationships = kvp.Value.Relationships,
+                        Tags = kvp.Value.Tags
+                    })
+            });
         }
 
         public async Task<Result<GetGraphListResponse>> GetNoteGraphList(CancellationToken ct)

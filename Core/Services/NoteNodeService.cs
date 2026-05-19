@@ -22,6 +22,52 @@ namespace graphnotelm.Core.Services
             _noteNodeRepository = noteNodeRepository;
         }
 
+        public async Task<Result<GetNodeResponse>> GetNodeByIds(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<GetNodeResponse>.Fail(metadataResult.Error!);
+
+            var node = await _noteNodeRepository.GetByIdAsync(noteGraphId, noteNodeId, ct);
+            if (node is null)
+                return Result<GetNodeResponse>.Fail("Node not found.");
+
+            return Result<GetNodeResponse>.Ok(new GetNodeResponse
+            {
+                Id = node.Id,
+                Title = node.Title,
+                Note = node.Note,
+                Metadata = node.Metadata,
+                Relationships = node.Relationships,
+                Tags = node.Tags
+            });
+        }
+
+        public async Task<Result<GetNodeBatchResponse>> GetNodeBatchByIds(Guid noteGraphId, List<Guid> nodeIds, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<GetNodeBatchResponse>.Fail(metadataResult.Error!);
+
+            var nodes = new Dictionary<Guid, GetNodeResponse>();
+            foreach (var nodeId in nodeIds)
+            {
+                var node = await _noteNodeRepository.GetByIdAsync(noteGraphId, nodeId, ct);
+                if (node is not null)
+                    nodes[node.Id] = new GetNodeResponse
+                    {
+                        Id = node.Id,
+                        Title = node.Title,
+                        Note = node.Note,
+                        Metadata = node.Metadata,
+                        Relationships = node.Relationships,
+                        Tags = node.Tags
+                    };
+            }
+
+            return Result<GetNodeBatchResponse>.Ok(new GetNodeBatchResponse { Nodes = nodes });
+        }
+
         public async Task<Result<CreateNodeResponse>> CreateNodeByGraphId(CreateNodeRequest createNodeRequest, Guid noteGraphId, CancellationToken ct)
         {
             var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
