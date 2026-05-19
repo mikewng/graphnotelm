@@ -7,5 +7,6 @@ namespace graphnotelm.Core.Services.Contracts
     {
         public Task<Result<NoteGraphMetadata>> GetAuthorizedMetadataAsync(Guid noteGraphId, CancellationToken ct);
         public Task<Result<NoteGraphDocument>> GetAuthorizedGraphDataAsync(Guid noteGraphId, CancellationToken ct);
+        public Task<Result<NoteGraphDocument>> GetAuthorizedFullDocumentAsync(Guid noteGraphId, CancellationToken ct);
     }
 }

@@ -25,15 +25,13 @@ namespace graphnotelm.API
         }
 
         [HttpGet("id/{noteGraphId:guid}", Name = "GetNoteGraphById")]
-        public async Task<ActionResult<Result<GetGraphResponse>>> GetGraphById(Guid noteGraphId, CancellationToken ct)
+        public async Task<ActionResult<Result<GetGraphSkeletonResponse>>> GetGraphById(Guid noteGraphId, CancellationToken ct)
         {
             var graphResponse = await _noteGraphService.GetNoteGraphById(noteGraphId, ct);
             if (!graphResponse.Success || graphResponse.Value == null)
-            {
-                return Result<GetGraphResponse>.Fail("Could not find note graph of given id.");
-            }
+                return Result<GetGraphSkeletonResponse>.Fail("Could not find note graph of given id.");
 
-            return Result<GetGraphResponse>.Ok(graphResponse.Value);
+            return Result<GetGraphSkeletonResponse>.Ok(graphResponse.Value);
         }
 
         [HttpGet("list", Name = "GetNoteGraphList")]

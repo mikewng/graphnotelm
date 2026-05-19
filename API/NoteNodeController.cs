@@ -26,6 +26,26 @@ namespace graphnotelm.API
             _llmAnalysisService = llmAnalysisService;
         }
 
+        [HttpGet("id/{noteGraphId:guid}/node/{noteNodeId:guid}")]
+        public async Task<ActionResult<Result<GetNodeResponse>>> GetNode(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
+        {
+            var getNodeResponse = await _noteNodeService.GetNodeByIds(noteGraphId, noteNodeId, ct);
+            if (!getNodeResponse.Success || getNodeResponse.Value == null)
+                return NotFound(Result<GetNodeResponse>.Fail("Node not found."));
+
+            return Result<GetNodeResponse>.Ok(getNodeResponse.Value);
+        }
+
+        [HttpPost("id/{noteGraphId:guid}/node/batch")]
+        public async Task<ActionResult<Result<GetNodeBatchResponse>>> GetNodeBatch([FromBody] GetNodeBatchRequest request, Guid noteGraphId, CancellationToken ct)
+        {
+            var batchResponse = await _noteNodeService.GetNodeBatchByIds(noteGraphId, request.NodeIds, ct);
+            if (!batchResponse.Success || batchResponse.Value == null)
+                return BadRequest(Result<GetNodeBatchResponse>.Fail("Failed to fetch node batch."));
+
+            return Result<GetNodeBatchResponse>.Ok(batchResponse.Value);
+        }
+
         [HttpPost("id/{noteGraphId:guid}/node/create")]
         public async Task<ActionResult<Result<CreateNodeResponse>>> AddNode([FromBody] CreateNodeRequest createNodeRequest, Guid noteGraphId, CancellationToken ct)
         {
@@ -36,18 +56,6 @@ namespace graphnotelm.API
             }
 
             return Result<CreateNodeResponse>.Ok(createNodeResponse.Value);
-        }
-
-        [HttpPatch("id/{noteGraphId:guid}/node/edit/{noteNodeId:guid}")]
-        public async Task<ActionResult<Result<EditNodeResponse>>> EditNode([FromBody] EditNodeRequest editNodeRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
-        {
-            var editNodeResponse = await _noteNodeService.EditNodeByIds(editNodeRequest, noteGraphId, noteNodeId, ct);
-            if (!editNodeResponse.Success || editNodeResponse.Value == null)
-            {
-                return Result<EditNodeResponse>.Fail("Failed to edit node.");
-            }
-
-            return Result<EditNodeResponse>.Ok(editNodeResponse.Value);
         }
 
         [HttpDelete("id/{noteGraphId:guid}/node/delete/{noteNodeId:guid}")]

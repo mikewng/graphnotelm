@@ -16,12 +16,35 @@ namespace graphnotelm.Core.Models.DTOs
         public string Description { get; set; }
     }
 
-    public class GetGraphResponse
+    public class NodeSkeleton
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public List<NodeRelationship> Relationships { get; set; } = new();
+        public List<Guid> Tags { get; set; } = new();
+    }
+
+    public class GetGraphSkeletonResponse
     {
         public Guid Id { get; set; }
         public Dictionary<Guid, TagDefinition> Tags { get; set; } = new();
         public Dictionary<Guid, RelationshipDefinition> Relationships { get; set; } = new();
-        public Dictionary<Guid, NoteNode> Nodes { get; set; } = new();
+        public Dictionary<Guid, NodeSkeleton> Nodes { get; set; } = new();
+    }
+
+    public class GetNodeResponse
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Note { get; set; } = string.Empty;
+        public NoteNodeMetadata Metadata { get; set; } = new();
+        public List<NodeRelationship> Relationships { get; set; } = new();
+        public List<Guid> Tags { get; set; } = new();
+    }
+
+    public class GetNodeBatchResponse
+    {
+        public Dictionary<Guid, GetNodeResponse> Nodes { get; set; } = new();
     }
 
     public class GetGraphListResponse

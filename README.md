@@ -35,6 +35,10 @@ Third Party Libraries
 ## 📓 Basic Note Taking and Saving
 The application gives you basic note taking features like editting and tagging notes. Has autosave functionality so that there is no manual button you have to press to save your note.
 
+### Basic Markdown Support
+Basic markdown support is included with the note content, allowing you to underline, bolden, italicize, and even embed image urls to your notes.
+<img width="925" height="693" alt="image" src="https://github.com/user-attachments/assets/b1a21a56-a788-46fc-ae79-14af4eb37c04" />
+
 ### Importable and Exportable NoteGraphs as JSON
 This gives you to option to create notegraphs without creating an account. Once you are at a good stopping point within the NoteGraph, you're able to export the notegraph as a json and reimport it again to begin writing. In addition, since all information is encapsulated within the JSON, this means that you are not limited to the NoteGraph UI. As long as your UI is able to parse the JSON file, you can create your own views.
 
@@ -75,6 +79,19 @@ We have NoteGraphLM as a publicly hosted service. However, due to hosting costs 
 
 ### Native Support to Run Entire Application Locally via Docker
 If privacy is a big concern to you, a major option is running everything encased within the application within a single docker command. The docker compose will spin up everything - from Frontend, to .NET Backend Service, to even the PostgreSQL and InternalJSONStorage as volumes. All you need is to install docker, clone the repo, and run docker compose up --build. The application should be lightweight enough to be run in the background, but contains graceful shutdowns that does not disrupt data. THIS GIVES YOU ACCESS TO ALL CAPABILTIES OF NOTEGRAPH. Unlike the publicly hosted site, everything from unlimited notegraph storage to AI insights are included, granted that you have your own API key.
+
+## 🔜 Features Coming Soon...
+### More Efficient Writes, Saves, and Loads for NoteGraphs
+Currently, the backend architecture for NoteGraphLM is that everything is ACTUALLY stored within a single JSON document locally or on DynamoDB. The goal is to move these implementations to store nodes individually from the NoteGraph, allow saves to be more efficient in writing only to a specific document instead of the entire document itself. The architecture to support this is already in place, as it does not disrupt IMPORT/EXPORT capabilities. We just need to write and link the implementation. Elaborating on that, pre-existing JSON files that you have exported will still work, as the core system still relies on the same structure, just broken into individual pieces.
+
+### Autogenerateable Flashcards and Quizzes
+Allows you to autogenerate flashcards and quizzes with the help of AI. This allows you to skip the menial task of creating these things and go straight to studying. It also directly connects to your confidence score, so reviews that you get wrong directly decrease your confidence score, and reviews you get right directly increase your score.
+
+### LLM Long Term Memory
+A more long lasting memory for the AI Assistant, allowing you to be more efficient with your AI usage and makes the AI more curated and scoped to the chat.
+
+### Light Mode
+For people that prefer a visually brighter tool. Can be toggleable and remembers your choice.
 
 ## Cool Applications of NoteGraphLM
 ### Learning Pacing Tool

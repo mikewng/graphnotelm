@@ -16,7 +16,14 @@ namespace graphnotelm.Infrastructure.Repository
 
         public Task SaveAsync(NoteGraphDocument document)
         {
-            _store[document.Id] = document;
+            _store[document.Id] = new NoteGraphDocument
+            {
+                Id = document.Id,
+                UserId = document.UserId,
+                Context = document.Context,
+                Tags = document.Tags,
+                Relationships = document.Relationships
+            };
             return Task.CompletedTask;
         }
 

@@ -5,15 +5,15 @@ using System.Text.Json;
 
 namespace graphnotelm.Infrastructure.Repository
 {
-    public class JsonFileNoteGraphRepository : INoteGraphRepository
+    public class JsonFileNoteNodeRepository : INoteNodeRepository
     {
-        private readonly ConcurrentDictionary<Guid, NoteGraphDocument> _store = new();
+        private readonly ConcurrentDictionary<string, NoteNode> _store = new();
         private readonly string _filePath;
         private readonly SemaphoreSlim _writeLock = new(1, 1);
 
-        public JsonFileNoteGraphRepository(IConfiguration configuration)
+        public JsonFileNoteNodeRepository(IConfiguration configuration)
         {
-            _filePath = configuration["NoteGraphStore:FilePath"] ?? "/app/data/notegraphs.json";
+            _filePath = configuration["NoteNodeStore:FilePath"] ?? "/app/data/notenodes.json";
             Load();
         }
 
@@ -23,7 +23,7 @@ namespace graphnotelm.Infrastructure.Repository
             try
             {
                 var json = File.ReadAllText(_filePath);
-                var data = JsonSerializer.Deserialize<Dictionary<Guid, NoteGraphDocument>>(json);
+                var data = JsonSerializer.Deserialize<Dictionary<string, NoteNode>>(json);
                 if (data == null) return;
                 foreach (var (key, value) in data)
                     _store[key] = value;
@@ -50,28 +50,34 @@ namespace graphnotelm.Infrastructure.Repository
             }
         }
 
-        public Task<NoteGraphDocument?> GetByIdAsync(Guid noteGraphId, CancellationToken ct = default)
+        private static string Key(Guid noteGraphId, Guid noteNodeId) =>
+            noteGraphId.ToString() + noteNodeId.ToString();
+
+        public Task<NoteNode?> GetByIdAsync(Guid noteGraphId, Guid noteNodeId, CancellationToken ct = default)
         {
-            _store.TryGetValue(noteGraphId, out var document);
-            return Task.FromResult(document);
+            _store.TryGetValue(Key(noteGraphId, noteNodeId), out var node);
+            return Task.FromResult(node);
         }
 
-        public async Task SaveAsync(NoteGraphDocument document)
+        public Task<List<NoteNode>> GetAllByGraphIdAsync(Guid noteGraphId, CancellationToken ct = default)
         {
-            _store[document.Id] = new NoteGraphDocument
-            {
-                Id = document.Id,
-                UserId = document.UserId,
-                Context = document.Context,
-                Tags = document.Tags,
-                Relationships = document.Relationships
-            };
+            var prefix = noteGraphId.ToString();
+            var nodes = _store
+                .Where(kvp => kvp.Key.StartsWith(prefix))
+                .Select(kvp => kvp.Value)
+                .ToList();
+            return Task.FromResult(nodes);
+        }
+
+        public async Task SaveAsync(Guid noteGraphId, NoteNode node)
+        {
+            _store[Key(noteGraphId, node.Id)] = node;
             await PersistAsync();
         }
 
-        public async Task DeleteByIdAsync(Guid noteGraphId)
+        public async Task DeleteAsync(Guid noteGraphId, Guid nodeId)
         {
-            _store.TryRemove(noteGraphId, out _);
+            _store.TryRemove(Key(noteGraphId, nodeId), out _);
             await PersistAsync();
         }
     }

@@ -40,7 +40,9 @@ namespace graphnotelm.Infrastructure
 
                 services.AddSingleton<IAmazonDynamoDB>(new AmazonDynamoDBClient(credentials, region));
                 services.Configure<DynamoDbSettings>(configuration.GetSection("DynamoDb"));
+                services.Configure<DynamoDbNodeSettings>(configuration.GetSection("DynamoDbNodes"));
                 services.AddScoped<INoteGraphRepository, DynamoDBNoteGraphRepository>();
+                services.AddScoped<INoteNodeRepository, DynamoDBNoteNodeRepository>();
             }
 
             return services;

@@ -86,4 +86,10 @@ namespace graphnotelm.Core.Models.DTOs
         [Required]
         public Guid RelationshipId { get; set; }
     }
+
+    public class GetNodeBatchRequest
+    {
+        [Required]
+        public List<Guid> NodeIds { get; set; } = new();
+    }
 }
