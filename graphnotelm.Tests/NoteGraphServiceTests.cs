@@ -15,6 +15,7 @@ namespace graphnotelm.Tests
         private readonly Mock<INoteGraphMetadataRepository> _noteGraphMetadataRepositoryMock;
         private readonly Mock<INoteGraphRepository> _noteGraphRepositoryMock;
         private readonly Mock<INoteGraphAccessService> _noteGraphAccessServiceMock;
+        private readonly Mock<INoteNodeRepository> _noteNodeRepositoryMock;
 
         private readonly NoteGraphService testNoteGraphService;
 
@@ -25,13 +26,15 @@ namespace graphnotelm.Tests
             _noteGraphMetadataRepositoryMock = new Mock<INoteGraphMetadataRepository>();
             _noteGraphRepositoryMock = new Mock<INoteGraphRepository>();
             _noteGraphAccessServiceMock = new Mock<INoteGraphAccessService>();
+            _noteNodeRepositoryMock = new Mock<INoteNodeRepository>();
 
             testNoteGraphService = new NoteGraphService(
-                _unitOfWorkMock.Object, 
-                _currentUserMock.Object, 
-                _noteGraphMetadataRepositoryMock.Object, 
+                _unitOfWorkMock.Object,
+                _currentUserMock.Object,
+                _noteGraphMetadataRepositoryMock.Object,
                 _noteGraphRepositoryMock.Object,
-                _noteGraphAccessServiceMock.Object
+                _noteGraphAccessServiceMock.Object,
+                _noteNodeRepositoryMock.Object
             );
         }
 

@@ -1,6 +1,7 @@
 ﻿using graphnotelm.Core.Models;
 using graphnotelm.Infrastructure.Repositories;
 using graphnotelm.Infrastructure.Repository.Contracts;
+using Microsoft.EntityFrameworkCore;
 
 namespace graphnotelm.Infrastructure.Repository
 {
@@ -8,24 +9,30 @@ namespace graphnotelm.Infrastructure.Repository
     {
         public SQLiteNoteGraphMetadataRepository(AppDbContext context) : base(context) { }
 
-        public Task AddAsync(NoteGraphMetadata noteGraphMetadata, CancellationToken ct = default)
+        public async Task AddAsync(NoteGraphMetadata noteGraphMetadata, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            await DbSet.AddAsync(noteGraphMetadata, ct);
         }
 
-        public Task<NoteGraphMetadata?> GetByIdAsync(Guid noteGraphId, CancellationToken ct = default)
+        public async Task<NoteGraphMetadata?> GetByIdAsync(Guid noteGraphId, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            return await DbSet.FirstOrDefaultAsync(m => m.Id == noteGraphId && !m.IsDeleted, ct);
         }
 
-        public Task<List<NoteGraphMetadata>> GetListByUserIdAsync(Guid userId, CancellationToken ct = default)
+        public async Task<List<NoteGraphMetadata>> GetListByUserIdAsync(Guid userId, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            return await DbSet.Where(m => m.UserId == userId && !m.IsDeleted)
+                .OrderByDescending(m => m.UpdatedAt)
+                .ToListAsync(ct);
         }
 
-        public Task<bool> UpdateAsync(NoteGraphMetadata noteGraphMetadata, CancellationToken ct = default)
+        public async Task<bool> UpdateAsync(NoteGraphMetadata noteGraphMetadata, CancellationToken ct = default)
         {
-            throw new NotImplementedException();
+            if (!await DbSet.AnyAsync(m => m.Id == noteGraphMetadata.Id, ct))
+                return false;
+
+            DbSet.Update(noteGraphMetadata);
+            return true;
         }
     }
 }
