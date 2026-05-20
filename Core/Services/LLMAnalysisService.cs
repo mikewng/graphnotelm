@@ -49,7 +49,15 @@ namespace graphnotelm.Core.Services
                 new(ChatRole.System, prompt.System),
                 new(ChatRole.User, prompt.User),
             };
-            var completion = await _chatClient.GetResponseAsync(messages, cancellationToken: ct);
+            ChatResponse completion;
+            try
+            {
+                completion = await _chatClient.GetResponseAsync(messages, cancellationToken: ct);
+            }
+            catch (HttpRequestException ex)
+            {
+                return Result<EditNodeMetadataResponse>.Fail($"AI provider error: {ex.Message}");
+            }
             var response = completion.Messages.LastOrDefault()?.Text ?? "";
 
             var clean = response.Replace("```json", "").Replace("```", "").Trim();
