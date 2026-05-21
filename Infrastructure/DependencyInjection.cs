@@ -30,8 +30,8 @@ namespace graphnotelm.Infrastructure
                 services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
                 services.AddScoped<IUserRepository, SQLiteUserRepository>();
                 services.AddScoped<INoteGraphMetadataRepository, SQLiteNoteGraphMetadataRepository>();
-                services.AddSingleton<INoteGraphRepository, JsonFileNoteGraphRepository>();
-                services.AddSingleton<INoteNodeRepository, JsonFileNoteNodeRepository>();
+                services.AddSingleton<INoteGraphRepository, SQLiteNoteGraphRepository>();
+                services.AddSingleton<INoteNodeRepository, SQLiteNoteNodeRepository>();
             }
             else
             {
