@@ -62,6 +62,7 @@ This is where the "LM" comes from I guess... Like I mentioned, I really liked Go
 
 #### General Chat and Notebook-Enclosed Context
 Like with NotebookLM, this is the most basic feature of the AI layer. You are able to ask the LLM questions through the built-in chat feature in regards to context specific to this notebook itself. It also has access to said graph algorithms mentioned, which gives users a more curated response and analysis of the algorithm results.
+<img width="1894" height="932" alt="image" src="https://github.com/user-attachments/assets/f42d3019-22b4-4690-8ccd-d7fc411d6c76" />
 <img width="1361" height="944" alt="image" src="https://github.com/user-attachments/assets/c7c1a0fc-6276-4158-a977-7102e1148d9f" />
 
 #### LLM Metadata
@@ -90,11 +91,17 @@ GraphNoteLM is available through your local workspace now through downloading it
 Previously, the backend architecture for NoteGraphLM is that everything is ACTUALLY stored within a single JSON document locally or on DynamoDB. The goal was to move these implementations to store nodes individually from the NoteGraph, allow saves to be more efficient in writing only to a specific document instead of the entire document itself. Now, when you write to within a note, you are only writing to that note document itself, and you do not have to preprocess the entire graph each time for a save on your notes. This also does not disrupt IMPORT/EXPORT capabilities. The application still takes in the same JSON schema and outputs the same JSON schema.
 
 ## 🔜 Features Coming Soon...
-### Runnable Executeable for Local Workspace
-Instead of having to download docker, keeping it running, and runnning the NoteGraphLM containers, there will be a runnable executeable in which requires you to download and click run, pulling up the application itself. This will be done via Electron.
-
 ### Autogenerateable Flashcards and Quizzes
 Allows you to autogenerate flashcards and quizzes with the help of AI. This allows you to skip the menial task of creating these things and go straight to studying. It also directly connects to your confidence score, so reviews that you get wrong directly decrease your confidence score, and reviews you get right directly increase your score.
+
+### WaniKani API and Progress Integration
+I am a daily user of WaniKani, which is a flashcards review platform for learning Japanese Kanji and Vocabulary in a curated way. This integration aims to get a list of all the current user's learning kanji and vocab alongside the current mastery of the vocab/kanji as a numerical value. Relationship edges will be automatically linked between vocab and kanji. This is simply an API call fetch to the WaniKani API and an adapter layer that transforms the data into a NoteGraph document, which then loads to an existing or new NoteGraph.
+
+### AI Agentic Creation of Relationship Edges
+This is a little iffy for me, as it gives too much control to the AI - not in the sense that it is an impossible architectural design - but more so that this application was mainly designed for self-learning, and I think that manually adding relationships helps you better understand and memorize these concepts. For perhaps use cases of notegraphs in which are not primarily used for learning, I think adding this might help.
+
+### Updateable NoteGraph Metadata for LLMs
+You should be able to override certain portions of the system prompt, as by its default, it aims to be an objective AI in which provides you insights on learning. Prompts can change the AI's behavior in relation to the purpose of your notegraph.
 
 ### LLM Long Term Memory
 A more long lasting memory for the AI Assistant, allowing you to be more efficient with your AI usage and makes the AI more curated and scoped to the chat.
@@ -114,10 +121,6 @@ You can use this NoteGraphs instead for learning, but keep an organized and visu
 
 ### Interactive Grid Game
 Aside from being a primarily note-taking application, there are ways to make NoteGraphLM an interactable game with the LLM. You can define nodes as tiles or rooms, and separate unconnected nodes as "Characters" which house character specific metadata. The LLM reads your context, identifies story events and can even call BFS to get a list of all exploreable rooms for your character. After each iteration with your chatbot, they update your character's metadata on what room you are on and such.
-
-## Planned Integrations
-### WaniKani API and Progress Integration
-I am a daily user of WaniKani, which is a flashcards review platform for learning Japanese Kanji and Vocabulary in a curated way. This integration aims to get a list of all the current user's learning kanji and vocab alongside the current mastery of the vocab/kanji as a numerical value. Relationship edges will be automatically linked between vocab and kanji. This is simply an API call fetch to the WaniKani API and an adapter layer that transforms the data into a NoteGraph document, which then loads to an existing or new NoteGraph.
 
 ## My Process and What I Learned
 I learned that transforming a local application in which all your logic and storage happens within your personal computer to something that is usable across many users is fundamentally different in terms of architecture. My old personal local copy was a basic datastructure in which exports a structured JSON and can be imported again to parse the JSON to be editted again. Everything happened on your computer, from writing, editting, they make live changes to the JSON document by writing directly into it from your computer. However, there eventually came a time in which I wanted access to these notes anywhere I go without the need to download and import the JSON each time I move devices, and that led me to try and build this as an API server. This brought up so many different questions even beyond architectural decisions like setting up file structure, naming, and dependency injection, for example:
