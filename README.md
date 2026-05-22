@@ -158,7 +158,17 @@ Clone the repository from master. Make sure you have the following installed (at
 4. Run the application via http or https
 
 ### Local Workspace
-Clone the repository "feature/with-fe". Make sure you have docker installed.
+#### Executeable
+You can find the executeables within the following dropbox link:
+https://www.dropbox.com/scl/fo/mo772qt2u2onlk69j82wg/AAIELLr-dsXT1WUo1t7CKKk?rlkey=caf8qiss2samo7nx7gapxep6o&st=dvy4u0sk&dl=0
+Version changes should not affect your files, as everything is stored within your %APPDATA%/graphnotelm folder.
+
+1. All you need to do is download the executeable and run it.
+
+#### Docker
+This is the less preferred option, as you must install Docker in order to run the application. It uses SQLite, in which saves all your data via that docker volume. HOWEVER, this also means that if you delete that docker volume, you WILL LOSE all you files within GraphNoteLM files.
+
+0. Clone the repository "feature/with-fe". Make sure you have docker installed.
 1. CD into the folder that contains all the code within the repo.
 2. run the command: docker compose --build
 3. Frontend UI runs on localhost:5173
