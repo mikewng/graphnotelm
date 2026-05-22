@@ -164,10 +164,15 @@ Clone the repository from master. Make sure you have the following installed (at
 ### Local Workspace
 #### Executeable
 You can find the executeables within the following dropbox link:
+
 https://www.dropbox.com/scl/fo/mo772qt2u2onlk69j82wg/AAIELLr-dsXT1WUo1t7CKKk?rlkey=caf8qiss2samo7nx7gapxep6o&st=dvy4u0sk&dl=0
+
 Version changes should not affect your files, as everything is stored within your %APPDATA%/graphnotelm folder.
 
 1. All you need to do is download the executeable and run it.
+
+Caveats:
+- You do not have access to the LLM features by default. In order to use it,  you have to generate your own Anthropic API key and save it for the application. We are working to make it so that it we will allow different types of clients.
 
 #### Docker
 This is the less preferred option, as you must install Docker in order to run the application. It uses SQLite, in which saves all your data via that docker volume. HOWEVER, this also means that if you delete that docker volume, you WILL LOSE all you files within GraphNoteLM files.
@@ -178,7 +183,6 @@ This is the less preferred option, as you must install Docker in order to run th
 3. Frontend UI runs on localhost:5173
 
 Caveats:
-- You do not have access to the LLM features by default (can be turned back on, but is off due to compliance with everything being ENTIRELY local).
 - Shutdown local service
    - run command: docker compose down
    - Go to docker -> Containers -> graphnotelm -> CLick the blue square button, which shuts down the container.
