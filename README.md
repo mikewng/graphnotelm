@@ -1,4 +1,4 @@
-# GraphNoteLM
+# <img width="64" height="64" alt="favicon-g-knot-64" src="https://github.com/user-attachments/assets/444c81a5-45f2-44c0-84fb-7f359907e742" /> GraphNoteLM
 A graph based note-taking application for students, researchers, and creatives for relational learning, study, and discovery, powered with AI insights using notebook-enclosed context.
 
 <img width="1444" height="864" alt="image" src="https://github.com/user-attachments/assets/4bad7e72-d02d-4ec8-bc3a-c395b2fb9510" />
@@ -81,6 +81,10 @@ We have NoteGraphLM as a publicly hosted service. However, due to hosting costs 
 If privacy is a big concern to you, a major option is running everything encased within the application within a single docker command. The docker compose will spin up everything - from Frontend, to .NET Backend Service, to even the PostgreSQL and InternalJSONStorage as volumes. All you need is to install docker, clone the repo, and run docker compose up --build. The application should be lightweight enough to be run in the background, but contains graceful shutdowns that does not disrupt data. THIS GIVES YOU ACCESS TO ALL CAPABILTIES OF NOTEGRAPH. Unlike the publicly hosted site, everything from unlimited notegraph storage to AI insights are included, granted that you have your own API key.
 
 ## Recent Updates
+### Patch v.0.7
+#### Official GraphNoteLM Release!
+GraphNoteLM is available through your local workspace now through downloading it as an executeable or through a Docker container. I have migrated all local repository implementations to use SQLite, so that the application no longer saves it within a whole massive JSON file. 
+
 ### Patch v.0.2
 #### More Efficient Writes, Saves, and Loads for NoteGraphs
 Previously, the backend architecture for NoteGraphLM is that everything is ACTUALLY stored within a single JSON document locally or on DynamoDB. The goal was to move these implementations to store nodes individually from the NoteGraph, allow saves to be more efficient in writing only to a specific document instead of the entire document itself. Now, when you write to within a note, you are only writing to that note document itself, and you do not have to preprocess the entire graph each time for a save on your notes. This also does not disrupt IMPORT/EXPORT capabilities. The application still takes in the same JSON schema and outputs the same JSON schema.
