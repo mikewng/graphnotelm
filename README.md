@@ -1,4 +1,4 @@
-# GraphNoteLM
+# <img width="64" height="64" alt="favicon-g-knot-64" src="https://github.com/user-attachments/assets/444c81a5-45f2-44c0-84fb-7f359907e742" /> GraphNoteLM
 A graph based note-taking application for students, researchers, and creatives for relational learning, study, and discovery, powered with AI insights using notebook-enclosed context.
 
 <img width="1444" height="864" alt="image" src="https://github.com/user-attachments/assets/4bad7e72-d02d-4ec8-bc3a-c395b2fb9510" />
@@ -62,6 +62,7 @@ This is where the "LM" comes from I guess... Like I mentioned, I really liked Go
 
 #### General Chat and Notebook-Enclosed Context
 Like with NotebookLM, this is the most basic feature of the AI layer. You are able to ask the LLM questions through the built-in chat feature in regards to context specific to this notebook itself. It also has access to said graph algorithms mentioned, which gives users a more curated response and analysis of the algorithm results.
+<img width="1894" height="932" alt="image" src="https://github.com/user-attachments/assets/f42d3019-22b4-4690-8ccd-d7fc411d6c76" />
 <img width="1361" height="944" alt="image" src="https://github.com/user-attachments/assets/c7c1a0fc-6276-4158-a977-7102e1148d9f" />
 
 #### LLM Metadata
@@ -75,22 +76,32 @@ The LLM Chatbot also has the ability to access to said services - algorithms, ge
 
 ## 💻 Options to Run/Use NoteGraphLM
 ### Publicly Hosted Website
-We have NoteGraphLM as a publicly hosted service. However, due to hosting costs and LLM API costs, and the fact that I am broke, there is a free vs. pro version of the service. The base free version gives you all the mentioned functionalities from basic note taking (notes, tags, relationships, notes as graphs, autosaving to cloud), and you cannot use the AI Insights unless you have your own claude API key. Furthermore, you are limited up to only 5 notegraphs per user. However, only the PRO would allow you to have access to AI Insights without the need for a claude API key, and you are allowed to have unlimited notegraphs.
+We will have NoteGraphLM as a publicly hosted service. However, due to hosting costs and LLM API costs, and the fact that I am broke, there is a free vs. pro version of the service. The base free version gives you all the mentioned functionalities from basic note taking (notes, tags, relationships, notes as graphs, autosaving to cloud), and you cannot use the AI Insights unless you have your own claude API key. Furthermore, you are limited up to only 5 notegraphs per user. However, only the PRO would allow you to have access to AI Insights without the need for a claude API key, and you are allowed to have unlimited notegraphs.
 
 ### Native Support to Run Entire Application Locally via Docker
 If privacy is a big concern to you, a major option is running everything encased within the application within a single docker command. The docker compose will spin up everything - from Frontend, to .NET Backend Service, to even the PostgreSQL and InternalJSONStorage as volumes. All you need is to install docker, clone the repo, and run docker compose up --build. The application should be lightweight enough to be run in the background, but contains graceful shutdowns that does not disrupt data. THIS GIVES YOU ACCESS TO ALL CAPABILTIES OF NOTEGRAPH. Unlike the publicly hosted site, everything from unlimited notegraph storage to AI insights are included, granted that you have your own API key.
 
 ## Recent Updates
+### Patch v.0.7
+#### Official GraphNoteLM Release!
+GraphNoteLM is available through your local workspace now through downloading it as an executeable or through a Docker container. I have migrated all local repository implementations to use SQLite, so that the application no longer saves it within a whole massive JSON file. 
+
 ### Patch v.0.2
 #### More Efficient Writes, Saves, and Loads for NoteGraphs
 Previously, the backend architecture for NoteGraphLM is that everything is ACTUALLY stored within a single JSON document locally or on DynamoDB. The goal was to move these implementations to store nodes individually from the NoteGraph, allow saves to be more efficient in writing only to a specific document instead of the entire document itself. Now, when you write to within a note, you are only writing to that note document itself, and you do not have to preprocess the entire graph each time for a save on your notes. This also does not disrupt IMPORT/EXPORT capabilities. The application still takes in the same JSON schema and outputs the same JSON schema.
 
 ## 🔜 Features Coming Soon...
-### Runnable Executeable for Local Workspace
-Instead of having to download docker, keeping it running, and runnning the NoteGraphLM containers, there will be a runnable executeable in which requires you to download and click run, pulling up the application itself. This will be done via Electron.
-
 ### Autogenerateable Flashcards and Quizzes
 Allows you to autogenerate flashcards and quizzes with the help of AI. This allows you to skip the menial task of creating these things and go straight to studying. It also directly connects to your confidence score, so reviews that you get wrong directly decrease your confidence score, and reviews you get right directly increase your score.
+
+### WaniKani API and Progress Integration
+I am a daily user of WaniKani, which is a flashcards review platform for learning Japanese Kanji and Vocabulary in a curated way. This integration aims to get a list of all the current user's learning kanji and vocab alongside the current mastery of the vocab/kanji as a numerical value. Relationship edges will be automatically linked between vocab and kanji. This is simply an API call fetch to the WaniKani API and an adapter layer that transforms the data into a NoteGraph document, which then loads to an existing or new NoteGraph.
+
+### AI Agentic Creation of Relationship Edges
+This is a little iffy for me, as it gives too much control to the AI - not in the sense that it is an impossible architectural design - but more so that this application was mainly designed for self-learning, and I think that manually adding relationships helps you better understand and memorize these concepts. For perhaps use cases of notegraphs in which are not primarily used for learning, I think adding this might help.
+
+### Updateable NoteGraph Metadata for LLMs
+You should be able to override certain portions of the system prompt, as by its default, it aims to be an objective AI in which provides you insights on learning. Prompts can change the AI's behavior in relation to the purpose of your notegraph.
 
 ### LLM Long Term Memory
 A more long lasting memory for the AI Assistant, allowing you to be more efficient with your AI usage and makes the AI more curated and scoped to the chat.
@@ -110,10 +121,6 @@ You can use this NoteGraphs instead for learning, but keep an organized and visu
 
 ### Interactive Grid Game
 Aside from being a primarily note-taking application, there are ways to make NoteGraphLM an interactable game with the LLM. You can define nodes as tiles or rooms, and separate unconnected nodes as "Characters" which house character specific metadata. The LLM reads your context, identifies story events and can even call BFS to get a list of all exploreable rooms for your character. After each iteration with your chatbot, they update your character's metadata on what room you are on and such.
-
-## Planned Integrations
-### WaniKani API and Progress Integration
-I am a daily user of WaniKani, which is a flashcards review platform for learning Japanese Kanji and Vocabulary in a curated way. This integration aims to get a list of all the current user's learning kanji and vocab alongside the current mastery of the vocab/kanji as a numerical value. Relationship edges will be automatically linked between vocab and kanji. This is simply an API call fetch to the WaniKani API and an adapter layer that transforms the data into a NoteGraph document, which then loads to an existing or new NoteGraph.
 
 ## My Process and What I Learned
 I learned that transforming a local application in which all your logic and storage happens within your personal computer to something that is usable across many users is fundamentally different in terms of architecture. My old personal local copy was a basic datastructure in which exports a structured JSON and can be imported again to parse the JSON to be editted again. Everything happened on your computer, from writing, editting, they make live changes to the JSON document by writing directly into it from your computer. However, there eventually came a time in which I wanted access to these notes anywhere I go without the need to download and import the JSON each time I move devices, and that led me to try and build this as an API server. This brought up so many different questions even beyond architectural decisions like setting up file structure, naming, and dependency injection, for example:
@@ -158,13 +165,27 @@ Clone the repository from master. Make sure you have the following installed (at
 4. Run the application via http or https
 
 ### Local Workspace
-Clone the repository "feature/with-fe". Make sure you have docker installed.
+#### Executeable
+You can find the executeables within the following dropbox link:
+
+https://www.dropbox.com/scl/fo/mo772qt2u2onlk69j82wg/AAIELLr-dsXT1WUo1t7CKKk?rlkey=caf8qiss2samo7nx7gapxep6o&st=dvy4u0sk&dl=0
+
+Version changes should not affect your files, as everything is stored within your %APPDATA%/graphnotelm folder.
+
+1. All you need to do is download the executeable and run it.
+
+Caveats:
+- You do not have access to the LLM features by default. In order to use it,  you have to generate your own Anthropic API key and save it for the application. We are working to make it so that it we will allow different types of clients.
+
+#### Docker
+This is the less preferred option, as you must install Docker in order to run the application. It uses SQLite, in which saves all your data via that docker volume. HOWEVER, this also means that if you delete that docker volume, you WILL LOSE all you files within GraphNoteLM files.
+
+0. Clone the repository "feature/with-fe". Make sure you have docker installed.
 1. CD into the folder that contains all the code within the repo.
 2. run the command: docker compose --build
 3. Frontend UI runs on localhost:5173
 
 Caveats:
-- You do not have access to the LLM features by default (can be turned back on, but is off due to compliance with everything being ENTIRELY local).
 - Shutdown local service
    - run command: docker compose down
    - Go to docker -> Containers -> graphnotelm -> CLick the blue square button, which shuts down the container.
