@@ -32,7 +32,7 @@ namespace graphnotelm.API
                             await Clients.Caller.SendAsync("ReceiveChunk", d.Text);
                             break;
                         case ToolInvoked t:
-                            await Clients.Caller.SendAsync("ReceiveToolCall", t.ToolName);
+                            await Clients.Caller.SendAsync("ReceiveToolCall", t.ToolName, t.Arguments);
                             break;
                         case ToolResult r:
                             await Clients.Caller.SendAsync("ReceiveToolResult", r.ToolName);

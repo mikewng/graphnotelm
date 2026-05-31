@@ -47,7 +47,7 @@ namespace graphnotelm.Core.Services
             // for the streaming final turn below.
             while (true)
             {
-                var response = await _chatClient.GetResponseAsync(messages, toolOptions, ct);
+                var response = await GetResponseWithRetryAsync(_chatClient, messages, toolOptions, ct);
 
                 var toolCalls = response.Messages
                     .SelectMany(m => m.Contents.OfType<FunctionCallContent>())
@@ -58,20 +58,26 @@ namespace graphnotelm.Core.Services
 
                 messages.AddRange(response.Messages);
 
-                foreach (var call in toolCalls)
+                var toolTasks = toolCalls
+                    .Select(call => (call, tool: tools.FirstOrDefault(t => t.Name == call.Name)))
+                    .Where(x => x.tool is not null)
+                    .Select(async x =>
+                    {
+                        var result = await x.tool!.InvokeAsync(
+                            new AIFunctionArguments(x.call.Arguments ?? new Dictionary<string, object>()), ct);
+                        return (x.call, result);
+                    });
+
+                var toolResults = await Task.WhenAll(toolTasks);
+
+                foreach (var (call, result) in toolResults)
                 {
-                    var tool = tools.FirstOrDefault(t => t.Name == call.Name);
-                    if (tool is null) continue;
-
-                    yield return new ToolInvoked(call.Name);
-
-                    var result = await tool.InvokeAsync(
-                        new AIFunctionArguments(call.Arguments ?? new Dictionary<string, object>()),
-                        ct);
-
+                    var args = (call.Arguments as IReadOnlyDictionary<string, object?>)
+                               ?? call.Arguments?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                               ?? new Dictionary<string, object?>();
+                    yield return new ToolInvoked(call.Name, args);
                     messages.Add(new ChatMessage(ChatRole.Tool,
                         [new FunctionResultContent(call.CallId, result)]));
-
                     yield return new ToolResult(call.Name);
                 }
             }
@@ -84,6 +90,21 @@ namespace graphnotelm.Core.Services
             }
 
             yield return new TurnComplete();
+        }
+
+        private static async Task<ChatResponse> GetResponseWithRetryAsync(
+            IChatClient client, List<ChatMessage> messages, ChatOptions options, CancellationToken ct)
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                try { return await client.GetResponseAsync(messages, options, ct); }
+                catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests && attempt < 3)
+                {
+                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt))
+                              + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 500));
+                    await Task.Delay(delay, ct);
+                }
+            }
         }
 
         private static string BuildSystemPrompt(NoteGraphDocument document)
@@ -113,20 +134,9 @@ namespace graphnotelm.Core.Services
                 sb.AppendLine();
             }
 
-            sb.AppendLine($"Nodes ({document.Nodes.Count} total):");
-            foreach (var (_, node) in document.Nodes)
-            {
-                sb.AppendLine($"  - {node.Title} (confidence: {node.Metadata.UserConfidenceRate:F2})");
-
-                foreach (var rel in node.Relationships)
-                {
-                    var relName = document.Relationships.TryGetValue(rel.RelationshipId, out var r)
-                        ? r.Name : "relates to";
-                    var targetTitle = document.Nodes.TryGetValue(rel.TargetNodeId, out var target)
-                        ? target.Title : "unknown";
-                    sb.AppendLine($"      → [{relName}] {targetTitle}");
-                }
-            }
+            sb.AppendLine($"The graph contains {document.Nodes.Count} nodes.");
+            sb.AppendLine("Node titles: " + string.Join(", ", document.Nodes.Values.Select(n => n.Title)));
+            sb.AppendLine("Use the available tools to fetch full node content, relationships, and note text. Do not guess or fabricate node content.");
 
             sb.AppendLine();
             sb.AppendLine("Answer questions about this graph's content. Be concise and helpful.");

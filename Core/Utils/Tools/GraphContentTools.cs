@@ -85,6 +85,14 @@ namespace graphnotelm.Core.Utils.Tools
             return _document.Tags.Values.Select(t => t.Name).ToList();
         }
 
+        [Description("Gets multiple nodes' full content by their titles in one call. Use this instead of calling GetNodeByTitle repeatedly when you need several nodes.")]
+        public List<NodeResult?> GetNodesByTitles(
+            [Description("Array of node titles to retrieve.")]
+            string[] nodeTitles)
+        {
+            return nodeTitles.Select(t => GetNodeByTitle(t)).ToList();
+        }
+
         [Description("Gets a list of nodes that are associated with the tag name")]
         public List<NodeResult?> GetNodeByTag(
             [Description("The ID of the node to retrieve.")]

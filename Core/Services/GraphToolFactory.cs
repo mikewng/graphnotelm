@@ -25,6 +25,7 @@ namespace graphnotelm.Core.Services
             [
                 // Graph Content Functions
                 AIFunctionFactory.Create(content.GetNodeByTitle),
+                AIFunctionFactory.Create(content.GetNodesByTitles),
                 AIFunctionFactory.Create(content.GetNodeById),
                 AIFunctionFactory.Create(content.GetNodeByTag),
                 AIFunctionFactory.Create(content.GetListOfTags),
