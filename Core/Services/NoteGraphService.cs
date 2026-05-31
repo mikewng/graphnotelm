@@ -268,12 +268,13 @@ namespace graphnotelm.Core.Services
                 return Result<NoteGraphDocumentREADONLY>.Fail(graphDataResult.Error!);
 
             var graphData = graphDataResult.Value!;
+            var nodes = await _noteNodeRepository.GetAllByGraphIdAsync(noteGraphId, ct);
             var exportDoc = new NoteGraphDocumentREADONLY
             {
                 Name = metadataResult.Value!.Name,
                 Tags = graphData.Tags,
                 Relationships = graphData.Relationships,
-                Nodes = graphData.Nodes
+                Nodes = nodes.ToDictionary(n => n.Id)
             };
 
             return Result<NoteGraphDocumentREADONLY>.Ok(exportDoc);
