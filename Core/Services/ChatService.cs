@@ -42,9 +42,11 @@ namespace graphnotelm.Core.Services
             var messages = new List<ChatMessage> { new(ChatRole.System, BuildSystemPrompt(document)) };
             messages.AddRange(messageHistory);
 
-            // Non-streaming tool loop — runs only when the model decides to call tools.
-            // Exits as soon as a response contains no tool calls, leaving messages ready
-            // for the streaming final turn below.
+            // Tool loop — repeated until the model stops calling tools.
+            // When it produces a text-only response we capture it and break,
+            // avoiding a second API round-trip that re-prompts the model with
+            // its own "let me also check" history and causes it to stall.
+            string? finalText = null;
             while (true)
             {
                 var response = await GetResponseWithRetryAsync(_chatClient, messages, toolOptions, ct);
@@ -54,7 +56,11 @@ namespace graphnotelm.Core.Services
                     .ToList();
 
                 if (toolCalls.Count == 0)
+                {
+                    finalText = string.Concat(
+                        response.Messages.SelectMany(m => m.Contents.OfType<TextContent>()).Select(t => t.Text));
                     break;
+                }
 
                 messages.AddRange(response.Messages);
 
@@ -82,11 +88,20 @@ namespace graphnotelm.Core.Services
                 }
             }
 
-            // Final turn — stream the answer. Tools are omitted so the model responds directly.
-            await foreach (var update in _chatClient.GetStreamingResponseAsync(messages, cancellationToken: ct))
+            // Emit the final answer. The tool loop already has the full response,
+            // so yield it directly rather than making an extra streaming API call.
+            // Fall back to streaming only if the loop somehow produced no text.
+            if (!string.IsNullOrEmpty(finalText))
             {
-                if (update.Text is not null)
-                    yield return new ContentDelta(update.Text);
+                yield return new ContentDelta(finalText);
+            }
+            else
+            {
+                await foreach (var update in _chatClient.GetStreamingResponseAsync(messages, cancellationToken: ct))
+                {
+                    if (update.Text is not null)
+                        yield return new ContentDelta(update.Text);
+                }
             }
 
             yield return new TurnComplete();
@@ -140,6 +155,7 @@ namespace graphnotelm.Core.Services
 
             sb.AppendLine();
             sb.AppendLine("Answer questions about this graph's content. Be concise and helpful.");
+            sb.AppendLine("Use tools silently — do not produce text narrating that you are about to call a tool. Only produce text in your final answer after all research is complete.");
 
             return sb.ToString();
         }
