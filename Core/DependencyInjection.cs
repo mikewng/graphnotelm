@@ -1,4 +1,5 @@
-﻿using graphnotelm.Core.Clients;
+﻿using graphnotelm.API.Mcp;
+using graphnotelm.Core.Clients;
 using graphnotelm.Core.Contexts;
 using graphnotelm.Core.Contexts.Contracts;
 using graphnotelm.Core.Models;
@@ -50,6 +51,11 @@ public static class DependencyInjection
 
         // Register LLM Factory
         services.AddScoped<GraphToolFactory>();
+
+        // Register MCP server (HTTP+SSE transport, no auth — localhost only)
+        services.AddMcpServer()
+            .WithHttpTransport()
+            .WithTools<NoteGraphMcpTools>();
 
         // Register Contexts
         services.AddHttpContextAccessor();

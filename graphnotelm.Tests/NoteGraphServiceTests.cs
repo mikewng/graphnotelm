@@ -34,7 +34,8 @@ namespace graphnotelm.Tests
                 _noteGraphMetadataRepositoryMock.Object,
                 _noteGraphRepositoryMock.Object,
                 _noteGraphAccessServiceMock.Object,
-                _noteNodeRepositoryMock.Object
+                _noteNodeRepositoryMock.Object,
+                new Mock<ILLMAnalysisService>().Object
             );
         }
 
