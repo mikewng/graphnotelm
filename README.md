@@ -42,6 +42,14 @@ Basic markdown support is included with the note content, allowing you to underl
 ### Importable and Exportable NoteGraphs as JSON
 This gives you to option to create notegraphs without creating an account. Once you are at a good stopping point within the NoteGraph, you're able to export the notegraph as a json and reimport it again to begin writing. In addition, since all information is encapsulated within the JSON, this means that you are not limited to the NoteGraph UI. As long as your UI is able to parse the JSON file, you can create your own views.
 
+### Split-screen for Graph-View and NoteNode Editors
+In case you need to see the graph and edit your notes simutaneously.
+<img width="1907" height="988" alt="image" src="https://github.com/user-attachments/assets/b0c2291c-4c49-4364-9572-ffec7bbc7142" />
+
+### In-Graph View Quick-edit Functionality
+Edit relationships, tags, and note data within the graph view itself/
+<img width="507" height="273" alt="image" src="https://github.com/user-attachments/assets/874581aa-8c66-4b92-b5ad-774693406b3e" />
+
 ### Cloud Storage via DynamoDB
 If you want to streamline the saving process of notegraphs, you can utilize the publicly deployed GraphNoteLM. We will handle the storage of your notes securely. Furthermore, you will have access to connected LLMs through a chat, in which has access to conduct graph algorithm and gather notebook-contexted insights for you.
 
