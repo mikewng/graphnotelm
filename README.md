@@ -47,7 +47,8 @@ In case you need to see the graph and edit your notes simutaneously.
 <img width="1907" height="988" alt="image" src="https://github.com/user-attachments/assets/b0c2291c-4c49-4364-9572-ffec7bbc7142" />
 
 ### In-Graph View Quick-edit Functionality
-Edit relationships, tags, and note data within the graph view itself/
+Edit relationships, tags, and note data within the graph view itself.
+
 <img width="507" height="273" alt="image" src="https://github.com/user-attachments/assets/874581aa-8c66-4b92-b5ad-774693406b3e" />
 
 ### Cloud Storage via DynamoDB
