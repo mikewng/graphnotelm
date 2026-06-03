@@ -75,8 +75,7 @@ The LLM Chatbot also has the ability to access to said services - algorithms, ge
 
 #### AI Extraction and Creation for NoteGraphs and Notes
 GraphNoteLM also have the ability to create whole notegraphs and notes from user content. Paste in any text or documents that you need, and it can be turned into a NoteGraph or NoteNode. The following image below was created entirely by pasting and processing this readme file into NoteGraphLM!
-<img width="1270" height="800" alt="image" src="https://github.com/user-attachments/assets/abe48cde-f3a6-4b1d-b3f9-18406d30a1b6" />
-
+<img width="1205" height="825" alt="image" src="https://github.com/user-attachments/assets/663af55b-eeb6-4cbd-8649-282f993bf6f3" />
 
 ## 💻 Options to Run/Use NoteGraphLM
 ### Publicly Hosted Website
