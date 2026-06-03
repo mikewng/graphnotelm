@@ -73,6 +73,10 @@ The AI has the ability to read (but not write!) to your node content. However, t
 The LLM Chatbot also has the ability to access to said services - algorithms, general read of node content, etc. - as tools. If you need a wide range of node metadata editted, this chatbot gives you the ability to do so. This essentially ties the "LM" portion with the "Graph" portion of notes, as it gives LLMs access to graph algorithm tools to make use and curate their answers for their users. This is great for non-CS or math-oriented users who have no idea how and why graphs work the way they do. The user asks questions related to graphs in natural language, and the LLM can then abstract the graph algorithm that applies to the question and give a curated answer.
 <img width="1730" height="925" alt="image" src="https://github.com/user-attachments/assets/e45ccffc-f2d0-423a-9e81-591764fdd58a" />
 
+#### AI Extraction and Creation for NoteGraphs and Notes
+GraphNoteLM also have the ability to create whole notegraphs and notes from user content. Paste in any text or documents that you need, and it can be turned into a NoteGraph or NoteNode. The following image below was created entirely by pasting and processing this readme file into NoteGraphLM!
+<img width="1270" height="800" alt="image" src="https://github.com/user-attachments/assets/abe48cde-f3a6-4b1d-b3f9-18406d30a1b6" />
+
 
 ## 💻 Options to Run/Use NoteGraphLM
 ### Publicly Hosted Website
@@ -82,6 +86,10 @@ We will have NoteGraphLM as a publicly hosted service. However, due to hosting c
 If privacy is a big concern to you, a major option is running everything encased within the application within a single docker command. The docker compose will spin up everything - from Frontend, to .NET Backend Service, to even the PostgreSQL and InternalJSONStorage as volumes. All you need is to install docker, clone the repo, and run docker compose up --build. The application should be lightweight enough to be run in the background, but contains graceful shutdowns that does not disrupt data. THIS GIVES YOU ACCESS TO ALL CAPABILTIES OF NOTEGRAPH. Unlike the publicly hosted site, everything from unlimited notegraph storage to AI insights are included, granted that you have your own API key.
 
 ## Recent Updates
+### Patch v.0.9
+#### Create Graphs and Notes with AI!
+GraphNoteLM can now take in user content, extract its content, creating a whole notegraph with note nodes, tags, and relationship connections for them. This might help for beginners that might not know how to GraphNoteLM or users that need a quick conversion to a GraphNote for editting later. In addition, within notegraphs, you can now create quick note nodes by clicking on the "Extract Note" button.
+
 ### Patch v.0.7
 #### Official GraphNoteLM Release!
 GraphNoteLM is available through your local workspace now through downloading it as an executeable or through a Docker container. I have migrated all local repository implementations to use SQLite, so that the application no longer saves it within a whole massive JSON file. 
