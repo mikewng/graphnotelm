@@ -13,13 +13,15 @@ namespace graphnotelm.Core.Services
         private readonly INoteGraphAccessService _noteGraphAccessService;
         private readonly INoteGraphRepository _noteGraphRepository;
         private readonly INoteNodeRepository _noteNodeRepository;
+        private readonly ILLMAnalysisService _llmAnalysisService;
 
-        public NoteNodeService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository, INoteNodeRepository noteNodeRepository)
+        public NoteNodeService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository, INoteNodeRepository noteNodeRepository, ILLMAnalysisService llmAnalysisService)
         {
             _unitOfWork = unitOfWork;
             _noteGraphAccessService = noteGraphAccessService;
             _noteGraphRepository = noteGraphRepository;
             _noteNodeRepository = noteNodeRepository;
+            _llmAnalysisService = llmAnalysisService;
         }
 
         public async Task<Result<GetNodeResponse>> GetNodeByIds(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
@@ -214,6 +216,36 @@ namespace graphnotelm.Core.Services
             catch
             {
                 return Result<SaveNodeContentResponse>.Fail("Failed to save node content.");
+            }
+        }
+
+        public async Task<Result<CreateNodeResponse>> CreateNodeFromPastedContent(CreateNotePastedRequest createNotePastedRequest, Guid noteGraphId, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(createNotePastedRequest.PastedContent))
+                return Result<CreateNodeResponse>.Fail("Pasted content was empty.");
+
+            var extractResult = await _llmAnalysisService.ExtractNodeFromPasteAsync(noteGraphId, createNotePastedRequest.PastedContent, ct);
+            if (!extractResult.Success || extractResult.Value == null)
+                return Result<CreateNodeResponse>.Fail(extractResult.Error!);
+
+            var extracted = extractResult.Value;
+            var newNode = new NoteNode
+            {
+                Id = Guid.NewGuid(),
+                Title = extracted.Title,
+                Note = extracted.Note,
+                Tags = extracted.Tags,
+                Relationships = extracted.Relationships
+            };
+
+            try
+            {
+                await _noteNodeRepository.SaveAsync(noteGraphId, newNode);
+                return Result<CreateNodeResponse>.Ok(new CreateNodeResponse { Id = newNode.Id, Title = newNode.Title });
+            }
+            catch
+            {
+                return Result<CreateNodeResponse>.Fail("Failed to save extracted node.");
             }
         }
 

@@ -97,5 +97,90 @@ namespace graphnotelm.Core.Services
         {
             throw new NotImplementedException();
         }
+
+        public async Task<Result<CreateNodeRequest>> ExtractNodeFromPasteAsync(Guid noteGraphId, string pastedContent, CancellationToken ct)
+        {
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            if (!graphDataResult.Success || graphDataResult.Value == null)
+                return Result<CreateNodeRequest>.Fail(graphDataResult.Error!);
+
+            var document = graphDataResult.Value;
+            var prompt = _contextBuilder.BuildNodeFromPastePrompt(document, pastedContent);
+
+            var messages = new List<ChatMessage>
+            {
+                new(ChatRole.System, prompt.System),
+                new(ChatRole.User, prompt.User),
+            };
+
+            ChatResponse completion;
+            try
+            {
+                completion = await _chatClient.GetResponseAsync(messages, cancellationToken: ct);
+            }
+            catch (HttpRequestException ex)
+            {
+                return Result<CreateNodeRequest>.Fail($"AI provider error: {ex.Message}");
+            }
+
+            var raw = completion.Messages.LastOrDefault()?.Text ?? "";
+            var clean = raw.Replace("```json", "").Replace("```", "").Trim();
+
+            JsonElement root;
+            try
+            {
+                root = JsonDocument.Parse(clean).RootElement;
+            }
+            catch (JsonException)
+            {
+                return Result<CreateNodeRequest>.Fail("LLM returned invalid JSON.");
+            }
+
+            var title = root.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "";
+            var note = root.TryGetProperty("note", out var n) ? n.GetString() ?? "" : "";
+
+            if (string.IsNullOrWhiteSpace(title))
+                return Result<CreateNodeRequest>.Fail("LLM did not return a valid title.");
+
+            var tags = new List<Guid>();
+            if (root.TryGetProperty("tags", out var tagsEl) && tagsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var el in tagsEl.EnumerateArray())
+                {
+                    if (Guid.TryParse(el.GetString(), out var tagId) && document.Tags.ContainsKey(tagId))
+                        tags.Add(tagId);
+                }
+            }
+
+            var relationships = new List<NodeRelationship>();
+            if (root.TryGetProperty("relationships", out var relsEl) && relsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var el in relsEl.EnumerateArray())
+                {
+                    var targetOk = el.TryGetProperty("targetNodeId", out var targetEl)
+                        && Guid.TryParse(targetEl.GetString(), out var targetId)
+                        && document.Nodes.ContainsKey(targetId);
+
+                    var relOk = el.TryGetProperty("relationshipId", out var relEl)
+                        && Guid.TryParse(relEl.GetString(), out var relId)
+                        && document.Relationships.ContainsKey(relId);
+
+                    if (targetOk && relOk)
+                    {
+                        Guid.TryParse(el.GetProperty("targetNodeId").GetString(), out var validTargetId);
+                        Guid.TryParse(el.GetProperty("relationshipId").GetString(), out var validRelId);
+                        relationships.Add(new NodeRelationship { TargetNodeId = validTargetId, RelationshipId = validRelId });
+                    }
+                }
+            }
+
+            return Result<CreateNodeRequest>.Ok(new CreateNodeRequest
+            {
+                Title = title,
+                Note = note,
+                Tags = tags,
+                Relationships = relationships
+            });
+        }
     }
 }

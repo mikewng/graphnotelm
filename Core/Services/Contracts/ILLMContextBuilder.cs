@@ -7,5 +7,6 @@ namespace graphnotelm.Core.Services.Contracts
     {
         public LLMPrompt BuildNodeAnalysisPrompt(NoteGraphDocument document, GraphView graphView, Guid targetNodeId);
         public LLMPrompt BuildGraphOverviewPrompt(NoteGraphDocument document, GraphView graphView);
+        public LLMPrompt BuildNodeFromPastePrompt(NoteGraphDocument document, string pastedContent);
     }
 }
