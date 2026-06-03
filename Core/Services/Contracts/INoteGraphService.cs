@@ -9,10 +9,12 @@ namespace graphnotelm.Core.Services.Contracts
         // Note Graph
         public Task<Result<GetGraphSkeletonResponse>> GetNoteGraphById(Guid noteGraphId, CancellationToken ct);
         public Task<Result<GetGraphListResponse>> GetNoteGraphList(CancellationToken ct);
+        public Task<Result<GetGraphListResponse>> GetArchivedNoteGraphList(CancellationToken ct);
         public Task<Result<CreateGraphResponse>> CreateNoteGraph(CreateGraphRequest createGraphRequest, CancellationToken ct);
         public Task<Result<EditGraphMetadataResponse>> EditGraphMetadataById(EditGraphMetadataRequest editGraphMetadataRequest, Guid noteGraphId, CancellationToken ct);
         public Task<Result<DeleteGraphResponse>> DeleteNoteGraphById(Guid noteGraphId, CancellationToken ct);
         public Task<Result<DeleteGraphResponse>> HardDeleteNoteGraphById(Guid noteGraphId, CancellationToken ct);
+        public Task<Result<DeleteGraphResponse>> UnarchiveNoteGraphById(Guid noteGraphId, CancellationToken ct);
         public Task<Result<CreateGraphResponse>> ImportNoteGraphFromJSON(NoteGraphDocumentREADONLY document, CancellationToken ct);
         public Task<Result<NoteGraphDocumentREADONLY>> ExportNoteGraphAsJSON(Guid noteGraphId, CancellationToken ct);
     }

@@ -19,9 +19,21 @@ namespace graphnotelm.Infrastructure.Repository
             return await DbSet.FirstOrDefaultAsync(m => m.Id == noteGraphId && !m.IsDeleted, ct);
         }
 
+        public async Task<NoteGraphMetadata?> GetDeletedByIdAsync(Guid noteGraphId, CancellationToken ct = default)
+        {
+            return await DbSet.FirstOrDefaultAsync(m => m.Id == noteGraphId && m.IsDeleted, ct);
+        }
+
         public async Task<List<NoteGraphMetadata>> GetListByUserIdAsync(Guid userId, CancellationToken ct = default)
         {
             return await DbSet.Where(m => m.UserId == userId && !m.IsDeleted)
+                .OrderByDescending(m => m.UpdatedAt)
+                .ToListAsync(ct);
+        }
+
+        public async Task<List<NoteGraphMetadata>> GetDeletedListByUserIdAsync(Guid userId, CancellationToken ct = default)
+        {
+            return await DbSet.Where(m => m.UserId == userId && m.IsDeleted)
                 .OrderByDescending(m => m.UpdatedAt)
                 .ToListAsync(ct);
         }
@@ -32,6 +44,16 @@ namespace graphnotelm.Infrastructure.Repository
                 return false;
 
             DbSet.Update(noteGraphMetadata);
+            return true;
+        }
+
+        public async Task<bool> DeleteAsync(Guid noteGraphId, CancellationToken ct = default)
+        {
+            var metadata = await DbSet.FirstOrDefaultAsync(m => m.Id == noteGraphId, ct);
+            if (metadata is null)
+                return false;
+
+            DbSet.Remove(metadata);
             return true;
         }
     }

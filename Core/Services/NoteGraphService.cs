@@ -81,6 +81,15 @@ namespace graphnotelm.Core.Services
             return Result<GetGraphListResponse>.Ok(dto);
         }
 
+        public async Task<Result<GetGraphListResponse>> GetArchivedNoteGraphList(CancellationToken ct)
+        {
+            var graphMetadataList = await _noteGraphMetadataRepository.GetDeletedListByUserIdAsync(_currentUser.UserId, ct);
+            if (graphMetadataList is null)
+                return Result<GetGraphListResponse>.Fail("List returned as null.");
+
+            return Result<GetGraphListResponse>.Ok(new GetGraphListResponse { GraphList = graphMetadataList });
+        }
+
         public async Task<Result<CreateGraphResponse>> CreateNoteGraph(CreateGraphRequest createGraphRequest, CancellationToken ct)
         {
             NoteGraphMetadata newGraphMetadata = new NoteGraphMetadata()
@@ -182,36 +191,52 @@ namespace graphnotelm.Core.Services
             }
         }
 
-        public async Task<Result<DeleteGraphResponse>> HardDeleteNoteGraphById(Guid noteGraphId, CancellationToken ct) 
+        public async Task<Result<DeleteGraphResponse>> HardDeleteNoteGraphById(Guid noteGraphId, CancellationToken ct)
         {
-            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
-            if (!metadataResult.Success || metadataResult.Value == null)
-            {
-                return Result<DeleteGraphResponse>.Fail(metadataResult.Error!);
-            }
-            if (!metadataResult.Value.IsDeleted)
-            {
-                return Result<DeleteGraphResponse>.Fail(metadataResult.Error!);
-            }
-
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
-            if (!graphDataResult.Success)
-            {
-                return Result<DeleteGraphResponse>.Fail(graphDataResult.Error!);
-            }
+            var metadata = await _noteGraphMetadataRepository.GetDeletedByIdAsync(noteGraphId, ct);
+            if (metadata is null)
+                return Result<DeleteGraphResponse>.Fail("Archived graph not found.");
+            if (metadata.UserId != _currentUser.UserId)
+                return Result<DeleteGraphResponse>.Fail("Access denied.");
 
             try
             {
-                // Hard Delete Metadata Content
+                var nodes = await _noteNodeRepository.GetAllByGraphIdAsync(noteGraphId, ct);
+                foreach (var node in nodes)
+                    await _noteNodeRepository.DeleteAsync(noteGraphId, node.Id);
 
-                // Hard Delete Repository Content
                 await _noteGraphRepository.DeleteByIdAsync(noteGraphId);
+                await _noteGraphMetadataRepository.DeleteAsync(noteGraphId, ct);
                 await _unitOfWork.SaveChangesAsync(ct);
-                return Result<DeleteGraphResponse>.Ok(new DeleteGraphResponse{id = metadataResult.Value.Id,isDeleted = true});
+
+                return Result<DeleteGraphResponse>.Ok(new DeleteGraphResponse { id = noteGraphId, isDeleted = true });
             }
             catch
             {
                 return Result<DeleteGraphResponse>.Fail("Failed to hard delete graph.");
+            }
+        }
+
+        public async Task<Result<DeleteGraphResponse>> UnarchiveNoteGraphById(Guid noteGraphId, CancellationToken ct)
+        {
+            var metadata = await _noteGraphMetadataRepository.GetDeletedByIdAsync(noteGraphId, ct);
+            if (metadata is null)
+                return Result<DeleteGraphResponse>.Fail("Archived graph not found.");
+            if (metadata.UserId != _currentUser.UserId)
+                return Result<DeleteGraphResponse>.Fail("Access denied.");
+
+            metadata.IsDeleted = false;
+            metadata.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _noteGraphMetadataRepository.UpdateAsync(metadata, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+                return Result<DeleteGraphResponse>.Ok(new DeleteGraphResponse { id = metadata.Id, isDeleted = false });
+            }
+            catch
+            {
+                return Result<DeleteGraphResponse>.Fail("Failed to unarchive graph.");
             }
         }
 

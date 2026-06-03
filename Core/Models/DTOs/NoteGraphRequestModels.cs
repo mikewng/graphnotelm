@@ -27,6 +27,11 @@ namespace graphnotelm.Core.Models.DTOs
         public List<Guid> Tags { get; set; } = new();
     }
 
+    public class CreateNotePastedRequest
+    {
+        public string PastedContent { get; set; } = string.Empty;
+    }
+
     public class EditNodeRequest
     {
         public string Title { get; set; } = string.Empty;

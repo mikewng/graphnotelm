@@ -106,5 +106,17 @@ namespace graphnotelm.API
 
             return Result<EditNodeMetadataResponse>.Ok(editMetadataResponse.Value);
         }
+
+        [HttpPost("id/{noteGraphId:guid}/node/paste")]
+        public async Task<ActionResult<Result<CreateNodeResponse>>> PasteContentToNode([FromBody] CreateNotePastedRequest createNotePastedRequest, Guid noteGraphId, CancellationToken ct)
+        {
+            var createNodeResponse = await _noteNodeService.CreateNodeFromPastedContent(createNotePastedRequest, noteGraphId, ct);
+            if (!createNodeResponse.Success || createNodeResponse.Value == null)
+            {
+                return Result<CreateNodeResponse>.Fail("Failed to create node.");
+            }
+
+            return Result<CreateNodeResponse>.Ok(createNodeResponse.Value);
+        }
     }
 }

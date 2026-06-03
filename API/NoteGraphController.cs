@@ -34,6 +34,16 @@ namespace graphnotelm.API
             return Result<GetGraphSkeletonResponse>.Ok(graphResponse.Value);
         }
 
+        [HttpGet("archive/list", Name = "GetArchivedNoteGraphList")]
+        public async Task<ActionResult<Result<GetGraphListResponse>>> GetArchivedGraphList(CancellationToken ct)
+        {
+            var archivedListResponse = await _noteGraphService.GetArchivedNoteGraphList(ct);
+            if (!archivedListResponse.Success || archivedListResponse.Value == null)
+                return Result<GetGraphListResponse>.Fail("Could not find any archived graphs for given user.");
+
+            return Result<GetGraphListResponse>.Ok(archivedListResponse.Value);
+        }
+
         [HttpGet("list", Name = "GetNoteGraphList")]
         public async Task<ActionResult<Result<GetGraphListResponse>>> GetGraphList(CancellationToken ct)
         {
@@ -73,13 +83,25 @@ namespace graphnotelm.API
         [HttpDelete("harddelete/{noteGraphId:guid}", Name = "HardDeleteNoteGraph")]
         public async Task<ActionResult<Result<DeleteGraphResponse>>> HardDeleteGraph(Guid noteGraphId, CancellationToken ct)
         {
-            var hardDeleteGraphResponse = await _noteGraphService.DeleteNoteGraphById(noteGraphId, ct);
+            var hardDeleteGraphResponse = await _noteGraphService.HardDeleteNoteGraphById(noteGraphId, ct);
             if (!hardDeleteGraphResponse.Success || hardDeleteGraphResponse.Value == null)
             {
-                return Result<DeleteGraphResponse>.Fail("Could not delete graph of given id.");
+                return Result<DeleteGraphResponse>.Fail("Could not permanently delete graph of given id.");
             }
 
             return Result<DeleteGraphResponse>.Ok(hardDeleteGraphResponse.Value);
+        }
+
+        [HttpPatch("unarchive/{noteGraphId:guid}", Name = "UnarchiveNoteGraph")]
+        public async Task<ActionResult<Result<DeleteGraphResponse>>> UnarchiveNoteGraph(Guid noteGraphId, CancellationToken ct)
+        {
+            var unarchiveResponse = await _noteGraphService.UnarchiveNoteGraphById(noteGraphId, ct);
+            if (!unarchiveResponse.Success || unarchiveResponse.Value == null)
+            {
+                return Result<DeleteGraphResponse>.Fail("Could not unarchive graph of given id.");
+            }
+
+            return Result<DeleteGraphResponse>.Ok(unarchiveResponse.Value);
         }
 
         [HttpPatch("edit/{noteGraphId:guid}/metadata", Name = "EditNoteGraphMetadata")]
@@ -124,6 +146,19 @@ namespace graphnotelm.API
             var json = JsonSerializer.Serialize(exportResult.Value, new JsonSerializerOptions { WriteIndented = true });
             var bytes = System.Text.Encoding.UTF8.GetBytes(json);
             return File(bytes, "application/json", $"notegraph-{exportResult.Value.Name}.json");
+        }
+
+        // Create a full notegraph from pasted content
+        [HttpPost("create/extract", Name = "CreateNoteGraphFromExtractedContent")]
+        public async Task<ActionResult<Result<CreateGraphResponse>>> CreateGraphByExtractedContent([FromBody] CreateGraphRequest createGraphRequest, CancellationToken ct)
+        {
+            var createGraphResponse = await _noteGraphService.CreateNoteGraph(createGraphRequest, ct);
+            if (!createGraphResponse.Success || createGraphResponse.Value == null)
+            {
+                return Result<CreateGraphResponse>.Fail("Failed to create given graph note.");
+            }
+
+            return Result<CreateGraphResponse>.Ok(createGraphResponse.Value);
         }
     }
 }
