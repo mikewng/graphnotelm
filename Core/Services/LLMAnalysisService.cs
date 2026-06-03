@@ -11,6 +11,17 @@ namespace graphnotelm.Core.Services
 {
     public class LLMAnalysisService : ILLMAnalysisService
     {
+        private static readonly string[] TagColors =
+        [
+            "#6366F1", "#8B5CF6", "#EC4899", "#14B8A6",
+            "#F59E0B", "#10B981", "#F97316", "#06B6D4"
+        ];
+
+        private static readonly string[] RelationshipColors =
+        [
+            "#EF4444", "#F97316", "#EAB308", "#22C55E",
+            "#3B82F6", "#A855F7", "#EC4899", "#64748B"
+        ];
         private readonly IChatClient _chatClient;
         private readonly ILLMContextBuilder _contextBuilder;
         private readonly IGraphAnalysisService _graphAnalysis;
@@ -145,14 +156,16 @@ namespace graphnotelm.Core.Services
             var tagNameToId = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
             if (pass1Root.TryGetProperty("tags", out var tagsEl) && tagsEl.ValueKind == JsonValueKind.Array)
             {
+                var tagIndex = 0;
                 foreach (var el in tagsEl.EnumerateArray())
                 {
                     var tagName = el.TryGetProperty("name", out var tn) ? tn.GetString() : null;
                     if (!string.IsNullOrWhiteSpace(tagName))
                     {
                         var tagId = Guid.NewGuid();
-                        tags[tagId] = new TagDefinition { Name = tagName!, Color = "#6B7280" };
+                        tags[tagId] = new TagDefinition { Name = tagName!, Color = TagColors[tagIndex % TagColors.Length] };
                         tagNameToId[tagName!] = tagId;
+                        tagIndex++;
                     }
                 }
             }
@@ -160,12 +173,16 @@ namespace graphnotelm.Core.Services
             var relationshipTypes = new Dictionary<Guid, RelationshipDefinition>();
             if (pass1Root.TryGetProperty("relationshipTypes", out var relTypesEl) && relTypesEl.ValueKind == JsonValueKind.Array)
             {
+                var relIndex = 0;
                 foreach (var el in relTypesEl.EnumerateArray())
                 {
                     var relName = el.TryGetProperty("name", out var rn) ? rn.GetString() : null;
                     var relInverse = el.TryGetProperty("inverse", out var ri) ? ri.GetString() ?? "" : "";
                     if (!string.IsNullOrWhiteSpace(relName))
-                        relationshipTypes[Guid.NewGuid()] = new RelationshipDefinition { Name = relName!, Inverse = relInverse, Color = "#3B82F6" };
+                    {
+                        relationshipTypes[Guid.NewGuid()] = new RelationshipDefinition { Name = relName!, Inverse = relInverse, Color = RelationshipColors[relIndex % RelationshipColors.Length] };
+                        relIndex++;
+                    }
                 }
             }
 
