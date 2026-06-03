@@ -91,6 +91,9 @@ GraphNoteLM is available through your local workspace now through downloading it
 Previously, the backend architecture for NoteGraphLM is that everything is ACTUALLY stored within a single JSON document locally or on DynamoDB. The goal was to move these implementations to store nodes individually from the NoteGraph, allow saves to be more efficient in writing only to a specific document instead of the entire document itself. Now, when you write to within a note, you are only writing to that note document itself, and you do not have to preprocess the entire graph each time for a save on your notes. This also does not disrupt IMPORT/EXPORT capabilities. The application still takes in the same JSON schema and outputs the same JSON schema.
 
 ## 🔜 Features Coming Soon...
+### Local MCP for GraphNotes
+GraphNotes can also double up as knowledge graph for LLMs. This can let the LLMs to gather context of your topic without needing to ingest the full context of it and instead just look up through the graph and relationships. Some use cases may include things like reducing context needed for agentic code editors to understand a code base upon new chats.
+
 ### Autogenerateable Flashcards and Quizzes
 Allows you to autogenerate flashcards and quizzes with the help of AI. This allows you to skip the menial task of creating these things and go straight to studying. It also directly connects to your confidence score, so reviews that you get wrong directly decrease your confidence score, and reviews you get right directly increase your score.
 
