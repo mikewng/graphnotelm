@@ -148,15 +148,12 @@ namespace graphnotelm.API
             return File(bytes, "application/json", $"notegraph-{exportResult.Value.Name}.json");
         }
 
-        // Create a full notegraph from pasted content
         [HttpPost("create/extract", Name = "CreateNoteGraphFromExtractedContent")]
-        public async Task<ActionResult<Result<CreateGraphResponse>>> CreateGraphByExtractedContent([FromBody] CreateGraphRequest createGraphRequest, CancellationToken ct)
+        public async Task<ActionResult<Result<CreateGraphResponse>>> CreateGraphByExtractedContent([FromBody] CreateGraphFromTextRequest request, CancellationToken ct)
         {
-            var createGraphResponse = await _noteGraphService.CreateNoteGraph(createGraphRequest, ct);
+            var createGraphResponse = await _noteGraphService.CreateNoteGraphFromText(request, ct);
             if (!createGraphResponse.Success || createGraphResponse.Value == null)
-            {
-                return Result<CreateGraphResponse>.Fail("Failed to create given graph note.");
-            }
+                return Result<CreateGraphResponse>.Fail("Failed to create graph from text.");
 
             return Result<CreateGraphResponse>.Ok(createGraphResponse.Value);
         }

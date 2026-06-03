@@ -16,6 +16,7 @@ namespace graphnotelm.Core.Services.Contracts
         public Task<Result<DeleteGraphResponse>> HardDeleteNoteGraphById(Guid noteGraphId, CancellationToken ct);
         public Task<Result<DeleteGraphResponse>> UnarchiveNoteGraphById(Guid noteGraphId, CancellationToken ct);
         public Task<Result<CreateGraphResponse>> ImportNoteGraphFromJSON(NoteGraphDocumentREADONLY document, CancellationToken ct);
+        public Task<Result<CreateGraphResponse>> CreateNoteGraphFromText(CreateGraphFromTextRequest request, CancellationToken ct);
         public Task<Result<NoteGraphDocumentREADONLY>> ExportNoteGraphAsJSON(Guid noteGraphId, CancellationToken ct);
     }
 }

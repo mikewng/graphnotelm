@@ -16,6 +16,7 @@ namespace graphnotelm.Core.Services
         private readonly INoteGraphRepository _noteGraphRepository;
         private readonly INoteGraphAccessService _noteGraphAccessService;
         private readonly INoteNodeRepository _noteNodeRepository;
+        private readonly ILLMAnalysisService _llmAnalysisService;
 
         public NoteGraphService(
             IUnitOfWork unitOfWork,
@@ -23,7 +24,8 @@ namespace graphnotelm.Core.Services
             INoteGraphMetadataRepository noteGraphMetadataRepository,
             INoteGraphRepository noteGraphRepository,
             INoteGraphAccessService noteGraphAccessService,
-            INoteNodeRepository noteNodeRepository
+            INoteNodeRepository noteNodeRepository,
+            ILLMAnalysisService llmAnalysisService
             )
         {
             _unitOfWork = unitOfWork;
@@ -32,6 +34,7 @@ namespace graphnotelm.Core.Services
             _noteGraphRepository = noteGraphRepository;
             _noteGraphAccessService = noteGraphAccessService;
             _noteNodeRepository = noteNodeRepository;
+            _llmAnalysisService = llmAnalysisService;
         }
 
         public async Task<Result<GetGraphSkeletonResponse>> GetNoteGraphById(Guid noteGraphId, CancellationToken ct)
@@ -238,6 +241,18 @@ namespace graphnotelm.Core.Services
             {
                 return Result<DeleteGraphResponse>.Fail("Failed to unarchive graph.");
             }
+        }
+
+        public async Task<Result<CreateGraphResponse>> CreateNoteGraphFromText(CreateGraphFromTextRequest request, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(request.Content))
+                return Result<CreateGraphResponse>.Fail("Content was empty.");
+
+            var extractResult = await _llmAnalysisService.ExtractGraphFromTextAsync(request.Name, request.Content, ct);
+            if (!extractResult.Success || extractResult.Value == null)
+                return Result<CreateGraphResponse>.Fail(extractResult.Error!);
+
+            return await ImportNoteGraphFromJSON(extractResult.Value, ct);
         }
 
         public async Task<Result<CreateGraphResponse>> ImportNoteGraphFromJSON(NoteGraphDocumentREADONLY document, CancellationToken ct)

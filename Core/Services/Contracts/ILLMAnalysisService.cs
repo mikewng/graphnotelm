@@ -10,5 +10,6 @@ namespace graphnotelm.Core.Services.Contracts
         public Task<Result<EditNodeMetadataResponse>> AnalyzeNodeAsync(Guid noteGraphId, Guid noteNodeId, CancellationToken ct);
         public Task<Result<EditNodeMetadataResponse>> AnalyzeNodeBatchAsync(Guid noteGraphId, List<Guid> noteNodeId);
         public Task<Result<CreateNodeRequest>> ExtractNodeFromPasteAsync(Guid noteGraphId, string pastedContent, CancellationToken ct);
+        public Task<Result<NoteGraphDocumentREADONLY>> ExtractGraphFromTextAsync(string? name, string content, CancellationToken ct);
     }
 }

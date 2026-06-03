@@ -12,6 +12,13 @@ namespace graphnotelm.Core.Models.DTOs
         public bool isDeleted { get; set; } = false;
     }
 
+    public class CreateGraphFromTextRequest
+    {
+        public string? Name { get; set; }
+        [Required]
+        public string Content { get; set; } = string.Empty;
+    }
+
     public class EditGraphMetadataRequest
     {
         public string Name { get; set; }

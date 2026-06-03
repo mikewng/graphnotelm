@@ -127,6 +127,77 @@ namespace graphnotelm.Core.Services
             return new LLMPrompt { System = systemPrompt, User = userPrompt };
         }
 
+        public LLMPrompt BuildGraphExtractionPass1Prompt(string content)
+        {
+            var systemPrompt = """
+                You are extracting structured knowledge from a document to build a knowledge graph.
+
+                Extract the following:
+                - nodes: the key concepts, entities, or topics in the document. Each node needs a short title, a concise note summarizing that concept, and a list of tag names (from the tags you define) that apply to it.
+                - tags: category labels that could apply to multiple nodes (e.g. "Person", "Concept", "Event", "Technology"). Keep the list small and meaningful. Define these BEFORE assigning them to nodes.
+                - relationshipTypes: named relationship types that describe how nodes connect (e.g. "influences", "is part of", "causes", "depends on"). Include an inverse label for each.
+
+                Do NOT wire any relationships between nodes yet — that comes in a second step.
+                Each node's "tags" array must only contain names that appear in the top-level "tags" list.
+
+                Respond ONLY with a raw JSON object in this exact schema:
+                {
+                  "graphName": "string",
+                  "nodes": [{ "title": "string", "note": "string", "tags": ["tag name", ...] }],
+                  "tags": [{ "name": "string" }],
+                  "relationshipTypes": [{ "name": "string", "inverse": "string" }]
+                }
+                No markdown, no preamble, no explanation.
+                """;
+
+            return new LLMPrompt { System = systemPrompt, User = content };
+        }
+
+        public LLMPrompt BuildGraphExtractionPass2Prompt(string content, Dictionary<Guid, NoteNode> nodes, Dictionary<Guid, RelationshipDefinition> relationshipTypes)
+        {
+            var nodeList = new StringBuilder();
+            foreach (var (id, node) in nodes)
+                nodeList.AppendLine($"- {id}: {node.Title}");
+
+            var relTypeList = new StringBuilder();
+            foreach (var (id, rel) in relationshipTypes)
+                relTypeList.AppendLine($"- {id}: {rel.Name} (inverse: {rel.Inverse})");
+
+            var systemPrompt = """
+                You are wiring relationships between nodes in a knowledge graph.
+
+                You will be given:
+                - The original document
+                - A list of nodes (id: title)
+                - A list of relationship types (id: name and inverse)
+
+                Determine which directional relationships exist between nodes based on the document.
+                Only use the exact GUIDs provided — do not invent new ones.
+                A node may have multiple relationships. Not every node needs to be connected.
+
+                Respond ONLY with a raw JSON object in this exact schema:
+                {
+                  "relationships": [
+                    { "sourceNodeId": "<guid>", "targetNodeId": "<guid>", "relationshipId": "<guid>" }
+                  ]
+                }
+                No markdown, no preamble, no explanation.
+                """;
+
+            var userPrompt = $"""
+                ## Original Document
+                {content}
+
+                ## Nodes
+                {nodeList}
+
+                ## Relationship Types
+                {relTypeList}
+                """;
+
+            return new LLMPrompt { System = systemPrompt, User = userPrompt };
+        }
+
         public LLMPrompt BuildGraphOverviewPrompt(NoteGraphDocument document, GraphView graphView)
         {
             var summaries = new StringBuilder();
