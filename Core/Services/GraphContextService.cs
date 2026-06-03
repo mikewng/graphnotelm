@@ -8,11 +8,15 @@ namespace graphnotelm.Core.Services
 {
     public class GraphContextService : IGraphContextService
     {
-        private readonly IChatClient _chatClient;
+        private readonly ILLMProviderFactory _providerFactory;
+        private readonly LLMProviderSettings _providerSettings;
 
-        public GraphContextService(IChatClient chatClient)
+        private IChatClient Client => _providerFactory.GetClient(_providerSettings.Current);
+
+        public GraphContextService(ILLMProviderFactory providerFactory, LLMProviderSettings providerSettings)
         {
-            _chatClient = chatClient;
+            _providerFactory = providerFactory;
+            _providerSettings = providerSettings;
         }
 
         public async Task<Result<GraphContext>> InferContextAsync(NoteGraphDocument graph)
@@ -60,7 +64,7 @@ namespace graphnotelm.Core.Services
                 new(ChatRole.User, userPrompt),
             };
 
-            var completion = await _chatClient.GetResponseAsync(messages);
+            var completion = await Client.GetResponseAsync(messages);
             var response = completion.Messages.LastOrDefault()?.Text ?? "";
 
             return Result<GraphContext>.Ok(JsonSerializer.Deserialize<GraphContext>(response) ?? new());

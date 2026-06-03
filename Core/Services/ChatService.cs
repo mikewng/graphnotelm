@@ -9,13 +9,21 @@ namespace graphnotelm.Core.Services
 {
     public class ChatService : IChatService
     {
-        private readonly IChatClient _chatClient;
+        private readonly ILLMProviderFactory _providerFactory;
+        private readonly LLMProviderSettings _providerSettings;
         private readonly INoteGraphAccessService _noteGraphAccessService;
         private readonly GraphToolFactory _toolFactory;
 
-        public ChatService(IChatClient chatClient, INoteGraphAccessService noteGraphAccessService, GraphToolFactory toolFactory)
+        private IChatClient Client => _providerFactory.GetClient(_providerSettings.Current);
+
+        public ChatService(
+            ILLMProviderFactory providerFactory,
+            LLMProviderSettings providerSettings,
+            INoteGraphAccessService noteGraphAccessService,
+            GraphToolFactory toolFactory)
         {
-            _chatClient = chatClient;
+            _providerFactory = providerFactory;
+            _providerSettings = providerSettings;
             _noteGraphAccessService = noteGraphAccessService;
             _toolFactory = toolFactory;
         }
@@ -49,7 +57,7 @@ namespace graphnotelm.Core.Services
             string? finalText = null;
             while (true)
             {
-                var response = await GetResponseWithRetryAsync(_chatClient, messages, toolOptions, ct);
+                var response = await GetResponseWithRetryAsync(Client, messages, toolOptions, ct);
 
                 var toolCalls = response.Messages
                     .SelectMany(m => m.Contents.OfType<FunctionCallContent>())
@@ -97,7 +105,7 @@ namespace graphnotelm.Core.Services
             }
             else
             {
-                await foreach (var update in _chatClient.GetStreamingResponseAsync(messages, cancellationToken: ct))
+                await foreach (var update in Client.GetStreamingResponseAsync(messages, cancellationToken: ct))
                 {
                     if (update.Text is not null)
                         yield return new ContentDelta(update.Text);

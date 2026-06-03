@@ -11,6 +11,8 @@ namespace graphnotelm.Core.Services
 {
     public class LLMAnalysisService : ILLMAnalysisService
     {
+        private IChatClient Client => _providerFactory.GetClient(_providerSettings.Current);
+
         private static readonly string[] TagColors =
         [
             "#6366F1", "#8B5CF6", "#EC4899", "#14B8A6",
@@ -22,20 +24,23 @@ namespace graphnotelm.Core.Services
             "#EF4444", "#F97316", "#EAB308", "#22C55E",
             "#3B82F6", "#A855F7", "#EC4899", "#64748B"
         ];
-        private readonly IChatClient _chatClient;
+        private readonly ILLMProviderFactory _providerFactory;
+        private readonly LLMProviderSettings _providerSettings;
         private readonly ILLMContextBuilder _contextBuilder;
         private readonly IGraphAnalysisService _graphAnalysis;
         private readonly INoteGraphAccessService _noteGraphAccessService;
         private readonly INoteNodeRepository _noteNodeRepository;
 
         public LLMAnalysisService(
-            IChatClient chatClient,
+            ILLMProviderFactory providerFactory,
+            LLMProviderSettings providerSettings,
             ILLMContextBuilder contextBuilder,
             IGraphAnalysisService graphAnalysis,
             INoteGraphAccessService noteGraphAccess,
             INoteNodeRepository noteNodeRepository)
         {
-            _chatClient = chatClient;
+            _providerFactory = providerFactory;
+            _providerSettings = providerSettings;
             _contextBuilder = contextBuilder;
             _graphAnalysis = graphAnalysis;
             _noteGraphAccessService = noteGraphAccess;
@@ -63,7 +68,7 @@ namespace graphnotelm.Core.Services
             ChatResponse completion;
             try
             {
-                completion = await _chatClient.GetResponseAsync(messages, cancellationToken: ct);
+                completion = await Client.GetResponseAsync(messages, cancellationToken: ct);
             }
             catch (HttpRequestException ex)
             {
@@ -122,7 +127,7 @@ namespace graphnotelm.Core.Services
             ChatResponse pass1Response;
             try
             {
-                pass1Response = await _chatClient.GetResponseAsync(pass1Messages, cancellationToken: ct);
+                pass1Response = await Client.GetResponseAsync(pass1Messages, cancellationToken: ct);
             }
             catch (HttpRequestException ex)
             {
@@ -225,7 +230,7 @@ namespace graphnotelm.Core.Services
             ChatResponse pass2Response;
             try
             {
-                pass2Response = await _chatClient.GetResponseAsync(pass2Messages, cancellationToken: ct);
+                pass2Response = await Client.GetResponseAsync(pass2Messages, cancellationToken: ct);
             }
             catch (HttpRequestException ex)
             {
@@ -298,7 +303,7 @@ namespace graphnotelm.Core.Services
             ChatResponse completion;
             try
             {
-                completion = await _chatClient.GetResponseAsync(messages, cancellationToken: ct);
+                completion = await Client.GetResponseAsync(messages, cancellationToken: ct);
             }
             catch (HttpRequestException ex)
             {

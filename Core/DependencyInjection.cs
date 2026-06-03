@@ -1,10 +1,10 @@
 ﻿using graphnotelm.Core.Clients;
 using graphnotelm.Core.Contexts;
 using graphnotelm.Core.Contexts.Contracts;
+using graphnotelm.Core.Models;
 using graphnotelm.Core.Services;
 using graphnotelm.Core.Services.Contracts;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.AI;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -31,17 +31,21 @@ public static class DependencyInjection
         services.AddScoped<ILLMAnalysisService, LLMAnalysisService>();
         services.AddScoped<IChatService, ChatService>();
 
-        // Register Clients
-        services.AddHttpClient("anthropic", http =>
+        // Required for IHttpClientFactory (used by LLMSettingsController for Ollama model discovery)
+        services.AddHttpClient();
+
+        // Register LLM provider factory and app-level settings
+        services.AddSingleton<ILLMProviderFactory, LLMProviderFactory>();
+        services.AddSingleton(sp =>
         {
-            http.BaseAddress = new Uri("https://api.anthropic.com/");
-            http.DefaultRequestHeaders.Add("x-api-key", configuration["Anthropic:ApiKey"]!);
-            http.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
-        });
-        services.AddSingleton<IChatClient>(sp =>
-        {
-            var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient("anthropic");
-            return new AnthropicChatClient(http, configuration["Anthropic:Model"] ?? "claude-sonnet-4-20250514");
+            var initial = new LLMProviderConfig
+            {
+                Provider = Enum.TryParse<LLMProviderType>(configuration["LLM:Provider"], out var p) ? p : LLMProviderType.Anthropic,
+                ApiKey   = configuration["LLM:ApiKey"] ?? configuration["Anthropic:ApiKey"] ?? string.Empty,
+                Model    = configuration["LLM:Model"]  ?? configuration["Anthropic:Model"]  ?? string.Empty,
+                Endpoint = configuration["LLM:Endpoint"]
+            };
+            return new LLMProviderSettings(initial);
         });
 
         // Register LLM Factory
