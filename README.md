@@ -98,6 +98,9 @@ The docker compose will spin up everything - from Frontend, to .NET Backend Serv
 We will have NoteGraphLM as a publicly hosted service. However, due to hosting costs and LLM API costs, and the fact that I am broke, there is a free vs. pro version of the service. The base free version gives you all the mentioned functionalities from basic note taking (notes, tags, relationships, notes as graphs, autosaving to cloud), and you cannot use the AI Insights unless you have your own claude API key. Furthermore, you are limited up to only 5 notegraphs per user. However, only the PRO would allow you to have access to AI Insights without the need for a claude API key, and you are allowed to have unlimited notegraphs.
 
 ## Recent Updates
+### Patch v1.2.2
+Added search throughout node content for notegraphs. This allows you to type in any keyword, sentence, or paragraph, and return a list of notes that either contain the keyword or title. Makes it easier for users to navigate through their notes!
+
 ### Patch v1.2.1
 Local MCP available! You can now connect your LLM vendor with MCP capabilities for GraphNoteLM. This currently ONLY includes READ commands, as we are working on providing secure and guardrailed write tools to prevent entire note node or notegraph overwrites and other issues such as prompt injection. But for now, instead of using the AI Assistant built-in the chat, you can connect your notegraph with applications like Claude Desktop, Claude Code, ChatGPT Desktop, Codex, etc! Now, these LLMs can gain context on your graphs and answer questions for you, alongside use their own integrations to extend off GraphNoteLM!
 <img width="864" height="750" alt="image" src="https://github.com/user-attachments/assets/ea9d8bf6-ef70-4e86-b6f2-4b50841badec" />
