@@ -32,7 +32,7 @@ if (string.IsNullOrEmpty(builder.Configuration["Jwt:Key"]))
 var mcpKeyFile  = Path.Combine(keyDir, "mcp.key");
 var mcpKey      = File.Exists(mcpKeyFile)
     ? File.ReadAllText(mcpKeyFile).Trim()
-    : Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    : Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).Replace('+', '-').Replace('/', '_').TrimEnd('=');
 File.WriteAllText(mcpKeyFile, mcpKey);
 
 // Load persisted MCP local user ID (set after first login via /settings/mcp/configure-user)
@@ -41,11 +41,21 @@ Guid? mcpUserId = File.Exists(mcpUserFile) && Guid.TryParse(File.ReadAllText(mcp
     ? parsedId
     : null;
 
+// Load persisted MCP enabled state (defaults to true)
+var mcpEnabledFile = Path.Combine(keyDir, "mcp-enabled.txt");
+var mcpEnabled = !File.Exists(mcpEnabledFile) || File.ReadAllText(mcpEnabledFile).Trim() != "false";
+
+var mcpPort = builder.Configuration.GetValue<int>("LocalPort", 5240);
+
 var mcpSettings = new McpSettings
 {
-    SecretKey    = mcpKey,
-    LocalUserId  = mcpUserId,
-    UserFilePath = mcpUserFile
+    SecretKey       = mcpKey,
+    LocalUserId     = mcpUserId,
+    UserFilePath    = mcpUserFile,
+    KeyFilePath     = mcpKeyFile,
+    EnabledFilePath = mcpEnabledFile,
+    IsEnabled       = mcpEnabled,
+    Port            = mcpPort
 };
 builder.Services.AddSingleton(mcpSettings);
 
@@ -109,6 +119,29 @@ app.Use(async (context, next) =>
 {
     if (context.Request.Path.StartsWithSegments("/mcp"))
     {
+        if (!mcpSettings.IsEnabled)
+        {
+            context.Response.StatusCode  = 503;
+            context.Response.ContentType = "text/plain";
+            await context.Response.WriteAsync("MCP: server is disabled.");
+            return;
+        }
+
+        // Reject browser-initiated requests from remote origins.
+        // SSE is a plain GET so browsers skip preflight — we enforce origin server-side.
+        // Local tools (mcp-remote, curl) send no Origin header, which is allowed.
+        var origin = context.Request.Headers.Origin.ToString();
+        if (!string.IsNullOrEmpty(origin)
+            && !origin.StartsWith("http://localhost")
+            && !origin.StartsWith("http://127.0.0.1")
+            && origin != "null") // "null" = file:// (Electron renderer)
+        {
+            context.Response.StatusCode  = 403;
+            context.Response.ContentType = "text/plain";
+            await context.Response.WriteAsync("MCP: cross-origin requests not allowed.");
+            return;
+        }
+
         var provided = context.Request.Query["key"].ToString();
         if (string.IsNullOrEmpty(provided) || provided != mcpSettings.SecretKey)
         {

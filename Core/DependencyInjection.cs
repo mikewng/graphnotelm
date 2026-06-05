@@ -54,7 +54,7 @@ public static class DependencyInjection
 
         // Register MCP server (HTTP+SSE transport, no auth — localhost only)
         services.AddMcpServer()
-            .WithHttpTransport()
+            .WithHttpTransport(o => o.Stateless = true)
             .WithTools<NoteGraphMcpTools>();
 
         // Register Contexts
