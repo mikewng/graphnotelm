@@ -36,6 +36,19 @@ namespace graphnotelm.API
             return Result<GetNodeResponse>.Ok(getNodeResponse.Value);
         }
 
+        [HttpGet("id/{noteGraphId:guid}/nodes/search")]
+        public async Task<ActionResult<Result<SearchNodesResponse>>> SearchNodes(Guid noteGraphId, [FromQuery] string q, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+                return BadRequest(Result<SearchNodesResponse>.Fail("Query must be at least 2 characters."));
+
+            var searchResponse = await _noteNodeService.SearchNodesByContent(noteGraphId, q, ct);
+            if (!searchResponse.Success || searchResponse.Value == null)
+                return BadRequest(Result<SearchNodesResponse>.Fail("Search failed."));
+
+            return Result<SearchNodesResponse>.Ok(searchResponse.Value);
+        }
+
         [HttpPost("id/{noteGraphId:guid}/node/batch")]
         public async Task<ActionResult<Result<GetNodeBatchResponse>>> GetNodeBatch([FromBody] GetNodeBatchRequest request, Guid noteGraphId, CancellationToken ct)
         {

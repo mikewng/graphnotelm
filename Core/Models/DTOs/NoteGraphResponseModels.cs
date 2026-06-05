@@ -122,6 +122,20 @@ namespace graphnotelm.Core.Models.DTOs
     {
 
     }
+    public class NodeSearchResult
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Snippet { get; set; } = string.Empty;
+        public bool MatchedTitle { get; set; }
+        public bool MatchedNote { get; set; }
+    }
+
+    public class SearchNodesResponse
+    {
+        public List<NodeSearchResult> Results { get; set; } = new();
+    }
+
     public class SaveNodeContentResponse
     {
         public bool IsSuccess = false;

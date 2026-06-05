@@ -183,6 +183,4 @@ if (!app.Environment.IsDevelopment() && localDb == null)
     app.UseHttpsRedirection();
 
 app.UseCors("LocalFrontend");
-app.UseAuthorization();
-
-app.Run();
+app.UseAuthorization();app.Run();

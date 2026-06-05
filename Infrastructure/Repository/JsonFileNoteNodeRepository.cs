@@ -69,6 +69,18 @@ namespace graphnotelm.Infrastructure.Repository
             return Task.FromResult(nodes);
         }
 
+        public Task<List<NoteNode>> SearchAsync(Guid noteGraphId, string query, CancellationToken ct = default)
+        {
+            var prefix = noteGraphId.ToString();
+            var nodes = _store
+                .Where(kvp => kvp.Key.StartsWith(prefix))
+                .Select(kvp => kvp.Value)
+                .Where(n => n.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
+                         || n.Note.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            return Task.FromResult(nodes);
+        }
+
         public async Task SaveAsync(Guid noteGraphId, NoteNode node)
         {
             _store[Key(noteGraphId, node.Id)] = node;

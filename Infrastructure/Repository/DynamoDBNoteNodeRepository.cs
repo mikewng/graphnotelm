@@ -66,6 +66,17 @@ namespace graphnotelm.Infrastructure.Repository
             return nodes;
         }
 
+        public async Task<List<NoteNode>> SearchAsync(Guid noteGraphId, string query, CancellationToken ct = default)
+        {
+            // DynamoDB stores Title/Note inside the Data JSON blob so FilterExpression
+            // cannot reach them. Fetch all nodes for the graph and filter in memory.
+            var all = await GetAllByGraphIdAsync(noteGraphId, ct);
+            return all
+                .Where(n => n.Title.Contains(query, StringComparison.OrdinalIgnoreCase)
+                         || n.Note.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
         public async Task SaveAsync(Guid noteGraphId, NoteNode node)
         {
             await _client.PutItemAsync(new PutItemRequest

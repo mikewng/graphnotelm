@@ -249,6 +249,45 @@ namespace graphnotelm.Core.Services
             }
         }
 
+        public async Task<Result<SearchNodesResponse>> SearchNodesByContent(Guid noteGraphId, string query, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<SearchNodesResponse>.Fail(metadataResult.Error!);
+
+            var nodes = await _noteNodeRepository.SearchAsync(noteGraphId, query, ct);
+            var results = nodes.Select(n =>
+            {
+                var matchedTitle = n.Title.Contains(query, StringComparison.OrdinalIgnoreCase);
+                var matchedNote = n.Note.Contains(query, StringComparison.OrdinalIgnoreCase);
+                var snippet = matchedNote ? BuildSnippet(n.Note, query) : n.Title;
+                return new NodeSearchResult
+                {
+                    Id = n.Id,
+                    Title = n.Title,
+                    Snippet = snippet,
+                    MatchedTitle = matchedTitle,
+                    MatchedNote = matchedNote
+                };
+            }).ToList();
+
+            return Result<SearchNodesResponse>.Ok(new SearchNodesResponse { Results = results });
+        }
+
+        private static string BuildSnippet(string text, string query, int halfWindow = 80)
+        {
+            var idx = text.IndexOf(query, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0)
+                return text.Length <= halfWindow * 2 ? text : text[..(halfWindow * 2)] + "...";
+
+            var start = Math.Max(0, idx - halfWindow);
+            var end = Math.Min(text.Length, idx + query.Length + halfWindow);
+            var snippet = text[start..end];
+            if (start > 0) snippet = "..." + snippet;
+            if (end < text.Length) snippet += "...";
+            return snippet;
+        }
+
         public async Task<Result<EditNodeMetadataResponse>> EditNodeMetadataByIds(EditNodeMetadataRequest editNodeMetadataRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
             var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);

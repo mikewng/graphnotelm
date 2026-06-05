@@ -63,6 +63,31 @@ namespace graphnotelm.Infrastructure.Repository
             return nodes;
         }
 
+        public async Task<List<NoteNode>> SearchAsync(Guid noteGraphId, string query, CancellationToken ct = default)
+        {
+            await using var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync(ct);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                SELECT Data FROM NoteNodes
+                WHERE GraphId = $graphId
+                AND (
+                    INSTR(LOWER(json_extract(Data, '$.Title')), LOWER($query)) > 0
+                    OR INSTR(LOWER(json_extract(Data, '$.Note')),  LOWER($query)) > 0
+                )
+                """;
+            cmd.Parameters.AddWithValue("$graphId", noteGraphId.ToString());
+            cmd.Parameters.AddWithValue("$query", query);
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            var nodes = new List<NoteNode>();
+            while (await reader.ReadAsync(ct))
+            {
+                var node = JsonSerializer.Deserialize<NoteNode>(reader.GetString(0));
+                if (node != null) nodes.Add(node);
+            }
+            return nodes;
+        }
+
         public async Task SaveAsync(Guid noteGraphId, NoteNode node)
         {
             var json = JsonSerializer.Serialize(node);
