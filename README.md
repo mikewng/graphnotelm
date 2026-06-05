@@ -69,10 +69,11 @@ Using Kahn's algorithm for topological sort, given a target node, we are able to
 ## ✨ AI Insights and Assistant
 This is where the "LM" comes from I guess... Like I mentioned, I really liked Google's NotebookLM and how they used AI as an assistant for answering questions within the notebook, but I wanted to find a way to integrate LLMs with this graph-based note architecture. 
 
-#### General Chat and Notebook-Enclosed Context
+#### General Chat, Notebook-Enclosed Context, and System Prompts
 Like with NotebookLM, this is the most basic feature of the AI layer. You are able to ask the LLM questions through the built-in chat feature in regards to context specific to this notebook itself. It also has access to said graph algorithms mentioned, which gives users a more curated response and analysis of the algorithm results.
 <img width="1894" height="932" alt="image" src="https://github.com/user-attachments/assets/f42d3019-22b4-4690-8ccd-d7fc411d6c76" />
 <img width="1361" height="944" alt="image" src="https://github.com/user-attachments/assets/c7c1a0fc-6276-4158-a977-7102e1148d9f" />
+<img width="495" height="822" alt="image" src="https://github.com/user-attachments/assets/297b03dc-d947-4d51-9045-6c809e038008" />
 
 #### LLM Metadata
 The AI has the ability to read (but not write!) to your node content. However, they do have a scratchpad for reading and writing within their own dedicated LLM Metadata section. This section can be fully customizable... you can set schemas or just have the LLM write notes to this metadata section in regards to the note content itself. Use cases for regular LLM writes would be for critcisim or review on certain note nodes, and use cases for schemas could be providing structured statistics of different data types (numericals, text, etc.)
@@ -93,10 +94,15 @@ We will have NoteGraphLM as a publicly hosted service. However, due to hosting c
 ### Native Support to Run Entire Application Locally via Electron
 If privacy is a big concern to you, a major option is running everything encased as an executable via ElectronJS. All you have to do is download the latest executable, and the application will run. Everything is handled within the application itself, so there are no manual external management from you. This application also gives you access to all capabilites of the notegraph. Furthermore, you are able to configure your own LLM that will be run for the application. Anthropic and OpenAI clients are still open for you to use, but we support fully local environments by allowing you to run your local Ollama models and personal models.
 
-### Support to Run Entire Application via Docker
+### Support to Run Entire Application via Docker (Deprecated, use .EXE Instead!)
 The docker compose will spin up everything - from Frontend, to .NET Backend Service, to even the PostgreSQL and InternalJSONStorage as volumes. All you need is to install docker, clone the repo, and run docker compose up --build. The application should be lightweight enough to be run in the background, but contains graceful shutdowns that does not disrupt data. THIS GIVES YOU ACCESS TO ALL CAPABILTIES OF NOTEGRAPH. Unlike the publicly hosted site, everything from unlimited notegraph storage to AI insights are included, granted that you have your own API key.
 
 ## Recent Updates
+### Patch v1.2.1
+Local MCP available! You can now connect your LLM vendor with MCP capabilities for GraphNoteLM. This currently ONLY includes READ commands, as we are working on providing secure and guardrailed write tools to prevent entire note node or notegraph overwrites and other issues such as prompt injection. But for now, instead of using the AI Assistant built-in the chat, you can connect your notegraph with applications like Claude Desktop, Claude Code, ChatGPT Desktop, Codex, etc! Now, these LLMs can gain context on your graphs and answer questions for you, alongside use their own integrations to extend off GraphNoteLM!
+
+Another feature is edittable system prompts! Currently, AI Assistants are grounded with the prompt "Analyze the notegraph and its content for learning and understanding". If you want it replaced because you need a different use case (idk, like make it talk like a pirate), you can now edit the system prompt within the sidebar.
+
 ### Patch v.0.9
 #### Create Graphs and Notes with AI!
 GraphNoteLM can now take in user content, extract its content, creating a whole notegraph with note nodes, tags, and relationship connections for them. This might help for beginners that might not know how to GraphNoteLM or users that need a quick conversion to a GraphNote for editting later. In addition, within notegraphs, you can now create quick note nodes by clicking on the "Extract Note" button.
@@ -110,23 +116,11 @@ GraphNoteLM is available through your local workspace now through downloading it
 Previously, the backend architecture for NoteGraphLM is that everything is ACTUALLY stored within a single JSON document locally or on DynamoDB. The goal was to move these implementations to store nodes individually from the NoteGraph, allow saves to be more efficient in writing only to a specific document instead of the entire document itself. Now, when you write to within a note, you are only writing to that note document itself, and you do not have to preprocess the entire graph each time for a save on your notes. This also does not disrupt IMPORT/EXPORT capabilities. The application still takes in the same JSON schema and outputs the same JSON schema.
 
 ## 🔜 Features Coming Soon...
-### Local MCP for GraphNotes
-GraphNotes can also double up as knowledge graph for LLMs. This can let the LLMs to gather context of your topic without needing to ingest the full context of it and instead just look up through the graph and relationships. Some use cases may include things like reducing context needed for agentic code editors to understand a code base upon new chats.
-
 ### Autogenerateable Flashcards and Quizzes
 Allows you to autogenerate flashcards and quizzes with the help of AI. This allows you to skip the menial task of creating these things and go straight to studying. It also directly connects to your confidence score, so reviews that you get wrong directly decrease your confidence score, and reviews you get right directly increase your score.
 
-### WaniKani API and Progress Integration
-I am a daily user of WaniKani, which is a flashcards review platform for learning Japanese Kanji and Vocabulary in a curated way. This integration aims to get a list of all the current user's learning kanji and vocab alongside the current mastery of the vocab/kanji as a numerical value. Relationship edges will be automatically linked between vocab and kanji. This is simply an API call fetch to the WaniKani API and an adapter layer that transforms the data into a NoteGraph document, which then loads to an existing or new NoteGraph.
-
-### AI Agentic Creation of Relationship Edges
-This is a little iffy for me, as it gives too much control to the AI - not in the sense that it is an impossible architectural design - but more so that this application was mainly designed for self-learning, and I think that manually adding relationships helps you better understand and memorize these concepts. For perhaps use cases of notegraphs in which are not primarily used for learning, I think adding this might help.
-
-### Updateable NoteGraph Metadata for LLMs
-You should be able to override certain portions of the system prompt, as by its default, it aims to be an objective AI in which provides you insights on learning. Prompts can change the AI's behavior in relation to the purpose of your notegraph.
-
 ### LLM Long Term Memory
-A more long lasting memory for the AI Assistant, allowing you to be more efficient with your AI usage and makes the AI more curated and scoped to the chat.
+A more long lasting memory for the AI Assistant, allowing you to be more efficient with your AI usage and makes the AI more curated and scoped to the chat. In addition, have the ability to save chats.
 
 ### Light Mode
 For people that prefer a visually brighter tool. Can be toggleable and remembers your choice.
@@ -173,19 +167,6 @@ Thirdly, the document storage might become an issue as the NoteGraph becomes lar
 
 
 ## Options to Run
-### Publicly Deployed Service
-You can access the service publicly through the url: xxx. You can create an account to have your notes be saved on the cloud. Otherwise, you must handle manual saving by exporting your notegraph every so often (you still have this option as a user).
-
-### Local Development API
-Clone the repository from master. Make sure you have the following installed (at the very minimum):
-- .NET Core
-- PostgreSQL
-
-1. Within .NET application, provide an appsettings based off of appsettings.Example.json, the main crediential being your local postgreSQL server. ("Host=localhost;Port=5432;Database=graphnotelm;Username=postgres;Password=[yourlocalpassword]")
-2. CD into the folder that contains all the code within the repo.
-3. Apply migrations via Entity Framework: dotnet ef database update
-4. Run the application via http or https
-
 ### Local Workspace
 #### Executeable
 You can find the executeables within the following dropbox link:
@@ -194,10 +175,18 @@ https://www.dropbox.com/scl/fo/mo772qt2u2onlk69j82wg/AAIELLr-dsXT1WUo1t7CKKk?rlk
 
 Version changes should not affect your files, as everything is stored within your %APPDATA%/graphnotelm folder.
 
-1. All you need to do is download the executeable and run it.
+1. All you need to do is download the latest executeable and run it.
+2. Windows may give you a warning that says that this app is not authorized and is not safe, but there are no purposely malicious code inside. Download at your own peril! (I guess)
 
-Caveats:
-- You do not have access to the LLM features by default. In order to use it,  you have to generate your own Anthropic API key and save it for the application. We are working to make it so that it we will allow different types of clients.
+#### Connecting to MCP
+For the MCP, you are able to give any LLM agentic tool access to the graphnotes by connecting it to the GraphNoteLM MCP. Specifically for claude desktop: add the following to the claude_desktop_config.json:
+"mcpServers": {
+      "graphnotelm": {
+        "command": "npx",
+        "args": ["mcp-remote", "http://localhost:5240/mcp?key=[YOUR_MCP_KEY_HERE"]
+      }
+}
+
 
 #### Docker
 This is the less preferred option, as you must install Docker in order to run the application. It uses SQLite, in which saves all your data via that docker volume. HOWEVER, this also means that if you delete that docker volume, you WILL LOSE all you files within GraphNoteLM files.
@@ -214,12 +203,18 @@ Caveats:
 - Delete Internal NoteGraph Data
    - run command: docker volume rm graphnotelm_notegraph_data graphnotelm_postgres_data
    - Go to docker -> Volumes -> Check graphnotelm_notegraph_data and or graphnotelm_postgres_data -> Hit "delete" button on top right
- 
-### Connecting to MCP
-For the MCP, you are able to give any LLM agentic tool access to the graphnotes by connecting it to the GraphNoteLM MCP. Specifically for claude desktop: add the following to the claude_desktop_config.json:
-"mcpServers": {
-      "graphnotelm": {
-        "command": "npx",
-        "args": ["mcp-remote", "http://localhost:5240/mcp?key=o9jwTaeyA..."]
-      }
-}
+
+
+### Local Development API
+Clone the repository from master. Make sure you have the following installed (at the very minimum):
+- .NET Core
+- PostgreSQL
+
+1. Within .NET application, provide an appsettings based off of appsettings.Example.json, the main crediential being your local postgreSQL server. ("Host=localhost;Port=5432;Database=graphnotelm;Username=postgres;Password=[yourlocalpassword]")
+2. CD into the folder that contains all the code within the repo.
+3. Apply migrations via Entity Framework: dotnet ef database update
+4. Run the application via http or https
+
+
+### Publicly Deployed Service (TBI)
+You can access the service publicly through the url: xxx. You can create an account to have your notes be saved on the cloud. Otherwise, you must handle manual saving by exporting your notegraph every so often (you still have this option as a user).
