@@ -77,8 +77,17 @@ namespace graphnotelm.Core.Clients
                     var args = tc.Function?.Arguments != null
                         ? JsonSerializer.Deserialize<Dictionary<string, object>>(tc.Function.Arguments) ?? new()
                         : new Dictionary<string, object>();
-                    contents.Add(new FunctionCallContent(tc.Id, tc.Function?.Name ?? "", args));
+                    contents.Add(new FunctionCallContent(tc.Id ?? Guid.NewGuid().ToString(), tc.Function?.Name ?? "", args));
                 }
+            }
+
+            // Fallback: some models (e.g. qwen2.5-coder via Ollama) output tool calls as
+            // JSON in the content field instead of using the tool_calls field.
+            if (contents is [TextContent only])
+            {
+                var inlineCalls = TryParseInlineToolCalls(only.Text ?? "");
+                if (inlineCalls != null)
+                    contents = inlineCalls;
             }
 
             return new ChatResponse(new ChatMessage(ChatRole.Assistant, contents));
@@ -134,6 +143,45 @@ namespace graphnotelm.Core.Clients
             => serviceType.IsInstanceOfType(this) ? this : null;
 
         public void Dispose() { }
+
+        private static List<AIContent>? TryParseInlineToolCalls(string text)
+        {
+            text = text.Trim();
+            try
+            {
+                using var doc = JsonDocument.Parse(text);
+                var root = doc.RootElement;
+
+                // Single call: { "name": "...", "arguments": { ... } }
+                if (root.ValueKind == JsonValueKind.Object
+                    && root.TryGetProperty("name", out var nameEl)
+                    && root.TryGetProperty("arguments", out var argsEl)
+                    && nameEl.ValueKind == JsonValueKind.String)
+                {
+                    var args = argsEl.Deserialize<Dictionary<string, object>>() ?? new();
+                    return [new FunctionCallContent(Guid.NewGuid().ToString(), nameEl.GetString()!, args)];
+                }
+
+                // Array of calls: [{ "name": "...", "arguments": { ... } }, ...]
+                if (root.ValueKind == JsonValueKind.Array)
+                {
+                    var calls = new List<AIContent>();
+                    foreach (var item in root.EnumerateArray())
+                    {
+                        if (item.TryGetProperty("name", out var n)
+                            && item.TryGetProperty("arguments", out var a)
+                            && n.ValueKind == JsonValueKind.String)
+                        {
+                            var args = a.Deserialize<Dictionary<string, object>>() ?? new();
+                            calls.Add(new FunctionCallContent(Guid.NewGuid().ToString(), n.GetString()!, args));
+                        }
+                    }
+                    if (calls.Count > 0) return calls;
+                }
+            }
+            catch (JsonException) { }
+            return null;
+        }
 
         private static object BuildMessage(ChatMessage message)
         {

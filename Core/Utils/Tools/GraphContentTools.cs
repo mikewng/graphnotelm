@@ -55,10 +55,10 @@ namespace graphnotelm.Core.Utils.Tools
 
         [Description("Gets a single node's full content by its ID. Returns the title, note content, confidence score, and all relationships.")]
         public NodeResult? GetNodeById(
-            [Description("The ID of the node to retrieve.")]
-            Guid noteNodeId)
+            [Description("The ID of the node to retrieve. Must be a valid GUID string.")]
+            string noteNodeId)
         {
-            if (!_document.Nodes.TryGetValue(noteNodeId, out var node))
+            if (!Guid.TryParse(noteNodeId, out var id) || !_document.Nodes.TryGetValue(id, out var node))
                 return null;
 
             var relationships = node.Relationships.Select(r =>
