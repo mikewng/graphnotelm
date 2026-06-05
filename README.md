@@ -100,7 +100,7 @@ We will have NoteGraphLM as a publicly hosted service. However, due to hosting c
 ## Recent Updates
 ### Patch v1.2.1
 Local MCP available! You can now connect your LLM vendor with MCP capabilities for GraphNoteLM. This currently ONLY includes READ commands, as we are working on providing secure and guardrailed write tools to prevent entire note node or notegraph overwrites and other issues such as prompt injection. But for now, instead of using the AI Assistant built-in the chat, you can connect your notegraph with applications like Claude Desktop, Claude Code, ChatGPT Desktop, Codex, etc! Now, these LLMs can gain context on your graphs and answer questions for you, alongside use their own integrations to extend off GraphNoteLM!
-<img width="1294" height="1099" alt="image" src="https://github.com/user-attachments/assets/5e49c748-d78f-4e7a-ad17-77a2bdd52120" />
+<img width="864" height="750" alt="image" src="https://github.com/user-attachments/assets/ea9d8bf6-ef70-4e86-b6f2-4b50841badec" />
 
 Another feature is edittable system prompts! Currently, AI Assistants are grounded with the prompt "Analyze the notegraph and its content for learning and understanding". If you want it replaced because you need a different use case (idk, like make it talk like a pirate), you can now edit the system prompt within the sidebar.
 
