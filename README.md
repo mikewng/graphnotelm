@@ -39,6 +39,7 @@ The application gives you basic note taking features like editting and tagging n
 
 ### Basic Markdown Support
 Basic markdown support is included with the note content, allowing you to underline, bolden, italicize, and even embed image urls to your notes.
+
 <img width="925" height="693" alt="image" src="https://github.com/user-attachments/assets/b1a21a56-a788-46fc-ae79-14af4eb37c04" />
 
 ### Importable and Exportable NoteGraphs as JSON
