@@ -88,18 +88,19 @@ GraphNoteLM also have the ability to create whole notegraphs and notes from user
 <img width="1205" height="825" alt="image" src="https://github.com/user-attachments/assets/663af55b-eeb6-4cbd-8649-282f993bf6f3" />
 
 ## 💻 Options to Run/Use NoteGraphLM
-### Publicly Hosted Website
-We will have NoteGraphLM as a publicly hosted service. However, due to hosting costs and LLM API costs, and the fact that I am broke, there is a free vs. pro version of the service. The base free version gives you all the mentioned functionalities from basic note taking (notes, tags, relationships, notes as graphs, autosaving to cloud), and you cannot use the AI Insights unless you have your own claude API key. Furthermore, you are limited up to only 5 notegraphs per user. However, only the PRO would allow you to have access to AI Insights without the need for a claude API key, and you are allowed to have unlimited notegraphs.
-
 ### Native Support to Run Entire Application Locally via Electron
 If privacy is a big concern to you, a major option is running everything encased as an executable via ElectronJS. All you have to do is download the latest executable, and the application will run. Everything is handled within the application itself, so there are no manual external management from you. This application also gives you access to all capabilites of the notegraph. Furthermore, you are able to configure your own LLM that will be run for the application. Anthropic and OpenAI clients are still open for you to use, but we support fully local environments by allowing you to run your local Ollama models and personal models.
 
 ### Support to Run Entire Application via Docker (Deprecated, use .EXE Instead!)
 The docker compose will spin up everything - from Frontend, to .NET Backend Service, to even the PostgreSQL and InternalJSONStorage as volumes. All you need is to install docker, clone the repo, and run docker compose up --build. The application should be lightweight enough to be run in the background, but contains graceful shutdowns that does not disrupt data. THIS GIVES YOU ACCESS TO ALL CAPABILTIES OF NOTEGRAPH. Unlike the publicly hosted site, everything from unlimited notegraph storage to AI insights are included, granted that you have your own API key.
 
+### Publicly Hosted Website
+We will have NoteGraphLM as a publicly hosted service. However, due to hosting costs and LLM API costs, and the fact that I am broke, there is a free vs. pro version of the service. The base free version gives you all the mentioned functionalities from basic note taking (notes, tags, relationships, notes as graphs, autosaving to cloud), and you cannot use the AI Insights unless you have your own claude API key. Furthermore, you are limited up to only 5 notegraphs per user. However, only the PRO would allow you to have access to AI Insights without the need for a claude API key, and you are allowed to have unlimited notegraphs.
+
 ## Recent Updates
 ### Patch v1.2.1
 Local MCP available! You can now connect your LLM vendor with MCP capabilities for GraphNoteLM. This currently ONLY includes READ commands, as we are working on providing secure and guardrailed write tools to prevent entire note node or notegraph overwrites and other issues such as prompt injection. But for now, instead of using the AI Assistant built-in the chat, you can connect your notegraph with applications like Claude Desktop, Claude Code, ChatGPT Desktop, Codex, etc! Now, these LLMs can gain context on your graphs and answer questions for you, alongside use their own integrations to extend off GraphNoteLM!
+<img width="1294" height="1099" alt="image" src="https://github.com/user-attachments/assets/5e49c748-d78f-4e7a-ad17-77a2bdd52120" />
 
 Another feature is edittable system prompts! Currently, AI Assistants are grounded with the prompt "Analyze the notegraph and its content for learning and understanding". If you want it replaced because you need a different use case (idk, like make it talk like a pirate), you can now edit the system prompt within the sidebar.
 
