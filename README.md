@@ -14,10 +14,12 @@ In addition to each notebook, or "notegraph", being powered by a graph datastruc
 
 # Technologies
 Tech Stack
+- ElectronJS Bundling
 - ReactJS + Vite (JavaScript, HTML & CSS)
 - .NET Core 9.0 (C#)
 - SignalR Websocket Connection
 - PostgreSQL
+- SQLite
 - DynamoDB
 - Environment-based Dockerization
 
