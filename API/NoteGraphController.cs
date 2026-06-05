@@ -117,9 +117,13 @@ namespace graphnotelm.API
         }
 
         [HttpPatch("edit/{noteGraphId:guid}/graphcontext", Name = "EditNoteGraphContext")]
-        public async Task<ActionResult<Result<EditGraphMetadataResponse>>> EditGraphContext([FromBody] EditGraphMetadataRequest editGraphMetadataRequest, Guid noteGraphId, CancellationToken ct)
+        public async Task<ActionResult<Result<bool>>> EditGraphContext([FromBody] EditGraphContextRequest request, Guid noteGraphId, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            var result = await _noteGraphService.EditGraphContextById(request, noteGraphId, ct);
+            if (!result.Success)
+                return BadRequest(result);
+
+            return Ok(result);
         }
 
         [HttpPost("create/import")]

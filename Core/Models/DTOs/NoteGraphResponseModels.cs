@@ -33,6 +33,7 @@ namespace graphnotelm.Core.Models.DTOs
     public class GetGraphSkeletonResponse
     {
         public Guid Id { get; set; }
+        public string SystemPrompt { get; set; } = string.Empty;
         public Dictionary<Guid, TagDefinition> Tags { get; set; } = new();
         public Dictionary<Guid, RelationshipDefinition> Relationships { get; set; } = new();
         public Dictionary<Guid, NodeSkeleton> Nodes { get; set; } = new();

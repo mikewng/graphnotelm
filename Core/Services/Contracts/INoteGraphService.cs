@@ -12,6 +12,7 @@ namespace graphnotelm.Core.Services.Contracts
         public Task<Result<GetGraphListResponse>> GetArchivedNoteGraphList(CancellationToken ct);
         public Task<Result<CreateGraphResponse>> CreateNoteGraph(CreateGraphRequest createGraphRequest, CancellationToken ct);
         public Task<Result<EditGraphMetadataResponse>> EditGraphMetadataById(EditGraphMetadataRequest editGraphMetadataRequest, Guid noteGraphId, CancellationToken ct);
+        public Task<Result<bool>> EditGraphContextById(EditGraphContextRequest request, Guid noteGraphId, CancellationToken ct);
         public Task<Result<DeleteGraphResponse>> DeleteNoteGraphById(Guid noteGraphId, CancellationToken ct);
         public Task<Result<DeleteGraphResponse>> HardDeleteNoteGraphById(Guid noteGraphId, CancellationToken ct);
         public Task<Result<DeleteGraphResponse>> UnarchiveNoteGraphById(Guid noteGraphId, CancellationToken ct);
