@@ -40,9 +40,10 @@ namespace graphnotelm.Core.Services
             var relationshipTypes = graph.Relationships.Values
                 .Select(r => $"{r.Name} / {r.Inverse}");
 
+            var hasCustomPrompt = !string.IsNullOrWhiteSpace(graph.Context.SystemPrompt);
+
             var userPrompt = $$"""
-            Analyze these nodes and relationships from a knowledge graph
-            and infer the graph's domain and purpose.
+            {{(hasCustomPrompt ? graph.Context.SystemPrompt : "Analyze these nodes and relationships from a knowledge graph and infer the graph's domain and purpose.")}}
 
             Nodes:
             {{JsonSerializer.Serialize(sampleNodes, new JsonSerializerOptions { WriteIndented = true })}}

@@ -25,6 +25,11 @@ namespace graphnotelm.Core.Models.DTOs
         public string Description { get; set; }
     }
 
+    public class EditGraphContextRequest
+    {
+        public string SystemPrompt { get; set; } = string.Empty;
+    }
+
     public class CreateNodeRequest
     {
         public string Title { get; set; } = string.Empty;

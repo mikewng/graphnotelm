@@ -24,6 +24,13 @@ namespace graphnotelm.Infrastructure.Repository
             return await DbSet.FirstOrDefaultAsync(m => m.Id == noteGraphId && m.IsDeleted, ct);
         }
 
+        public async Task<List<NoteGraphMetadata>> GetAllAsync(CancellationToken ct = default)
+        {
+            return await DbSet.Where(m => !m.IsDeleted)
+                .OrderByDescending(m => m.UpdatedAt)
+                .ToListAsync(ct);
+        }
+
         public async Task<List<NoteGraphMetadata>> GetListByUserIdAsync(Guid userId, CancellationToken ct = default)
         {
             return await DbSet.Where(m => m.UserId == userId && !m.IsDeleted)

@@ -47,6 +47,7 @@ namespace graphnotelm.Core.Services
             return Result<GetGraphSkeletonResponse>.Ok(new GetGraphSkeletonResponse
             {
                 Id = graphData.Id,
+                SystemPrompt = graphData.Context.SystemPrompt,
                 Tags = graphData.Tags,
                 Relationships = graphData.Relationships,
                 Nodes = graphData.Nodes.ToDictionary(
@@ -164,6 +165,19 @@ namespace graphnotelm.Core.Services
             {
                 return Result<EditGraphMetadataResponse>.Fail("Failed to edit graph metadata.");
             }
+        }
+
+        public async Task<Result<bool>> EditGraphContextById(EditGraphContextRequest request, Guid noteGraphId, CancellationToken ct)
+        {
+            var accessResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            if (!accessResult.Success)
+                return Result<bool>.Fail(accessResult.Error!);
+
+            var document = accessResult.Value!;
+            document.Context.SystemPrompt = request.SystemPrompt;
+
+            await _noteGraphRepository.SaveAsync(document);
+            return Result<bool>.Ok(true);
         }
 
         public async Task<Result<DeleteGraphResponse>> DeleteNoteGraphById(Guid noteGraphId, CancellationToken ct)
