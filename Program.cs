@@ -45,7 +45,7 @@ Guid? mcpUserId = File.Exists(mcpUserFile) && Guid.TryParse(File.ReadAllText(mcp
 var mcpEnabledFile = Path.Combine(keyDir, "mcp-enabled.txt");
 var mcpEnabled = !File.Exists(mcpEnabledFile) || File.ReadAllText(mcpEnabledFile).Trim() != "false";
 
-var mcpPort = builder.Configuration.GetValue<int>("LocalPort", 5240);
+var mcpPort = builder.Configuration.GetValue<int>("LocalPort", 5000);
 
 var mcpSettings = new McpSettings
 {
@@ -63,7 +63,7 @@ builder.Services.AddSingleton(mcpSettings);
 var localDb = builder.Configuration.GetConnectionString("LocalDB");
 if (localDb != null && !builder.Environment.IsDevelopment())
 {
-    var port = builder.Configuration.GetValue<int>("LocalPort", 5240);
+    var port = builder.Configuration.GetValue<int>("LocalPort", 5000);
     builder.WebHost.UseUrls($"http://localhost:{port}");
 }
 

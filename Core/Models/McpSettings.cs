@@ -8,6 +8,6 @@ namespace graphnotelm.Core.Models
         public string KeyFilePath { get; set; } = string.Empty;
         public string EnabledFilePath { get; set; } = string.Empty;
         public bool IsEnabled { get; set; } = true;
-        public int Port { get; set; } = 5240;
+        public int Port { get; set; } = 5000;
     }
 }
