@@ -214,3 +214,12 @@ Caveats:
 - Delete Internal NoteGraph Data
    - run command: docker volume rm graphnotelm_notegraph_data graphnotelm_postgres_data
    - Go to docker -> Volumes -> Check graphnotelm_notegraph_data and or graphnotelm_postgres_data -> Hit "delete" button on top right
+ 
+### Connecting to MCP
+For the MCP, you are able to give any LLM agentic tool access to the graphnotes by connecting it to the GraphNoteLM MCP. Specifically for claude desktop: add the following to the claude_desktop_config.json:
+"mcpServers": {
+      "graphnotelm": {
+        "command": "npx",
+        "args": ["mcp-remote", "http://localhost:5240/mcp?key=o9jwTaeyA..."]
+      }
+}
