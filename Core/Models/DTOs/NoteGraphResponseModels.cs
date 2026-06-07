@@ -141,6 +141,23 @@ namespace graphnotelm.Core.Models.DTOs
         public bool IsSuccess = false;
     }
 
+    public class PinnedNodeResult
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+    }
+
+    public class GetPinnedNodesResponse
+    {
+        public List<PinnedNodeResult> Nodes { get; set; } = new();
+    }
+
+    public class SetPinnedResponse
+    {
+        public Guid NodeId { get; set; }
+        public bool IsPinned { get; set; }
+    }
+
     public class EditNodeMetadataResponse
     {
         public Guid NodeId { get; set; }

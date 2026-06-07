@@ -109,4 +109,10 @@ namespace graphnotelm.Core.Models.DTOs
         [Required]
         public List<Guid> NodeIds { get; set; } = new();
     }
+
+    public class SetPinnedRequest
+    {
+        [Required]
+        public bool IsPinned { get; set; }
+    }
 }

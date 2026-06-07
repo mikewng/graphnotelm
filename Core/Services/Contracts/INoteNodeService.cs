@@ -14,5 +14,7 @@ namespace graphnotelm.Core.Services.Contracts
         public Task<Result<EditNodeMetadataResponse>> EditNodeMetadataByIds(EditNodeMetadataRequest editNodeMetadataRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct);
         public Task<Result<CreateNodeResponse>> CreateNodeFromPastedContent(CreateNotePastedRequest createNotePastedRequest, Guid noteGraphId, CancellationToken ct);
         public Task<Result<SearchNodesResponse>> SearchNodesByContent(Guid noteGraphId, string query, CancellationToken ct);
+        public Task<Result<GetPinnedNodesResponse>> GetPinnedNodes(Guid noteGraphId, CancellationToken ct);
+        public Task<Result<SetPinnedResponse>> SetNodePinned(Guid noteGraphId, Guid noteNodeId, bool isPinned, CancellationToken ct);
     }
 }

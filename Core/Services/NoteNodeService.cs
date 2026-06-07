@@ -274,6 +274,44 @@ namespace graphnotelm.Core.Services
             return Result<SearchNodesResponse>.Ok(new SearchNodesResponse { Results = results });
         }
 
+        public async Task<Result<GetPinnedNodesResponse>> GetPinnedNodes(Guid noteGraphId, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<GetPinnedNodesResponse>.Fail(metadataResult.Error!);
+
+            var nodes = await _noteNodeRepository.GetAllByGraphIdAsync(noteGraphId, ct);
+            var pinned = nodes
+                .Where(n => n.Metadata.IsPinned)
+                .Select(n => new PinnedNodeResult { Id = n.Id, Title = n.Title })
+                .ToList();
+
+            return Result<GetPinnedNodesResponse>.Ok(new GetPinnedNodesResponse { Nodes = pinned });
+        }
+
+        public async Task<Result<SetPinnedResponse>> SetNodePinned(Guid noteGraphId, Guid noteNodeId, bool isPinned, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<SetPinnedResponse>.Fail(metadataResult.Error!);
+
+            var node = await _noteNodeRepository.GetByIdAsync(noteGraphId, noteNodeId, ct);
+            if (node is null)
+                return Result<SetPinnedResponse>.Fail("Node not found.");
+
+            node.Metadata.IsPinned = isPinned;
+
+            try
+            {
+                await _noteNodeRepository.SaveAsync(noteGraphId, node);
+                return Result<SetPinnedResponse>.Ok(new SetPinnedResponse { NodeId = noteNodeId, IsPinned = isPinned });
+            }
+            catch
+            {
+                return Result<SetPinnedResponse>.Fail("Failed to update pin status.");
+            }
+        }
+
         private static string BuildSnippet(string text, string query, int halfWindow = 80)
         {
             var idx = text.IndexOf(query, StringComparison.OrdinalIgnoreCase);

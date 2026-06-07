@@ -120,6 +120,26 @@ namespace graphnotelm.API
             return Result<EditNodeMetadataResponse>.Ok(editMetadataResponse.Value);
         }
 
+        [HttpGet("id/{noteGraphId:guid}/nodes/pinned")]
+        public async Task<ActionResult<Result<GetPinnedNodesResponse>>> GetPinnedNodes(Guid noteGraphId, CancellationToken ct)
+        {
+            var result = await _noteNodeService.GetPinnedNodes(noteGraphId, ct);
+            if (!result.Success || result.Value == null)
+                return BadRequest(Result<GetPinnedNodesResponse>.Fail(result.Error ?? "Failed to get pinned nodes."));
+
+            return Result<GetPinnedNodesResponse>.Ok(result.Value);
+        }
+
+        [HttpPatch("id/{noteGraphId:guid}/node/{nodeId:guid}/pin")]
+        public async Task<ActionResult<Result<SetPinnedResponse>>> SetNodePinned([FromBody] SetPinnedRequest request, Guid noteGraphId, Guid nodeId, CancellationToken ct)
+        {
+            var result = await _noteNodeService.SetNodePinned(noteGraphId, nodeId, request.IsPinned, ct);
+            if (!result.Success || result.Value == null)
+                return BadRequest(Result<SetPinnedResponse>.Fail(result.Error ?? "Failed to update pin status."));
+
+            return Result<SetPinnedResponse>.Ok(result.Value);
+        }
+
         [HttpPost("id/{noteGraphId:guid}/node/paste")]
         public async Task<ActionResult<Result<CreateNodeResponse>>> PasteContentToNode([FromBody] CreateNotePastedRequest createNotePastedRequest, Guid noteGraphId, CancellationToken ct)
         {

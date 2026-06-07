@@ -37,6 +37,7 @@
     {
         public float UserConfidenceRate { get; set; } = 0.0f;
         public string LLMMetadata { get; set; } = string.Empty;
+        public bool IsPinned { get; set; } = false;
     }
 
     public class NodeRelationship
