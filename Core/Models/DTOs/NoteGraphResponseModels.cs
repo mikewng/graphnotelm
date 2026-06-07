@@ -19,6 +19,7 @@ namespace graphnotelm.Core.Models.DTOs
     public class NodeSkeletonMetadata
     {
         public float UserConfidenceRate { get; set; }
+        public bool IsPinned { get; set; }
     }
 
     public class NodeSkeleton
