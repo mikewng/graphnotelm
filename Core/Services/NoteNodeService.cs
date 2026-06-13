@@ -312,6 +312,44 @@ namespace graphnotelm.Core.Services
             }
         }
 
+        public async Task<Result<SetPinnedManyResponse>> SetNodesPinned(SetPinnedManyRequest request, Guid noteGraphId, bool isPinned, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<SetPinnedManyResponse>.Fail(metadataResult.Error!);
+
+            var nodes = await _noteNodeRepository.GetAllByGraphIdAsync(noteGraphId, ct);
+            var nodesById = nodes.ToDictionary(n => n.Id);
+
+            var response = new SetPinnedManyResponse { IsPinned = isPinned };
+            var updatedNodes = new List<NoteNode>();
+
+            foreach (var nodeId in request.NodeIds)
+            {
+                if (!nodesById.TryGetValue(nodeId, out var node) || node.Metadata.IsPinned == isPinned)
+                {
+                    response.SkippedNodeIds.Add(nodeId);
+                    continue;
+                }
+
+                node.Metadata.IsPinned = isPinned;
+                updatedNodes.Add(node);
+                response.UpdatedNodeIds.Add(nodeId);
+            }
+
+            try
+            {
+                if (updatedNodes.Count > 0)
+                    await _noteNodeRepository.SaveManyAsync(noteGraphId, updatedNodes);
+
+                return Result<SetPinnedManyResponse>.Ok(response);
+            }
+            catch
+            {
+                return Result<SetPinnedManyResponse>.Fail("Failed to update pin status.");
+            }
+        }
+
         private static string BuildSnippet(string text, string query, int halfWindow = 80)
         {
             var idx = text.IndexOf(query, StringComparison.OrdinalIgnoreCase);

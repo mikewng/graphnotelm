@@ -227,6 +227,44 @@ namespace graphnotelm.Infrastructure.Repository
             await cmd.ExecuteNonQueryAsync();
         }
 
+        public async Task SaveManyAsync(Guid noteGraphId, IEnumerable<NoteNode> nodes)
+        {
+            await using var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync();
+            await using var tx = (SqliteTransaction)await conn.BeginTransactionAsync();
+
+            await using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = """
+                INSERT INTO NoteNodes (GraphId, NodeId, Title, Note, IsPinned, Metadata)
+                VALUES ($graphId, $nodeId, $title, $note, $isPinned, $metadata)
+                ON CONFLICT(GraphId, NodeId) DO UPDATE SET
+                    Title    = excluded.Title,
+                    Note     = excluded.Note,
+                    IsPinned = excluded.IsPinned,
+                    Metadata = excluded.Metadata;
+                """;
+            var graphIdParam = cmd.Parameters.Add("$graphId", SqliteType.Text);
+            var nodeIdParam = cmd.Parameters.Add("$nodeId", SqliteType.Text);
+            var titleParam = cmd.Parameters.Add("$title", SqliteType.Text);
+            var noteParam = cmd.Parameters.Add("$note", SqliteType.Text);
+            var isPinnedParam = cmd.Parameters.Add("$isPinned", SqliteType.Integer);
+            var metadataParam = cmd.Parameters.Add("$metadata", SqliteType.Text);
+
+            graphIdParam.Value = noteGraphId.ToString();
+            foreach (var node in nodes)
+            {
+                nodeIdParam.Value = node.Id.ToString();
+                titleParam.Value = node.Title;
+                noteParam.Value = node.Note;
+                isPinnedParam.Value = node.Metadata.IsPinned ? 1 : 0;
+                metadataParam.Value = SerializeBlob(node);
+                await cmd.ExecuteNonQueryAsync();
+            }
+
+            await tx.CommitAsync();
+        }
+
         public async Task DeleteAsync(Guid noteGraphId, Guid nodeId)
         {
             await using var conn = new SqliteConnection(_connectionString);

@@ -138,6 +138,105 @@ namespace graphnotelm.Core.Services
             }
         }
 
+        public async Task<Result<AddTagToNodesResponse>> AddTagToManyNodes(AddTagToNodesRequest request, Guid noteGraphId, CancellationToken ct)
+        {
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
+                return Result<AddTagToNodesResponse>.Fail(graphDataResult.Error!);
+
+            var graphData = graphDataResult.Value!;
+            var response = new AddTagToNodesResponse();
+            var updatedNodes = new List<NoteNode>();
+
+            foreach (var nodeId in request.NodeIds)
+            {
+                if (!graphData.Nodes.TryGetValue(nodeId, out var node))
+                {
+                    foreach (var tagId in request.TagIds)
+                        response.Skipped.Add(new NodeTagPair { NodeId = nodeId, TagId = tagId });
+                    continue;
+                }
+
+                var nodeUpdated = false;
+                foreach (var tagId in request.TagIds)
+                {
+                    if (!graphData.Tags.ContainsKey(tagId) || node.Tags.Contains(tagId))
+                    {
+                        response.Skipped.Add(new NodeTagPair { NodeId = nodeId, TagId = tagId });
+                        continue;
+                    }
+
+                    node.Tags.Add(tagId);
+                    nodeUpdated = true;
+                    response.Applied.Add(new NodeTagPair { NodeId = nodeId, TagId = tagId });
+                }
+
+                if (nodeUpdated)
+                    updatedNodes.Add(node);
+            }
+
+            try
+            {
+                if (updatedNodes.Count > 0)
+                    await _noteNodeRepository.SaveManyAsync(noteGraphId, updatedNodes);
+
+                return Result<AddTagToNodesResponse>.Ok(response);
+            }
+            catch
+            {
+                return Result<AddTagToNodesResponse>.Fail("Failed to add tags to nodes.");
+            }
+        }
+
+        public async Task<Result<RemoveTagFromNodesResponse>> RemoveTagFromManyNodes(RemoveTagFromNodesRequest request, Guid noteGraphId, CancellationToken ct)
+        {
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
+                return Result<RemoveTagFromNodesResponse>.Fail(graphDataResult.Error!);
+
+            var graphData = graphDataResult.Value!;
+            var response = new RemoveTagFromNodesResponse();
+            var updatedNodes = new List<NoteNode>();
+
+            foreach (var nodeId in request.NodeIds)
+            {
+                if (!graphData.Nodes.TryGetValue(nodeId, out var node))
+                {
+                    foreach (var tagId in request.TagIds)
+                        response.Skipped.Add(new NodeTagPair { NodeId = nodeId, TagId = tagId });
+                    continue;
+                }
+
+                var nodeUpdated = false;
+                foreach (var tagId in request.TagIds)
+                {
+                    if (!node.Tags.Remove(tagId))
+                    {
+                        response.Skipped.Add(new NodeTagPair { NodeId = nodeId, TagId = tagId });
+                        continue;
+                    }
+
+                    nodeUpdated = true;
+                    response.Applied.Add(new NodeTagPair { NodeId = nodeId, TagId = tagId });
+                }
+
+                if (nodeUpdated)
+                    updatedNodes.Add(node);
+            }
+
+            try
+            {
+                if (updatedNodes.Count > 0)
+                    await _noteNodeRepository.SaveManyAsync(noteGraphId, updatedNodes);
+
+                return Result<RemoveTagFromNodesResponse>.Ok(response);
+            }
+            catch
+            {
+                return Result<RemoveTagFromNodesResponse>.Fail("Failed to remove tags from nodes.");
+            }
+        }
+
         public async Task<Result<RemoveNodeTagResponse>> RemoveTagFromNode(Guid noteGraphId, Guid noteNodeId, Guid tagId, CancellationToken ct)
         {
             var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);

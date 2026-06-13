@@ -159,6 +159,13 @@ namespace graphnotelm.Core.Models.DTOs
         public bool IsPinned { get; set; }
     }
 
+    public class SetPinnedManyResponse
+    {
+        public bool IsPinned { get; set; }
+        public List<Guid> UpdatedNodeIds { get; set; } = new();
+        public List<Guid> SkippedNodeIds { get; set; } = new();
+    }
+
     public class EditNodeMetadataResponse
     {
         public Guid NodeId { get; set; }
@@ -175,6 +182,24 @@ namespace graphnotelm.Core.Models.DTOs
     {
         public Guid NodeId { get; set; }
         public Guid RemovedTagId { get; set; }
+    }
+
+    public class NodeTagPair
+    {
+        public Guid NodeId { get; set; }
+        public Guid TagId { get; set; }
+    }
+
+    public class AddTagToNodesResponse
+    {
+        public List<NodeTagPair> Applied { get; set; } = new();
+        public List<NodeTagPair> Skipped { get; set; } = new();
+    }
+
+    public class RemoveTagFromNodesResponse
+    {
+        public List<NodeTagPair> Applied { get; set; } = new();
+        public List<NodeTagPair> Skipped { get; set; } = new();
     }
 
     public class AddNodeRelationshipResponse

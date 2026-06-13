@@ -80,6 +80,26 @@ namespace graphnotelm.API
             return Result<AddNodeTagResponse>.Ok(response.Value);
         }
 
+        [HttpPost("id/{noteGraphId:guid}/nodes/tags")]
+        public async Task<ActionResult<Result<AddTagToNodesResponse>>> AddTagToManyNodes([FromBody] AddTagToNodesRequest addTagToNodesRequest, Guid noteGraphId, CancellationToken ct)
+        {
+            var response = await _graphTagService.AddTagToManyNodes(addTagToNodesRequest, noteGraphId, ct);
+            if (!response.Success || response.Value == null)
+                return BadRequest(Result<AddTagToNodesResponse>.Fail(response.Error ?? "Failed to add tags to nodes."));
+
+            return Result<AddTagToNodesResponse>.Ok(response.Value);
+        }
+
+        [HttpDelete("id/{noteGraphId:guid}/nodes/tags")]
+        public async Task<ActionResult<Result<RemoveTagFromNodesResponse>>> RemoveTagFromManyNodes([FromBody] RemoveTagFromNodesRequest removeTagFromNodesRequest, Guid noteGraphId, CancellationToken ct)
+        {
+            var response = await _graphTagService.RemoveTagFromManyNodes(removeTagFromNodesRequest, noteGraphId, ct);
+            if (!response.Success || response.Value == null)
+                return BadRequest(Result<RemoveTagFromNodesResponse>.Fail(response.Error ?? "Failed to remove tags from nodes."));
+
+            return Result<RemoveTagFromNodesResponse>.Ok(response.Value);
+        }
+
         [HttpDelete("id/{noteGraphId:guid}/node/{nodeId:guid}/tags/{tagId:guid}")]
         public async Task<ActionResult<Result<RemoveNodeTagResponse>>> RemoveTagFromNode(Guid noteGraphId, Guid nodeId, Guid tagId, CancellationToken ct)
         {

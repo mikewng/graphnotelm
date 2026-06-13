@@ -87,6 +87,13 @@ namespace graphnotelm.Infrastructure.Repository
             await PersistAsync();
         }
 
+        public async Task SaveManyAsync(Guid noteGraphId, IEnumerable<NoteNode> nodes)
+        {
+            foreach (var node in nodes)
+                _store[Key(noteGraphId, node.Id)] = node;
+            await PersistAsync();
+        }
+
         public async Task DeleteAsync(Guid noteGraphId, Guid nodeId)
         {
             _store.TryRemove(Key(noteGraphId, nodeId), out _);

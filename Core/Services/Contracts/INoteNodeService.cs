@@ -16,5 +16,6 @@ namespace graphnotelm.Core.Services.Contracts
         public Task<Result<SearchNodesResponse>> SearchNodesByContent(Guid noteGraphId, string query, CancellationToken ct);
         public Task<Result<GetPinnedNodesResponse>> GetPinnedNodes(Guid noteGraphId, CancellationToken ct);
         public Task<Result<SetPinnedResponse>> SetNodePinned(Guid noteGraphId, Guid noteNodeId, bool isPinned, CancellationToken ct);
+        public Task<Result<SetPinnedManyResponse>> SetNodesPinned(SetPinnedManyRequest request, Guid noteGraphId, bool isPinned, CancellationToken ct);
     }
 }

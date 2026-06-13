@@ -96,6 +96,22 @@ namespace graphnotelm.Core.Models.DTOs
         public Guid TagId { get; set; }
     }
 
+    public class AddTagToNodesRequest
+    {
+        [Required]
+        public List<Guid> TagIds { get; set; } = new();
+        [Required]
+        public List<Guid> NodeIds { get; set; } = new();
+    }
+
+    public class RemoveTagFromNodesRequest
+    {
+        [Required]
+        public List<Guid> TagIds { get; set; } = new();
+        [Required]
+        public List<Guid> NodeIds { get; set; } = new();
+    }
+
     public class AddNodeRelationshipRequest
     {
         [Required]
@@ -114,5 +130,11 @@ namespace graphnotelm.Core.Models.DTOs
     {
         [Required]
         public bool IsPinned { get; set; }
+    }
+
+    public class SetPinnedManyRequest
+    {
+        [Required]
+        public List<Guid> NodeIds { get; set; } = new();
     }
 }

@@ -42,6 +42,13 @@ namespace graphnotelm.Infrastructure.Repository
             return Task.CompletedTask;
         }
 
+        public Task SaveManyAsync(Guid noteGraphId, IEnumerable<NoteNode> nodes)
+        {
+            foreach (var node in nodes)
+                _store[noteGraphId.ToString() + node.Id.ToString()] = node;
+            return Task.CompletedTask;
+        }
+
         public Task DeleteAsync(Guid noteGraphId, Guid nodeId)
         {
             string dictId = noteGraphId.ToString() + nodeId.ToString();

@@ -91,6 +91,45 @@ namespace graphnotelm.Infrastructure.Repository
             });
         }
 
+        public async Task SaveManyAsync(Guid noteGraphId, IEnumerable<NoteNode> nodes)
+        {
+            const int batchSize = 25;
+            foreach (var chunk in nodes.Chunk(batchSize))
+            {
+                var writeRequests = chunk.Select(node => new WriteRequest
+                {
+                    PutRequest = new PutRequest
+                    {
+                        Item = new Dictionary<string, AttributeValue>
+                        {
+                            ["GraphId"] = new AttributeValue { S = noteGraphId.ToString() },
+                            ["NodeId"] = new AttributeValue { S = node.Id.ToString() },
+                            ["Data"] = new AttributeValue { S = JsonSerializer.Serialize(node) }
+                        }
+                    }
+                }).ToList();
+
+                if (writeRequests.Count == 0)
+                    continue;
+
+                var request = new BatchWriteItemRequest
+                {
+                    RequestItems = new Dictionary<string, List<WriteRequest>>
+                    {
+                        [_tableName] = writeRequests
+                    }
+                };
+
+                BatchWriteItemResponse response;
+                do
+                {
+                    response = await _client.BatchWriteItemAsync(request);
+                    request.RequestItems = response.UnprocessedItems;
+                }
+                while (response.UnprocessedItems.Count > 0);
+            }
+        }
+
         public async Task DeleteAsync(Guid noteGraphId, Guid nodeId)
         {
             await _client.DeleteItemAsync(new DeleteItemRequest
