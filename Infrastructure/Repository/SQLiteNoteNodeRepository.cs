@@ -34,6 +34,11 @@ namespace graphnotelm.Infrastructure.Repository
                 CreateSchema(conn);
             else if (columns.Contains("Data") && !columns.Contains("Title"))
                 MigrateSchema(conn);
+
+            // Additive migration: FolderId is a nullable column, so it can be added
+            // in place without rebuilding the table. Existing rows become NULL (unfiled).
+            if (columns.Count > 0 && !columns.Contains("FolderId"))
+                AddFolderIdColumn(conn);
         }
 
         private static void CreateSchema(SqliteConnection conn)
@@ -46,10 +51,18 @@ namespace graphnotelm.Infrastructure.Repository
                     Title    TEXT NOT NULL DEFAULT '',
                     Note     TEXT NOT NULL DEFAULT '',
                     IsPinned INTEGER NOT NULL DEFAULT 0,
+                    FolderId TEXT NULL,
                     Metadata TEXT NOT NULL DEFAULT '{}',
                     PRIMARY KEY (GraphId, NodeId)
                 );
                 """;
+            cmd.ExecuteNonQuery();
+        }
+
+        private static void AddFolderIdColumn(SqliteConnection conn)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "ALTER TABLE NoteNodes ADD COLUMN FolderId TEXT NULL;";
             cmd.ExecuteNonQuery();
         }
 
@@ -124,7 +137,7 @@ namespace graphnotelm.Infrastructure.Repository
                 Tags = node.Tags
             });
 
-        private static NoteNode Hydrate(Guid nodeId, string title, string note, bool isPinned, string blobJson)
+        private static NoteNode Hydrate(Guid nodeId, string title, string note, bool isPinned, Guid? folderId, string blobJson)
         {
             var blob = JsonSerializer.Deserialize<NodeBlob>(blobJson, _jsonOptions) ?? new NodeBlob();
             return new NoteNode
@@ -139,16 +152,20 @@ namespace graphnotelm.Infrastructure.Repository
                     IsPinned = isPinned
                 },
                 Relationships = blob.Relationships,
-                Tags = blob.Tags
+                Tags = blob.Tags,
+                FolderId = folderId
             };
         }
+
+        private static Guid? ReadFolderId(SqliteDataReader reader, int ordinal)
+            => reader.IsDBNull(ordinal) ? null : Guid.Parse(reader.GetString(ordinal));
 
         public async Task<NoteNode?> GetByIdAsync(Guid noteGraphId, Guid noteNodeId, CancellationToken ct = default)
         {
             await using var conn = new SqliteConnection(_connectionString);
             await conn.OpenAsync(ct);
             await using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT NodeId, Title, Note, IsPinned, Metadata FROM NoteNodes WHERE GraphId = $graphId AND NodeId = $nodeId";
+            cmd.CommandText = "SELECT NodeId, Title, Note, IsPinned, FolderId, Metadata FROM NoteNodes WHERE GraphId = $graphId AND NodeId = $nodeId";
             cmd.Parameters.AddWithValue("$graphId", noteGraphId.ToString());
             cmd.Parameters.AddWithValue("$nodeId", noteNodeId.ToString());
             await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -158,7 +175,8 @@ namespace graphnotelm.Infrastructure.Repository
                 reader.GetString(1),
                 reader.GetString(2),
                 reader.GetInt32(3) != 0,
-                reader.GetString(4));
+                ReadFolderId(reader, 4),
+                reader.GetString(5));
         }
 
         public async Task<List<NoteNode>> GetAllByGraphIdAsync(Guid noteGraphId, CancellationToken ct = default)
@@ -166,7 +184,7 @@ namespace graphnotelm.Infrastructure.Repository
             await using var conn = new SqliteConnection(_connectionString);
             await conn.OpenAsync(ct);
             await using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT NodeId, Title, Note, IsPinned, Metadata FROM NoteNodes WHERE GraphId = $graphId";
+            cmd.CommandText = "SELECT NodeId, Title, Note, IsPinned, FolderId, Metadata FROM NoteNodes WHERE GraphId = $graphId";
             cmd.Parameters.AddWithValue("$graphId", noteGraphId.ToString());
             await using var reader = await cmd.ExecuteReaderAsync(ct);
             var nodes = new List<NoteNode>();
@@ -176,7 +194,8 @@ namespace graphnotelm.Infrastructure.Repository
                     reader.GetString(1),
                     reader.GetString(2),
                     reader.GetInt32(3) != 0,
-                    reader.GetString(4)));
+                    ReadFolderId(reader, 4),
+                    reader.GetString(5)));
             return nodes;
         }
 
@@ -186,7 +205,7 @@ namespace graphnotelm.Infrastructure.Repository
             await conn.OpenAsync(ct);
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = """
-                SELECT NodeId, Title, Note, IsPinned, Metadata FROM NoteNodes
+                SELECT NodeId, Title, Note, IsPinned, FolderId, Metadata FROM NoteNodes
                 WHERE GraphId = $graphId
                 AND (INSTR(LOWER(Title), LOWER($query)) > 0 OR INSTR(LOWER(Note), LOWER($query)) > 0)
                 """;
@@ -200,7 +219,8 @@ namespace graphnotelm.Infrastructure.Repository
                     reader.GetString(1),
                     reader.GetString(2),
                     reader.GetInt32(3) != 0,
-                    reader.GetString(4)));
+                    ReadFolderId(reader, 4),
+                    reader.GetString(5)));
             return nodes;
         }
 
@@ -210,12 +230,13 @@ namespace graphnotelm.Infrastructure.Repository
             await conn.OpenAsync();
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO NoteNodes (GraphId, NodeId, Title, Note, IsPinned, Metadata)
-                VALUES ($graphId, $nodeId, $title, $note, $isPinned, $metadata)
+                INSERT INTO NoteNodes (GraphId, NodeId, Title, Note, IsPinned, FolderId, Metadata)
+                VALUES ($graphId, $nodeId, $title, $note, $isPinned, $folderId, $metadata)
                 ON CONFLICT(GraphId, NodeId) DO UPDATE SET
                     Title    = excluded.Title,
                     Note     = excluded.Note,
                     IsPinned = excluded.IsPinned,
+                    FolderId = excluded.FolderId,
                     Metadata = excluded.Metadata;
                 """;
             cmd.Parameters.AddWithValue("$graphId", noteGraphId.ToString());
@@ -223,6 +244,7 @@ namespace graphnotelm.Infrastructure.Repository
             cmd.Parameters.AddWithValue("$title", node.Title);
             cmd.Parameters.AddWithValue("$note", node.Note);
             cmd.Parameters.AddWithValue("$isPinned", node.Metadata.IsPinned ? 1 : 0);
+            cmd.Parameters.AddWithValue("$folderId", (object?)node.FolderId?.ToString() ?? DBNull.Value);
             cmd.Parameters.AddWithValue("$metadata", SerializeBlob(node));
             await cmd.ExecuteNonQueryAsync();
         }
@@ -236,12 +258,13 @@ namespace graphnotelm.Infrastructure.Repository
             await using var cmd = conn.CreateCommand();
             cmd.Transaction = tx;
             cmd.CommandText = """
-                INSERT INTO NoteNodes (GraphId, NodeId, Title, Note, IsPinned, Metadata)
-                VALUES ($graphId, $nodeId, $title, $note, $isPinned, $metadata)
+                INSERT INTO NoteNodes (GraphId, NodeId, Title, Note, IsPinned, FolderId, Metadata)
+                VALUES ($graphId, $nodeId, $title, $note, $isPinned, $folderId, $metadata)
                 ON CONFLICT(GraphId, NodeId) DO UPDATE SET
                     Title    = excluded.Title,
                     Note     = excluded.Note,
                     IsPinned = excluded.IsPinned,
+                    FolderId = excluded.FolderId,
                     Metadata = excluded.Metadata;
                 """;
             var graphIdParam = cmd.Parameters.Add("$graphId", SqliteType.Text);
@@ -249,6 +272,7 @@ namespace graphnotelm.Infrastructure.Repository
             var titleParam = cmd.Parameters.Add("$title", SqliteType.Text);
             var noteParam = cmd.Parameters.Add("$note", SqliteType.Text);
             var isPinnedParam = cmd.Parameters.Add("$isPinned", SqliteType.Integer);
+            var folderIdParam = cmd.Parameters.Add("$folderId", SqliteType.Text);
             var metadataParam = cmd.Parameters.Add("$metadata", SqliteType.Text);
 
             graphIdParam.Value = noteGraphId.ToString();
@@ -258,6 +282,7 @@ namespace graphnotelm.Infrastructure.Repository
                 titleParam.Value = node.Title;
                 noteParam.Value = node.Note;
                 isPinnedParam.Value = node.Metadata.IsPinned ? 1 : 0;
+                folderIdParam.Value = (object?)node.FolderId?.ToString() ?? DBNull.Value;
                 metadataParam.Value = SerializeBlob(node);
                 await cmd.ExecuteNonQueryAsync();
             }

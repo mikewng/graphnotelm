@@ -65,6 +65,33 @@ namespace graphnotelm.Core.Models.DTOs
         public string TagColor { get; set; }
     }
 
+    public class CreateFolderRequest
+    {
+        public string FolderName { get; set; }
+        public string FolderColor { get; set; }
+    }
+
+    public class EditFolderRequest
+    {
+        public Guid Id { get; set; }
+        public string FolderName { get; set; }
+        public string FolderColor { get; set; }
+    }
+
+    // Assigns a single node to a folder. A null FolderId removes it from any folder.
+    public class MoveNodeToFolderRequest
+    {
+        public Guid? FolderId { get; set; }
+    }
+
+    // Bulk move: places every listed node into FolderId (null = unfile them all).
+    public class MoveNodesToFolderRequest
+    {
+        [Required]
+        public List<Guid> NodeIds { get; set; } = new();
+        public Guid? FolderId { get; set; }
+    }
+
     public class CreateRelationshipRequest
     {
         public string Type { get; set; }

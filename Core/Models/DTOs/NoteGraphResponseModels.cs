@@ -29,6 +29,7 @@ namespace graphnotelm.Core.Models.DTOs
         public NodeSkeletonMetadata Metadata { get; set; } = new();
         public List<NodeRelationship> Relationships { get; set; } = new();
         public List<Guid> Tags { get; set; } = new();
+        public Guid? FolderId { get; set; }
     }
 
     public class GetGraphSkeletonResponse
@@ -36,6 +37,7 @@ namespace graphnotelm.Core.Models.DTOs
         public Guid Id { get; set; }
         public string SystemPrompt { get; set; } = string.Empty;
         public Dictionary<Guid, TagDefinition> Tags { get; set; } = new();
+        public Dictionary<Guid, FolderDefinition> Folders { get; set; } = new();
         public Dictionary<Guid, RelationshipDefinition> Relationships { get; set; } = new();
         public Dictionary<Guid, NodeSkeleton> Nodes { get; set; } = new();
     }
@@ -48,6 +50,7 @@ namespace graphnotelm.Core.Models.DTOs
         public NoteNodeMetadata Metadata { get; set; } = new();
         public List<NodeRelationship> Relationships { get; set; } = new();
         public List<Guid> Tags { get; set; } = new();
+        public Guid? FolderId { get; set; }
     }
 
     public class GetNodeBatchResponse
@@ -101,6 +104,39 @@ namespace graphnotelm.Core.Models.DTOs
 
     public class DeleteTagResponse {
         public string TagName { get; set; }
+    }
+
+    public class GetFolderListResponse
+    {
+        public Dictionary<Guid, FolderDefinition> Folders { get; set; } = new();
+    }
+
+    public class CreateFolderResponse
+    {
+        public Guid Id { get; set; }
+        public string FolderName { get; set; }
+    }
+
+    public class EditFolderResponse
+    {
+    }
+
+    public class DeleteFolderResponse
+    {
+        public string FolderName { get; set; }
+    }
+
+    public class MoveNodeToFolderResponse
+    {
+        public Guid NodeId { get; set; }
+        public Guid? FolderId { get; set; }
+    }
+
+    public class MoveNodesToFolderResponse
+    {
+        public Guid? FolderId { get; set; }
+        public List<Guid> UpdatedNodeIds { get; set; } = new();
+        public List<Guid> SkippedNodeIds { get; set; } = new();
     }
 
     public class GetRelationshipListResponse

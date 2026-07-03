@@ -49,6 +49,7 @@ namespace graphnotelm.Core.Services
                 Id = graphData.Id,
                 SystemPrompt = graphData.Context.SystemPrompt,
                 Tags = graphData.Tags,
+                Folders = graphData.Folders,
                 Relationships = graphData.Relationships,
                 Nodes = graphData.Nodes.ToDictionary(
                     kvp => kvp.Key,
@@ -62,7 +63,8 @@ namespace graphnotelm.Core.Services
                             IsPinned = kvp.Value.Metadata.IsPinned
                         },
                         Relationships = kvp.Value.Relationships,
-                        Tags = kvp.Value.Tags
+                        Tags = kvp.Value.Tags,
+                        FolderId = kvp.Value.FolderId
                     })
             });
         }
@@ -293,6 +295,7 @@ namespace graphnotelm.Core.Services
                     Id = newMetadata.Id,
                     UserId = _currentUser.UserId,
                     Tags = document.Tags,
+                    Folders = document.Folders,
                     Relationships = document.Relationships
                 };
 
@@ -328,6 +331,7 @@ namespace graphnotelm.Core.Services
             {
                 Name = metadataResult.Value!.Name,
                 Tags = graphData.Tags,
+                Folders = graphData.Folders,
                 Relationships = graphData.Relationships,
                 Nodes = nodes.ToDictionary(n => n.Id)
             };

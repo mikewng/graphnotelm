@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<INoteNodeService, NoteNodeService>();
 
         services.AddScoped<INoteGraphTagService, NoteGraphTagService>();
+        services.AddScoped<INoteGraphFolderService, NoteGraphFolderService>();
         services.AddScoped<INoteGraphRelationshipService, NoteGraphRelationshipService>();
 
         services.AddScoped<IGraphAnalysisService, GraphAnalysisService>();

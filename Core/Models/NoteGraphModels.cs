@@ -3,6 +3,7 @@
     public class NoteGraphDocumentREADONLY {
         public string Name { get; set; } = String.Empty;
         public Dictionary<Guid, TagDefinition> Tags { get; set; } = new();
+        public Dictionary<Guid, FolderDefinition> Folders { get; set; } = new();
         public Dictionary<Guid, RelationshipDefinition> Relationships { get; set; } = new();
         public Dictionary<Guid, NoteNode> Nodes { get; set; } = new();
     }
@@ -13,6 +14,7 @@
         public Guid UserId { get; set; }
         public GraphContext Context { get; set; } = new();
         public Dictionary<Guid, TagDefinition> Tags { get; set; } = new();
+        public Dictionary<Guid, FolderDefinition> Folders { get; set; } = new();
         public Dictionary<Guid, RelationshipDefinition> Relationships { get; set; } = new();
         public Dictionary<Guid, NoteNode> Nodes { get; set; } = new();
     }
@@ -31,6 +33,9 @@
         public string Note { get; set; } = string.Empty;
         public List<NodeRelationship> Relationships { get; set; } = new();
         public List<Guid> Tags { get; set; } = new();
+
+        // A node belongs to at most one folder within its graph. Null = unfiled.
+        public Guid? FolderId { get; set; }
     }
 
     public class NoteNodeMetadata
@@ -47,6 +52,12 @@
     }
 
     public class TagDefinition
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Color { get; set; } = string.Empty;
+    }
+
+    public class FolderDefinition
     {
         public string Name { get; set; } = string.Empty;
         public string Color { get; set; } = string.Empty;

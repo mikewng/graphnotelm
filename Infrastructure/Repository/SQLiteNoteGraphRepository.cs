@@ -52,6 +52,7 @@ namespace graphnotelm.Infrastructure.Repository
                 UserId = document.UserId,
                 Context = document.Context,
                 Tags = document.Tags,
+                Folders = document.Folders,
                 Relationships = document.Relationships
             };
             var json = JsonSerializer.Serialize(toStore);
