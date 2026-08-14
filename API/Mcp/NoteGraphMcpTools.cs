@@ -230,9 +230,9 @@ namespace graphnotelm.API.Mcp
         public async Task<string> UpdateNodeAsync(
             [Description("The GUID of the note graph")] string graphId,
             [Description("The GUID of the node to update")] string nodeId,
-            [Description("New title for the node, without the '[DRAFT] ' prefix")] string? title,
-            [Description("New note content for the node")] string? note,
-            CancellationToken ct)
+            [Description("New title for the node, without the '[DRAFT] ' prefix")] string? title = null,
+            [Description("New note content for the node")] string? note = null,
+            CancellationToken ct = default)
         {
             if (!Guid.TryParse(graphId, out var gId) || !Guid.TryParse(nodeId, out var nId))
                 return Error("Invalid ID format.");
@@ -422,9 +422,9 @@ namespace graphnotelm.API.Mcp
         public async Task<string> CreateNoteGraphAsync(
             [Description("Name of the note graph")] string name,
             [Description("Nodes to populate the graph with")] List<McpNodeInput> nodes,
-            [Description("Optional short description of the graph")] string? description,
-            [Description("Optional system prompt that shapes how the AI assistant behaves when chatting with this graph")] string? systemPrompt,
-            CancellationToken ct)
+            [Description("Optional short description of the graph")] string? description = null,
+            [Description("Optional system prompt that shapes how the AI assistant behaves when chatting with this graph")] string? systemPrompt = null,
+            CancellationToken ct = default)
         {
             if (_mcpSettings.LocalUserId is null)
                 return Error("MCP user is not configured. Call POST /settings/mcp/configure-user first.");
