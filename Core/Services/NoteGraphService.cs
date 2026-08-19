@@ -72,13 +72,13 @@ namespace graphnotelm.Core.Services
         public async Task<Result<GetGraphListResponse>> GetNoteGraphList(CancellationToken ct)
         {
             var graphMetadataList = await _noteGraphMetadataRepository.GetListByUserIdAsync(_currentUser.UserId, ct);
-            if (graphMetadataList.Count == 0)
-            {
-                return Result<GetGraphListResponse>.Fail("No graphs associated with user ID.");
-            }
             if (graphMetadataList is null)
             {
                 return Result<GetGraphListResponse>.Fail("List returned as null.");
+            }
+            if (graphMetadataList.Count == 0)
+            {
+                return Result<GetGraphListResponse>.Fail("No graphs associated with user ID.");
             }
 
             GetGraphListResponse dto = new GetGraphListResponse()

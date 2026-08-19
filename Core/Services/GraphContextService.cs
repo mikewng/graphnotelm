@@ -65,10 +65,28 @@ namespace graphnotelm.Core.Services
                 new(ChatRole.User, userPrompt),
             };
 
-            var completion = await Client.GetResponseAsync(messages);
+            ChatResponse completion;
+            try
+            {
+                completion = await Client.GetResponseAsync(messages);
+            }
+            catch (HttpRequestException ex)
+            {
+                return Result<GraphContext>.Fail($"AI provider error: {ex.Message}");
+            }
             var response = completion.Messages.LastOrDefault()?.Text ?? "";
+            var clean = response.Replace("```json", "").Replace("```", "").Trim();
 
-            return Result<GraphContext>.Ok(JsonSerializer.Deserialize<GraphContext>(response) ?? new());
+            try
+            {
+                // The prompt asks for camelCase keys, so match property names case-insensitively
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                return Result<GraphContext>.Ok(JsonSerializer.Deserialize<GraphContext>(clean, options) ?? new());
+            }
+            catch (JsonException)
+            {
+                return Result<GraphContext>.Fail("LLM returned invalid JSON.");
+            }
         }
     }
 }
