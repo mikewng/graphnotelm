@@ -33,15 +33,14 @@ namespace graphnotelm.Tests
         private NoteGraphDocument AuthorizeFullDocument()
         {
             var document = TestData.NewDocument(_userId, _graphId);
-            _accessMock.Setup(a => a.GetAuthorizedFullDocumentAsync(_graphId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Result<NoteGraphDocument>.Ok(document));
+            TestData.WireDocument(_accessMock, _nodeRepoMock, document, _userId);
             return document;
         }
 
         [Fact]
         public async Task GetFolderList_AccessDenied_Fails()
         {
-            _accessMock.Setup(a => a.GetAuthorizedFullDocumentAsync(_graphId, It.IsAny<CancellationToken>()))
+            _accessMock.Setup(a => a.GetAuthorizedGraphDataAsync(_graphId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Result<NoteGraphDocument>.Fail("denied"));
 
             var result = await _service.GetFolderListByGraphId(_graphId, CancellationToken.None);
