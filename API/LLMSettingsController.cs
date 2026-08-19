@@ -1,5 +1,6 @@
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
+using graphnotelm.Core.Models.Mappers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
@@ -92,36 +93,14 @@ namespace graphnotelm.API
         [HttpGet]
         public ActionResult<LLMSettingsResponse> GetSettings()
         {
-            var config = _providerSettings.Current;
-            return Ok(new LLMSettingsResponse
-            {
-                Provider  = config.Provider,
-                HasApiKey = !string.IsNullOrEmpty(config.ApiKey),
-                Model     = config.Model,
-                Endpoint  = config.Endpoint
-            });
+            return Ok(_providerSettings.Current.ToLLMSettingsResponse());
         }
 
         [HttpPatch]
         public ActionResult<LLMSettingsResponse> UpdateSettings([FromBody] LLMSettingsRequest request)
         {
-            var current = _providerSettings.Current;
-            _providerSettings.Current = new LLMProviderConfig
-            {
-                Provider = request.Provider,
-                ApiKey   = !string.IsNullOrWhiteSpace(request.ApiKey) ? request.ApiKey : current.ApiKey,
-                Model    = request.Model    ?? current.Model,
-                Endpoint = request.Endpoint ?? current.Endpoint
-            };
-
-            var updated = _providerSettings.Current;
-            return Ok(new LLMSettingsResponse
-            {
-                Provider  = updated.Provider,
-                HasApiKey = !string.IsNullOrEmpty(updated.ApiKey),
-                Model     = updated.Model,
-                Endpoint  = updated.Endpoint
-            });
+            _providerSettings.Current = request.MergeInto(_providerSettings.Current);
+            return Ok(_providerSettings.Current.ToLLMSettingsResponse());
         }
 
         private class OllamaTagsApiResponse

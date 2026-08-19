@@ -1,6 +1,7 @@
 ﻿using graphnotelm.Infrastructure.Contracts;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
+using graphnotelm.Core.Models.Mappers;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
@@ -37,13 +38,7 @@ namespace graphnotelm.Core.Services
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            var (token, expiresAtUtc) = _jwt.CreateAccessToken(user);
-
-            return Result<AuthResponse>.Ok(new AuthResponse
-            {
-                AccessToken = token,
-                ExpiresAtUtc = expiresAtUtc
-            });
+            return Result<AuthResponse>.Ok(_jwt.CreateAccessToken(user).ToAuthResponse());
         }
 
         public async Task<Result> RegisterAsync(RegisterRequest registerRequest, CancellationToken cancellationToken)
@@ -71,16 +66,8 @@ namespace graphnotelm.Core.Services
             }
 
             // Create Password Hash and New User Object
-            var passwordHash = Cryptography.HashPassword(registerRequest.Password);
-            var user = new User
-            {
-                Id = Guid.NewGuid(),
-                Username = registerRequest.Username,
-                Email = registerRequest.Email,
-                PasswordHash = passwordHash,
-                CreatedAt = DateTime.UtcNow,
-                LastLoginAt = DateTime.UtcNow
-            };
+            var user = registerRequest.ToUser(Cryptography.HashPassword(registerRequest.Password));
+            user.LastLoginAt = DateTime.UtcNow;
 
             await _users.AddAsync(user, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

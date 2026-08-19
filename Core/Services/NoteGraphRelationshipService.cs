@@ -1,6 +1,7 @@
 using graphnotelm.Infrastructure.Contracts;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
+using graphnotelm.Core.Models.Mappers;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
@@ -42,12 +43,7 @@ namespace graphnotelm.Core.Services
 
             var graphData = graphDataResult.Value!;
             var relId = Guid.NewGuid();
-            graphData.Relationships[relId] = new RelationshipDefinition
-            {
-                Name = createRelationshipRequest.Type,
-                Color = createRelationshipRequest.Color,
-                Inverse = createRelationshipRequest.Inverse
-            };
+            graphData.Relationships[relId] = createRelationshipRequest.ToRelationshipDefinition();
 
             try
             {
@@ -70,9 +66,7 @@ namespace graphnotelm.Core.Services
             if (!graphData.Relationships.TryGetValue(relationId, out var relationship))
                 return Result<EditRelationshipResponse>.Fail("Relationship not found.");
 
-            relationship.Name = editRelationshipRequest.Type;
-            relationship.Color = editRelationshipRequest.Color;
-            relationship.Inverse = editRelationshipRequest.Inverse;
+            editRelationshipRequest.ApplyTo(relationship);
 
             try
             {

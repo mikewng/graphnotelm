@@ -1,6 +1,7 @@
 using graphnotelm.Infrastructure.Contracts;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
+using graphnotelm.Core.Models.Mappers;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
@@ -42,12 +43,13 @@ namespace graphnotelm.Core.Services
 
             var graphData = graphDataResult.Value!;
             var tagId = Guid.NewGuid();
-            graphData.Tags[tagId] = new TagDefinition { Name = createTagRequest.TagName, Color = createTagRequest.TagColor };
+            var newTag = createTagRequest.ToTagDefinition();
+            graphData.Tags[tagId] = newTag;
 
             try
             {
                 await _noteGraphRepository.SaveAsync(graphData);
-                return Result<CreateTagResponse>.Ok(new CreateTagResponse { TagName = createTagRequest.TagName });
+                return Result<CreateTagResponse>.Ok(newTag.ToCreateTagResponse());
             }
             catch
             {
@@ -65,8 +67,7 @@ namespace graphnotelm.Core.Services
             if (!graphData.Tags.TryGetValue(tagId, out var tag))
                 return Result<EditTagResponse>.Fail("Tag not found.");
 
-            tag.Name = editTagRequest.TagName;
-            tag.Color = editTagRequest.TagColor;
+            editTagRequest.ApplyTo(tag);
 
             try
             {
@@ -103,7 +104,7 @@ namespace graphnotelm.Core.Services
                 await _noteGraphRepository.SaveAsync(graphData);
                 foreach (var node in affectedNodes)
                     await _noteNodeRepository.SaveAsync(noteGraphId, node);
-                return Result<DeleteTagResponse>.Ok(new DeleteTagResponse { TagName = tag.Name });
+                return Result<DeleteTagResponse>.Ok(tag.ToDeleteTagResponse());
             }
             catch
             {
