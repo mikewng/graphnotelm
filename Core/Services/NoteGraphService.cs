@@ -2,6 +2,7 @@ using graphnotelm.Infrastructure.Contracts;
 using graphnotelm.Core.Contexts.Contracts;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
+using graphnotelm.Core.Models.Mappers;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
@@ -43,30 +44,7 @@ namespace graphnotelm.Core.Services
             if (!graphDataResult.Success)
                 return Result<GetGraphSkeletonResponse>.Fail(graphDataResult.Error!);
 
-            var graphData = graphDataResult.Value!;
-            return Result<GetGraphSkeletonResponse>.Ok(new GetGraphSkeletonResponse
-            {
-                Id = graphData.Id,
-                SystemPrompt = graphData.Context.SystemPrompt,
-                Tags = graphData.Tags,
-                Folders = graphData.Folders,
-                Relationships = graphData.Relationships,
-                Nodes = graphData.Nodes.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => new NodeSkeleton
-                    {
-                        Id = kvp.Value.Id,
-                        Title = kvp.Value.Title,
-                        Metadata = new NodeSkeletonMetadata
-                        {
-                            UserConfidenceRate = kvp.Value.Metadata.UserConfidenceRate,
-                            IsPinned = kvp.Value.Metadata.IsPinned
-                        },
-                        Relationships = kvp.Value.Relationships,
-                        Tags = kvp.Value.Tags,
-                        FolderId = kvp.Value.FolderId
-                    })
-            });
+            return Result<GetGraphSkeletonResponse>.Ok(graphDataResult.Value!.ToGetGraphSkeletonResponse());
         }
 
         public async Task<Result<GetGraphListResponse>> GetNoteGraphList(CancellationToken ct)
@@ -81,11 +59,7 @@ namespace graphnotelm.Core.Services
                 return Result<GetGraphListResponse>.Fail("No graphs associated with user ID.");
             }
 
-            GetGraphListResponse dto = new GetGraphListResponse()
-            {
-                GraphList = graphMetadataList
-            };
-            return Result<GetGraphListResponse>.Ok(dto);
+            return Result<GetGraphListResponse>.Ok(graphMetadataList.ToGetGraphListResponse());
         }
 
         public async Task<Result<GetGraphListResponse>> GetArchivedNoteGraphList(CancellationToken ct)
@@ -94,20 +68,12 @@ namespace graphnotelm.Core.Services
             if (graphMetadataList is null)
                 return Result<GetGraphListResponse>.Fail("List returned as null.");
 
-            return Result<GetGraphListResponse>.Ok(new GetGraphListResponse { GraphList = graphMetadataList });
+            return Result<GetGraphListResponse>.Ok(graphMetadataList.ToGetGraphListResponse());
         }
 
         public async Task<Result<CreateGraphResponse>> CreateNoteGraph(CreateGraphRequest createGraphRequest, CancellationToken ct)
         {
-            NoteGraphMetadata newGraphMetadata = new NoteGraphMetadata()
-            {
-                Id = Guid.NewGuid(),
-                UserId = _currentUser.UserId,
-                Name = createGraphRequest.Name,
-                Description = createGraphRequest.Description,
-                IsPublic = createGraphRequest.isPublic,
-                IsDeleted = createGraphRequest.isDeleted
-            };
+            NoteGraphMetadata newGraphMetadata = createGraphRequest.ToNoteGraphMetadata(Guid.NewGuid(), _currentUser.UserId);
             if (newGraphMetadata.Name == String.Empty)
             {
                 return Result<CreateGraphResponse>.Fail("Failed to create: Name was empty.");
@@ -157,12 +123,7 @@ namespace graphnotelm.Core.Services
             {
                 await _noteGraphMetadataRepository.UpdateAsync(graphMetadata, ct);
                 await _unitOfWork.SaveChangesAsync(ct);
-                return Result<EditGraphMetadataResponse>.Ok(new EditGraphMetadataResponse
-                {
-                    Id = graphMetadata.Id,
-                    Name = graphMetadata.Name,
-                    Description = graphMetadata.Description
-                });
+                return Result<EditGraphMetadataResponse>.Ok(graphMetadata.ToEditGraphMetadataResponse());
             }
             catch
             {
@@ -199,11 +160,7 @@ namespace graphnotelm.Core.Services
             {
                 await _noteGraphMetadataRepository.UpdateAsync(graphMetadata, ct);
                 await _unitOfWork.SaveChangesAsync(ct);
-                return Result<DeleteGraphResponse>.Ok(new DeleteGraphResponse
-                {
-                    id = graphMetadata.Id,
-                    isDeleted = true
-                });
+                return Result<DeleteGraphResponse>.Ok(graphMetadata.ToDeleteGraphResponse());
             }
             catch
             {
@@ -229,7 +186,7 @@ namespace graphnotelm.Core.Services
                 await _noteGraphMetadataRepository.DeleteAsync(noteGraphId, ct);
                 await _unitOfWork.SaveChangesAsync(ct);
 
-                return Result<DeleteGraphResponse>.Ok(new DeleteGraphResponse { id = noteGraphId, isDeleted = true });
+                return Result<DeleteGraphResponse>.Ok(metadata.ToDeleteGraphResponse());
             }
             catch
             {
@@ -252,7 +209,7 @@ namespace graphnotelm.Core.Services
             {
                 await _noteGraphMetadataRepository.UpdateAsync(metadata, ct);
                 await _unitOfWork.SaveChangesAsync(ct);
-                return Result<DeleteGraphResponse>.Ok(new DeleteGraphResponse { id = metadata.Id, isDeleted = false });
+                return Result<DeleteGraphResponse>.Ok(metadata.ToDeleteGraphResponse());
             }
             catch
             {
@@ -277,27 +234,14 @@ namespace graphnotelm.Core.Services
             if (string.IsNullOrWhiteSpace(document.Name))
                 return Result<CreateGraphResponse>.Fail("Failed to import: Name was empty.");
 
-            var newMetadata = new NoteGraphMetadata
-            {
-                Id = Guid.NewGuid(),
-                UserId = _currentUser.UserId,
-                Name = document.Name,
-                IsDeleted = false
-            };
+            var newMetadata = document.ToNoteGraphMetadata(Guid.NewGuid(), _currentUser.UserId);
 
             try
             {
                 await _noteGraphMetadataRepository.AddAsync(newMetadata, ct);
                 await _unitOfWork.SaveChangesAsync(ct);
 
-                var newDocument = new NoteGraphDocument
-                {
-                    Id = newMetadata.Id,
-                    UserId = _currentUser.UserId,
-                    Tags = document.Tags,
-                    Folders = document.Folders,
-                    Relationships = document.Relationships
-                };
+                var newDocument = document.ToNoteGraphDocument(newMetadata.Id, _currentUser.UserId);
 
                 await _noteGraphRepository.SaveAsync(newDocument);
                 foreach (var node in document.Nodes.Values)

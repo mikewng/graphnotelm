@@ -1,6 +1,7 @@
 using graphnotelm.Infrastructure.Contracts;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
+using graphnotelm.Core.Models.Mappers;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
@@ -45,12 +46,13 @@ namespace graphnotelm.Core.Services
 
             var graphData = graphDataResult.Value!;
             var folderId = Guid.NewGuid();
-            graphData.Folders[folderId] = new FolderDefinition { Name = createFolderRequest.FolderName, Color = createFolderRequest.FolderColor };
+            var newFolder = createFolderRequest.ToFolderDefinition();
+            graphData.Folders[folderId] = newFolder;
 
             try
             {
                 await _noteGraphRepository.SaveAsync(graphData);
-                return Result<CreateFolderResponse>.Ok(new CreateFolderResponse { Id = folderId, FolderName = createFolderRequest.FolderName });
+                return Result<CreateFolderResponse>.Ok(newFolder.ToCreateFolderResponse(folderId));
             }
             catch
             {
@@ -68,8 +70,7 @@ namespace graphnotelm.Core.Services
             if (!graphData.Folders.TryGetValue(folderId, out var folder))
                 return Result<EditFolderResponse>.Fail("Folder not found.");
 
-            folder.Name = editFolderRequest.FolderName;
-            folder.Color = editFolderRequest.FolderColor;
+            editFolderRequest.ApplyTo(folder);
 
             try
             {
@@ -110,7 +111,7 @@ namespace graphnotelm.Core.Services
                 await _noteGraphRepository.SaveAsync(graphData);
                 if (affectedNodes.Count > 0)
                     await _noteNodeRepository.SaveManyAsync(noteGraphId, affectedNodes);
-                return Result<DeleteFolderResponse>.Ok(new DeleteFolderResponse { FolderName = folder.Name });
+                return Result<DeleteFolderResponse>.Ok(folder.ToDeleteFolderResponse());
             }
             catch
             {

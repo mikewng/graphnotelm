@@ -1,6 +1,7 @@
 using graphnotelm.Infrastructure.Contracts;
 using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
+using graphnotelm.Core.Models.Mappers;
 using graphnotelm.Core.Services.Contracts;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
@@ -34,15 +35,7 @@ namespace graphnotelm.Core.Services
             if (node is null)
                 return Result<GetNodeResponse>.Fail("Node not found.");
 
-            return Result<GetNodeResponse>.Ok(new GetNodeResponse
-            {
-                Id = node.Id,
-                Title = node.Title,
-                Note = node.Note,
-                Metadata = node.Metadata,
-                Relationships = node.Relationships,
-                Tags = node.Tags
-            });
+            return Result<GetNodeResponse>.Ok(node.ToGetNodeResponse());
         }
 
         public async Task<Result<GetNodeBatchResponse>> GetNodeBatchByIds(Guid noteGraphId, List<Guid> nodeIds, CancellationToken ct)
@@ -56,15 +49,7 @@ namespace graphnotelm.Core.Services
             {
                 var node = await _noteNodeRepository.GetByIdAsync(noteGraphId, nodeId, ct);
                 if (node is not null)
-                    nodes[node.Id] = new GetNodeResponse
-                    {
-                        Id = node.Id,
-                        Title = node.Title,
-                        Note = node.Note,
-                        Metadata = node.Metadata,
-                        Relationships = node.Relationships,
-                        Tags = node.Tags
-                    };
+                    nodes[node.Id] = node.ToGetNodeResponse();
             }
 
             return Result<GetNodeBatchResponse>.Ok(new GetNodeBatchResponse { Nodes = nodes });
@@ -83,17 +68,12 @@ namespace graphnotelm.Core.Services
                 return Result<CreateNodeResponse>.Fail("Failed to create: Title was empty.");
             }
 
-            NoteNode newNode = new NoteNode()
-            {
-                Id = Guid.NewGuid(),
-                Title = createNodeRequest.Title,
-                Note = createNodeRequest.Note
-            };
+            NoteNode newNode = createNodeRequest.ToNoteNode(Guid.NewGuid());
 
             try
             {
                 await _noteNodeRepository.SaveAsync(noteGraphId, newNode);
-                return Result<CreateNodeResponse>.Ok(new CreateNodeResponse { Id = newNode.Id, Title = newNode.Title });
+                return Result<CreateNodeResponse>.Ok(newNode.ToCreateNodeResponse());
             }
             catch
             {
@@ -115,9 +95,6 @@ namespace graphnotelm.Core.Services
                 return Result<EditNodeResponse>.Fail("Node not found in graph.");
             }
 
-            existingNode.Title = editNodeRequest.Title;
-            existingNode.Note = editNodeRequest.Note;
-
             var invalidTagIds = editNodeRequest.Tags.Where(tagId => !graphData.Tags.ContainsKey(tagId)).ToList();
             if (invalidTagIds.Any())
             {
@@ -134,8 +111,7 @@ namespace graphnotelm.Core.Services
                     return Result<EditNodeResponse>.Fail($"Relationship type not found: {rel.RelationshipId}");
             }
 
-            existingNode.Tags = editNodeRequest.Tags;
-            existingNode.Relationships = editNodeRequest.Relationships;
+            editNodeRequest.ApplyTo(existingNode);
 
             try
             {
@@ -198,15 +174,10 @@ namespace graphnotelm.Core.Services
                 return Result<SaveNodeContentResponse>.Fail("Node not found in graph.");
             }
 
-            if (saveNodeContentRequest.Title is not null)
-            {
-                if (saveNodeContentRequest.Title == string.Empty)
-                    return Result<SaveNodeContentResponse>.Fail("Title cannot be empty.");
-                existingNode.Title = saveNodeContentRequest.Title;
-            }
+            if (saveNodeContentRequest.Title == string.Empty)
+                return Result<SaveNodeContentResponse>.Fail("Title cannot be empty.");
 
-            if (saveNodeContentRequest.Note is not null)
-                existingNode.Note = saveNodeContentRequest.Note;
+            saveNodeContentRequest.ApplyTo(existingNode);
 
             try
             {
@@ -261,14 +232,7 @@ namespace graphnotelm.Core.Services
                 var matchedTitle = n.Title.Contains(query, StringComparison.OrdinalIgnoreCase);
                 var matchedNote = n.Note.Contains(query, StringComparison.OrdinalIgnoreCase);
                 var snippet = matchedNote ? BuildSnippet(n.Note, query) : n.Title;
-                return new NodeSearchResult
-                {
-                    Id = n.Id,
-                    Title = n.Title,
-                    Snippet = snippet,
-                    MatchedTitle = matchedTitle,
-                    MatchedNote = matchedNote
-                };
+                return n.ToNodeSearchResult(snippet, matchedTitle, matchedNote);
             }).ToList();
 
             return Result<SearchNodesResponse>.Ok(new SearchNodesResponse { Results = results });
@@ -283,7 +247,7 @@ namespace graphnotelm.Core.Services
             var nodes = await _noteNodeRepository.GetAllByGraphIdAsync(noteGraphId, ct);
             var pinned = nodes
                 .Where(n => n.Metadata.IsPinned)
-                .Select(n => new PinnedNodeResult { Id = n.Id, Title = n.Title })
+                .Select(n => n.ToPinnedNodeResult())
                 .ToList();
 
             return Result<GetPinnedNodesResponse>.Ok(new GetPinnedNodesResponse { Nodes = pinned });
@@ -378,19 +342,12 @@ namespace graphnotelm.Core.Services
                 return Result<EditNodeMetadataResponse>.Fail("Node not found in graph.");
             }
 
-            if (editNodeMetadataRequest.UserConfidenceRate.HasValue)
-                existingNode.Metadata.UserConfidenceRate = editNodeMetadataRequest.UserConfidenceRate.Value;
-            if (editNodeMetadataRequest.LLMMetadata is not null)
-                existingNode.Metadata.LLMMetadata = editNodeMetadataRequest.LLMMetadata;
+            editNodeMetadataRequest.ApplyTo(existingNode.Metadata);
 
             try
             {
                 await _noteNodeRepository.SaveAsync(noteGraphId, existingNode);
-                return Result<EditNodeMetadataResponse>.Ok(new EditNodeMetadataResponse
-                {
-                    NodeId = noteNodeId,
-                    Metadata = existingNode.Metadata
-                });
+                return Result<EditNodeMetadataResponse>.Ok(existingNode.ToEditNodeMetadataResponse());
             }
             catch
             {
