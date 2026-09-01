@@ -98,7 +98,7 @@ namespace graphnotelm.Tests
                 .ReturnsAsync(user);
             _usersMock.Setup(u => u.UpdateAsync(user, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
-            _jwtMock.Setup(j => j.CreateAccessToken(user)).Returns(("the-token", expiry));
+            _jwtMock.Setup(j => j.CreateAccessToken(user, It.IsAny<TimeSpan?>())).Returns(("the-token", expiry));
 
             var result = await _service.LoginAsync(
                 new LoginRequest { Email = user.Email, Password = "secret123" }, CancellationToken.None);
