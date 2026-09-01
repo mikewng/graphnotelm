@@ -57,10 +57,10 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<CreateNodeResponse>> CreateNodeByGraphId(CreateNodeRequest createNodeRequest, Guid noteGraphId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
-            if (!graphDataResult.Success)
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
             {
-                return Result<CreateNodeResponse>.Fail(graphDataResult.Error!);
+                return Result<CreateNodeResponse>.Fail(metadataResult.Error!);
             }
 
             if (createNodeRequest.Title == string.Empty)
@@ -83,14 +83,17 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<EditNodeResponse>> EditNodeByIds(EditNodeRequest editNodeRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            // Tag/relationship definitions live on the document; the node itself is
+            // fetched individually — no need to load every node in the graph.
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
             {
                 return Result<EditNodeResponse>.Fail(graphDataResult.Error!);
             }
 
             var graphData = graphDataResult.Value!;
-            if (!graphData.Nodes.TryGetValue(noteNodeId, out var existingNode))
+            var existingNode = await _noteNodeRepository.GetByIdAsync(noteGraphId, noteNodeId, ct);
+            if (existingNode is null)
             {
                 return Result<EditNodeResponse>.Fail("Node not found in graph.");
             }
@@ -105,7 +108,7 @@ namespace graphnotelm.Core.Services
             {
                 if (rel.TargetNodeId == noteNodeId)
                     return Result<EditNodeResponse>.Fail("A node cannot have a relationship with itself.");
-                if (!graphData.Nodes.ContainsKey(rel.TargetNodeId))
+                if (!await _noteNodeRepository.ExistsAsync(noteGraphId, rel.TargetNodeId, ct))
                     return Result<EditNodeResponse>.Fail($"Target node not found: {rel.TargetNodeId}");
                 if (!graphData.Relationships.ContainsKey(rel.RelationshipId))
                     return Result<EditNodeResponse>.Fail($"Relationship type not found: {rel.RelationshipId}");
@@ -126,32 +129,30 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<DeleteNodeResponse>> DeleteNodeByIds(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
-            if (!graphDataResult.Success)
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
             {
-                return Result<DeleteNodeResponse>.Fail(graphDataResult.Error!);
+                return Result<DeleteNodeResponse>.Fail(metadataResult.Error!);
             }
 
-            var graphData = graphDataResult.Value!;
-            if (!graphData.Nodes.ContainsKey(noteNodeId))
+            if (!await _noteNodeRepository.ExistsAsync(noteGraphId, noteNodeId, ct))
             {
                 return Result<DeleteNodeResponse>.Fail("Node not found in graph.");
             }
 
-            graphData.Nodes.Remove(noteNodeId);
-
+            // Only nodes that actually reference the deleted node need rewriting.
             var affectedNodes = new List<NoteNode>();
-            foreach (var node in graphData.Nodes.Values)
+            foreach (var node in await _noteNodeRepository.GetNodesReferencingIdAsync(noteGraphId, noteNodeId, ct))
             {
-                if (node.Relationships.RemoveAll(r => r.TargetNodeId == noteNodeId) > 0)
+                if (node.Id != noteNodeId && node.Relationships.RemoveAll(r => r.TargetNodeId == noteNodeId) > 0)
                     affectedNodes.Add(node);
             }
 
             try
             {
                 await _noteNodeRepository.DeleteAsync(noteGraphId, noteNodeId);
-                foreach (var node in affectedNodes)
-                    await _noteNodeRepository.SaveAsync(noteGraphId, node);
+                if (affectedNodes.Count > 0)
+                    await _noteNodeRepository.SaveManyAsync(noteGraphId, affectedNodes);
                 return Result<DeleteNodeResponse>.Ok(new DeleteNodeResponse { Id = noteNodeId, IsDeleted = true });
             }
             catch
@@ -162,14 +163,15 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<SaveNodeContentResponse>> SaveNodeContentAsync(SaveNodeContentRequest saveNodeContentRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
-            if (!graphDataResult.Success)
+            // Autosave hot path: auth check + single-node fetch, never the whole graph.
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
             {
-                return Result<SaveNodeContentResponse>.Fail(graphDataResult.Error!);
+                return Result<SaveNodeContentResponse>.Fail(metadataResult.Error!);
             }
 
-            var graphData = graphDataResult.Value!;
-            if (!graphData.Nodes.TryGetValue(noteNodeId, out var existingNode))
+            var existingNode = await _noteNodeRepository.GetByIdAsync(noteGraphId, noteNodeId, ct);
+            if (existingNode is null)
             {
                 return Result<SaveNodeContentResponse>.Fail("Node not found in graph.");
             }
@@ -330,14 +332,14 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<EditNodeMetadataResponse>> EditNodeMetadataByIds(EditNodeMetadataRequest editNodeMetadataRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
-            if (!graphDataResult.Success)
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
             {
-                return Result<EditNodeMetadataResponse>.Fail(graphDataResult.Error!);
+                return Result<EditNodeMetadataResponse>.Fail(metadataResult.Error!);
             }
 
-            var graphData = graphDataResult.Value!;
-            if (!graphData.Nodes.TryGetValue(noteNodeId, out var existingNode))
+            var existingNode = await _noteNodeRepository.GetByIdAsync(noteGraphId, noteNodeId, ct);
+            if (existingNode is null)
             {
                 return Result<EditNodeMetadataResponse>.Fail("Node not found in graph.");
             }

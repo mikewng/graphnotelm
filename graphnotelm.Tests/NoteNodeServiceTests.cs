@@ -35,8 +35,7 @@ namespace graphnotelm.Tests
         private NoteGraphDocument AuthorizeFullDocument()
         {
             var document = TestData.NewDocument(_userId, _graphId);
-            _accessMock.Setup(a => a.GetAuthorizedFullDocumentAsync(_graphId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Result<NoteGraphDocument>.Ok(document));
+            TestData.WireDocument(_accessMock, _nodeRepoMock, document, _userId);
             return document;
         }
 
@@ -247,8 +246,8 @@ namespace graphnotelm.Tests
             Assert.True(result.Value!.IsDeleted);
             Assert.Empty(pointsAtDeleted.Relationships);
             _nodeRepoMock.Verify(r => r.DeleteAsync(_graphId, toDelete.Id), Times.Once);
-            _nodeRepoMock.Verify(r => r.SaveAsync(_graphId, pointsAtDeleted), Times.Once);
-            _nodeRepoMock.Verify(r => r.SaveAsync(_graphId, unrelated), Times.Never);
+            _nodeRepoMock.Verify(r => r.SaveManyAsync(_graphId,
+                It.Is<IEnumerable<NoteNode>>(nodes => nodes.Single() == pointsAtDeleted)), Times.Once);
         }
 
         [Fact]

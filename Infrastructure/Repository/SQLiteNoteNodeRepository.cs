@@ -18,10 +18,18 @@ namespace graphnotelm.Infrastructure.Repository
             EnsureTable();
         }
 
+        // WAL lets readers proceed during writes and makes small frequent writes
+        // (autosave) far cheaper than the default rollback journal. journal_mode is
+        // persistent — set once here it sticks to the database file, covering the
+        // EF Core connections that share it as well.
         private void EnsureTable()
         {
             using var conn = new SqliteConnection(_connectionString);
             conn.Open();
+
+            using var walCmd = conn.CreateCommand();
+            walCmd.CommandText = "PRAGMA journal_mode=WAL;";
+            walCmd.ExecuteScalar();
 
             using var pragmaCmd = conn.CreateCommand();
             pragmaCmd.CommandText = "PRAGMA table_info(NoteNodes)";
@@ -160,10 +168,21 @@ namespace graphnotelm.Infrastructure.Repository
         private static Guid? ReadFolderId(SqliteDataReader reader, int ordinal)
             => reader.IsDBNull(ordinal) ? null : Guid.Parse(reader.GetString(ordinal));
 
+        // synchronous/busy_timeout are per-connection, so they run on every open.
+        // NORMAL is durable-enough under WAL and skips an fsync per transaction.
+        private async Task<SqliteConnection> OpenConnectionAsync(CancellationToken ct = default)
+        {
+            var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync(ct);
+            await using var pragma = conn.CreateCommand();
+            pragma.CommandText = "PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000;";
+            await pragma.ExecuteNonQueryAsync(ct);
+            return conn;
+        }
+
         public async Task<NoteNode?> GetByIdAsync(Guid noteGraphId, Guid noteNodeId, CancellationToken ct = default)
         {
-            await using var conn = new SqliteConnection(_connectionString);
-            await conn.OpenAsync(ct);
+            await using var conn = await OpenConnectionAsync(ct);
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT NodeId, Title, Note, IsPinned, FolderId, Metadata FROM NoteNodes WHERE GraphId = $graphId AND NodeId = $nodeId";
             cmd.Parameters.AddWithValue("$graphId", noteGraphId.ToString());
@@ -181,8 +200,7 @@ namespace graphnotelm.Infrastructure.Repository
 
         public async Task<List<NoteNode>> GetAllByGraphIdAsync(Guid noteGraphId, CancellationToken ct = default)
         {
-            await using var conn = new SqliteConnection(_connectionString);
-            await conn.OpenAsync(ct);
+            await using var conn = await OpenConnectionAsync(ct);
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = "SELECT NodeId, Title, Note, IsPinned, FolderId, Metadata FROM NoteNodes WHERE GraphId = $graphId";
             cmd.Parameters.AddWithValue("$graphId", noteGraphId.ToString());
@@ -199,10 +217,90 @@ namespace graphnotelm.Infrastructure.Repository
             return nodes;
         }
 
+        // Skeleton read: skips the Note column, which is the bulk of the row for
+        // real notes. Relationships/tags still hydrate from the Metadata blob.
+        public async Task<List<NoteNode>> GetAllSkeletonsByGraphIdAsync(Guid noteGraphId, CancellationToken ct = default)
+        {
+            await using var conn = await OpenConnectionAsync(ct);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT NodeId, Title, IsPinned, FolderId, Metadata FROM NoteNodes WHERE GraphId = $graphId";
+            cmd.Parameters.AddWithValue("$graphId", noteGraphId.ToString());
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            var nodes = new List<NoteNode>();
+            while (await reader.ReadAsync(ct))
+                nodes.Add(Hydrate(
+                    Guid.Parse(reader.GetString(0)),
+                    reader.GetString(1),
+                    string.Empty,
+                    reader.GetInt32(2) != 0,
+                    ReadFolderId(reader, 3),
+                    reader.GetString(4)));
+            return nodes;
+        }
+
+        public async Task<bool> ExistsAsync(Guid noteGraphId, Guid noteNodeId, CancellationToken ct = default)
+        {
+            await using var conn = await OpenConnectionAsync(ct);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT 1 FROM NoteNodes WHERE GraphId = $graphId AND NodeId = $nodeId LIMIT 1";
+            cmd.Parameters.AddWithValue("$graphId", noteGraphId.ToString());
+            cmd.Parameters.AddWithValue("$nodeId", noteNodeId.ToString());
+            return await cmd.ExecuteScalarAsync(ct) is not null;
+        }
+
+        // LIKE on the Metadata blob narrows candidates in SQL (GUIDs serialize as
+        // lowercase "d" format); the exact check below removes any false positives.
+        public async Task<List<NoteNode>> GetNodesReferencingIdAsync(Guid noteGraphId, Guid referencedId, CancellationToken ct = default)
+        {
+            await using var conn = await OpenConnectionAsync(ct);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                SELECT NodeId, Title, Note, IsPinned, FolderId, Metadata FROM NoteNodes
+                WHERE GraphId = $graphId AND Metadata LIKE $pattern
+                """;
+            cmd.Parameters.AddWithValue("$graphId", noteGraphId.ToString());
+            cmd.Parameters.AddWithValue("$pattern", $"%{referencedId:D}%");
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            var nodes = new List<NoteNode>();
+            while (await reader.ReadAsync(ct))
+            {
+                var node = Hydrate(
+                    Guid.Parse(reader.GetString(0)),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    reader.GetInt32(3) != 0,
+                    ReadFolderId(reader, 4),
+                    reader.GetString(5));
+                if (node.Tags.Contains(referencedId)
+                    || node.Relationships.Any(r => r.TargetNodeId == referencedId || r.RelationshipId == referencedId))
+                    nodes.Add(node);
+            }
+            return nodes;
+        }
+
+        public async Task<List<NoteNode>> GetNodesByFolderAsync(Guid noteGraphId, Guid folderId, CancellationToken ct = default)
+        {
+            await using var conn = await OpenConnectionAsync(ct);
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT NodeId, Title, Note, IsPinned, FolderId, Metadata FROM NoteNodes WHERE GraphId = $graphId AND FolderId = $folderId";
+            cmd.Parameters.AddWithValue("$graphId", noteGraphId.ToString());
+            cmd.Parameters.AddWithValue("$folderId", folderId.ToString());
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            var nodes = new List<NoteNode>();
+            while (await reader.ReadAsync(ct))
+                nodes.Add(Hydrate(
+                    Guid.Parse(reader.GetString(0)),
+                    reader.GetString(1),
+                    reader.GetString(2),
+                    reader.GetInt32(3) != 0,
+                    ReadFolderId(reader, 4),
+                    reader.GetString(5)));
+            return nodes;
+        }
+
         public async Task<List<NoteNode>> SearchAsync(Guid noteGraphId, string query, CancellationToken ct = default)
         {
-            await using var conn = new SqliteConnection(_connectionString);
-            await conn.OpenAsync(ct);
+            await using var conn = await OpenConnectionAsync(ct);
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = """
                 SELECT NodeId, Title, Note, IsPinned, FolderId, Metadata FROM NoteNodes
@@ -226,8 +324,7 @@ namespace graphnotelm.Infrastructure.Repository
 
         public async Task SaveAsync(Guid noteGraphId, NoteNode node)
         {
-            await using var conn = new SqliteConnection(_connectionString);
-            await conn.OpenAsync();
+            await using var conn = await OpenConnectionAsync();
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = """
                 INSERT INTO NoteNodes (GraphId, NodeId, Title, Note, IsPinned, FolderId, Metadata)
@@ -251,8 +348,7 @@ namespace graphnotelm.Infrastructure.Repository
 
         public async Task SaveManyAsync(Guid noteGraphId, IEnumerable<NoteNode> nodes)
         {
-            await using var conn = new SqliteConnection(_connectionString);
-            await conn.OpenAsync();
+            await using var conn = await OpenConnectionAsync();
             await using var tx = (SqliteTransaction)await conn.BeginTransactionAsync();
 
             await using var cmd = conn.CreateCommand();
@@ -292,8 +388,7 @@ namespace graphnotelm.Infrastructure.Repository
 
         public async Task DeleteAsync(Guid noteGraphId, Guid nodeId)
         {
-            await using var conn = new SqliteConnection(_connectionString);
-            await conn.OpenAsync();
+            await using var conn = await OpenConnectionAsync();
             await using var cmd = conn.CreateCommand();
             cmd.CommandText = "DELETE FROM NoteNodes WHERE GraphId = $graphId AND NodeId = $nodeId";
             cmd.Parameters.AddWithValue("$graphId", noteGraphId.ToString());

@@ -40,7 +40,8 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<GetGraphSkeletonResponse>> GetNoteGraphById(Guid noteGraphId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            // Skeleton response never includes note bodies, so don't load them.
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedSkeletonDocumentAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<GetGraphSkeletonResponse>.Fail(graphDataResult.Error!);
 
@@ -133,7 +134,8 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<bool>> EditGraphContextById(EditGraphContextRequest request, Guid noteGraphId, CancellationToken ct)
         {
-            var accessResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            // Only the document (context) is touched — nodes are persisted separately.
+            var accessResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!accessResult.Success)
                 return Result<bool>.Fail(accessResult.Error!);
 

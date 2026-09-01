@@ -42,8 +42,7 @@ namespace graphnotelm.Tests
         private NoteGraphDocument AuthorizeFullDocument()
         {
             var document = TestData.NewDocument(_userId, _graphId);
-            _accessMock.Setup(a => a.GetAuthorizedFullDocumentAsync(_graphId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Result<NoteGraphDocument>.Ok(document));
+            TestData.WireDocument(_accessMock, _nodeRepoMock, document, _userId);
             return document;
         }
 
@@ -60,7 +59,7 @@ namespace graphnotelm.Tests
         [Fact]
         public async Task GetNoteGraphById_AccessDenied_Fails()
         {
-            _accessMock.Setup(a => a.GetAuthorizedFullDocumentAsync(_graphId, It.IsAny<CancellationToken>()))
+            _accessMock.Setup(a => a.GetAuthorizedSkeletonDocumentAsync(_graphId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Result<NoteGraphDocument>.Fail("denied"));
 
             var result = await _service.GetNoteGraphById(_graphId, CancellationToken.None);

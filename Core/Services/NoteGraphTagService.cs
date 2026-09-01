@@ -25,7 +25,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<GetTagListResponse>> GetTagListByGraphId(Guid noteGraphId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<GetTagListResponse>.Fail(graphDataResult.Error!);
 
@@ -37,7 +37,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<CreateTagResponse>> CreateTagByGraphId(CreateTagRequest createTagRequest, Guid noteGraphId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<CreateTagResponse>.Fail(graphDataResult.Error!);
 
@@ -59,7 +59,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<EditTagResponse>> EditTagByIds(EditTagRequest editTagRequest, Guid noteGraphId, Guid tagId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<EditTagResponse>.Fail(graphDataResult.Error!);
 
@@ -82,7 +82,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<DeleteTagResponse>> DeleteTagByIds(Guid noteGraphId, Guid tagId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<DeleteTagResponse>.Fail(graphDataResult.Error!);
 
@@ -92,8 +92,9 @@ namespace graphnotelm.Core.Services
 
             graphData.Tags.Remove(tagId);
 
+            // Only nodes carrying the tag need rewriting.
             var affectedNodes = new List<NoteNode>();
-            foreach (var node in graphData.Nodes.Values)
+            foreach (var node in await _noteNodeRepository.GetNodesReferencingIdAsync(noteGraphId, tagId, ct))
             {
                 if (node.Tags.Remove(tagId))
                     affectedNodes.Add(node);
@@ -102,8 +103,8 @@ namespace graphnotelm.Core.Services
             try
             {
                 await _noteGraphRepository.SaveAsync(graphData);
-                foreach (var node in affectedNodes)
-                    await _noteNodeRepository.SaveAsync(noteGraphId, node);
+                if (affectedNodes.Count > 0)
+                    await _noteNodeRepository.SaveManyAsync(noteGraphId, affectedNodes);
                 return Result<DeleteTagResponse>.Ok(tag.ToDeleteTagResponse());
             }
             catch
@@ -114,12 +115,14 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<AddNodeTagResponse>> AddTagToNode(AddNodeTagRequest request, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            // Tag definitions live on the document; only the one node is loaded.
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<AddNodeTagResponse>.Fail(graphDataResult.Error!);
 
             var graphData = graphDataResult.Value!;
-            if (!graphData.Nodes.TryGetValue(noteNodeId, out var node))
+            var node = await _noteNodeRepository.GetByIdAsync(noteGraphId, noteNodeId, ct);
+            if (node is null)
                 return Result<AddNodeTagResponse>.Fail("Node not found in graph.");
             if (!graphData.Tags.ContainsKey(request.TagId))
                 return Result<AddNodeTagResponse>.Fail("Tag not found in graph.");
@@ -240,12 +243,12 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<RemoveNodeTagResponse>> RemoveTagFromNode(Guid noteGraphId, Guid noteNodeId, Guid tagId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
-            if (!graphDataResult.Success)
-                return Result<RemoveNodeTagResponse>.Fail(graphDataResult.Error!);
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<RemoveNodeTagResponse>.Fail(metadataResult.Error!);
 
-            var graphData = graphDataResult.Value!;
-            if (!graphData.Nodes.TryGetValue(noteNodeId, out var node))
+            var node = await _noteNodeRepository.GetByIdAsync(noteGraphId, noteNodeId, ct);
+            if (node is null)
                 return Result<RemoveNodeTagResponse>.Fail("Node not found in graph.");
             if (!node.Tags.Remove(tagId))
                 return Result<RemoveNodeTagResponse>.Fail("Tag is not assigned to this node.");

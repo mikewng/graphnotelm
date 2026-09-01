@@ -33,15 +33,14 @@ namespace graphnotelm.Tests
         private NoteGraphDocument AuthorizeFullDocument()
         {
             var document = TestData.NewDocument(_userId, _graphId);
-            _accessMock.Setup(a => a.GetAuthorizedFullDocumentAsync(_graphId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Result<NoteGraphDocument>.Ok(document));
+            TestData.WireDocument(_accessMock, _nodeRepoMock, document, _userId);
             return document;
         }
 
         [Fact]
         public async Task GetTagList_AccessDenied_Fails()
         {
-            _accessMock.Setup(a => a.GetAuthorizedFullDocumentAsync(_graphId, It.IsAny<CancellationToken>()))
+            _accessMock.Setup(a => a.GetAuthorizedGraphDataAsync(_graphId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Result<NoteGraphDocument>.Fail("denied"));
 
             var result = await _service.GetTagListByGraphId(_graphId, CancellationToken.None);
@@ -125,8 +124,8 @@ namespace graphnotelm.Tests
             Assert.Equal("doomed", result.Value!.TagName);
             Assert.Empty(document.Tags);
             Assert.Empty(tagged.Tags);
-            _nodeRepoMock.Verify(r => r.SaveAsync(_graphId, tagged), Times.Once);
-            _nodeRepoMock.Verify(r => r.SaveAsync(_graphId, untagged), Times.Never);
+            _nodeRepoMock.Verify(r => r.SaveManyAsync(_graphId,
+                It.Is<IEnumerable<NoteNode>>(nodes => nodes.Single() == tagged)), Times.Once);
         }
 
         [Fact]

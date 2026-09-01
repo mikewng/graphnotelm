@@ -25,7 +25,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<GetRelationshipListResponse>> GetRelationshipListByGraphId(Guid noteGraphId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<GetRelationshipListResponse>.Fail(graphDataResult.Error!);
 
@@ -37,7 +37,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<CreateRelationshipResponse>> CreateRelationshipByGraphId(CreateRelationshipRequest createRelationshipRequest, Guid noteGraphId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<CreateRelationshipResponse>.Fail(graphDataResult.Error!);
 
@@ -58,7 +58,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<EditRelationshipResponse>> EditRelationshipByIds(EditRelationshipRequest editRelationshipRequest, Guid noteGraphId, Guid relationId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<EditRelationshipResponse>.Fail(graphDataResult.Error!);
 
@@ -81,7 +81,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<DeleteRelationshipResponse>> DeleteRelationshipByIds(Guid noteGraphId, Guid relationId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<DeleteRelationshipResponse>.Fail(graphDataResult.Error!);
 
@@ -89,8 +89,9 @@ namespace graphnotelm.Core.Services
             if (!graphData.Relationships.Remove(relationId))
                 return Result<DeleteRelationshipResponse>.Fail("Relationship not found.");
 
+            // Only nodes using this relationship type need rewriting.
             var affectedNodes = new List<NoteNode>();
-            foreach (var node in graphData.Nodes.Values)
+            foreach (var node in await _noteNodeRepository.GetNodesReferencingIdAsync(noteGraphId, relationId, ct))
             {
                 if (node.Relationships.RemoveAll(r => r.RelationshipId == relationId) > 0)
                     affectedNodes.Add(node);
@@ -99,8 +100,8 @@ namespace graphnotelm.Core.Services
             try
             {
                 await _noteGraphRepository.SaveAsync(graphData);
-                foreach (var node in affectedNodes)
-                    await _noteNodeRepository.SaveAsync(noteGraphId, node);
+                if (affectedNodes.Count > 0)
+                    await _noteNodeRepository.SaveManyAsync(noteGraphId, affectedNodes);
                 return Result<DeleteRelationshipResponse>.Ok(new DeleteRelationshipResponse());
             }
             catch
@@ -111,16 +112,19 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<AddNodeRelationshipResponse>> AddRelationshipToNode(AddNodeRelationshipRequest request, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            // Relationship definitions live on the document; only the source node is
+            // loaded and the target is checked for existence.
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<AddNodeRelationshipResponse>.Fail(graphDataResult.Error!);
 
             var graphData = graphDataResult.Value!;
-            if (!graphData.Nodes.TryGetValue(noteNodeId, out var node))
+            var node = await _noteNodeRepository.GetByIdAsync(noteGraphId, noteNodeId, ct);
+            if (node is null)
                 return Result<AddNodeRelationshipResponse>.Fail("Node not found in graph.");
             if (request.TargetNodeId == noteNodeId)
                 return Result<AddNodeRelationshipResponse>.Fail("A node cannot have a relationship with itself.");
-            if (!graphData.Nodes.ContainsKey(request.TargetNodeId))
+            if (!await _noteNodeRepository.ExistsAsync(noteGraphId, request.TargetNodeId, ct))
                 return Result<AddNodeRelationshipResponse>.Fail("Target node not found in graph.");
             if (!graphData.Relationships.ContainsKey(request.RelationshipId))
                 return Result<AddNodeRelationshipResponse>.Fail("Relationship type not found in graph.");
@@ -142,12 +146,12 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<RemoveNodeRelationshipResponse>> RemoveRelationshipFromNode(Guid noteGraphId, Guid noteNodeId, Guid targetNodeId, Guid relationshipId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
-            if (!graphDataResult.Success)
-                return Result<RemoveNodeRelationshipResponse>.Fail(graphDataResult.Error!);
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<RemoveNodeRelationshipResponse>.Fail(metadataResult.Error!);
 
-            var graphData = graphDataResult.Value!;
-            if (!graphData.Nodes.TryGetValue(noteNodeId, out var node))
+            var node = await _noteNodeRepository.GetByIdAsync(noteGraphId, noteNodeId, ct);
+            if (node is null)
                 return Result<RemoveNodeRelationshipResponse>.Fail("Node not found in graph.");
 
             var removed = node.Relationships.RemoveAll(r => r.TargetNodeId == targetNodeId && r.RelationshipId == relationshipId);

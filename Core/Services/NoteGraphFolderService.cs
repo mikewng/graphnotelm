@@ -25,7 +25,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<GetFolderListResponse>> GetFolderListByGraphId(Guid noteGraphId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<GetFolderListResponse>.Fail(graphDataResult.Error!);
 
@@ -37,7 +37,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<CreateFolderResponse>> CreateFolderByGraphId(CreateFolderRequest createFolderRequest, Guid noteGraphId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<CreateFolderResponse>.Fail(graphDataResult.Error!);
 
@@ -62,7 +62,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<EditFolderResponse>> EditFolderByIds(EditFolderRequest editFolderRequest, Guid noteGraphId, Guid folderId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<EditFolderResponse>.Fail(graphDataResult.Error!);
 
@@ -85,7 +85,7 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<DeleteFolderResponse>> DeleteFolderByIds(Guid noteGraphId, Guid folderId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<DeleteFolderResponse>.Fail(graphDataResult.Error!);
 
@@ -96,14 +96,12 @@ namespace graphnotelm.Core.Services
             graphData.Folders.Remove(folderId);
 
             // Deleting a folder unfiles its members rather than deleting the nodes.
+            // Only the folder's members are loaded and rewritten.
             var affectedNodes = new List<NoteNode>();
-            foreach (var node in graphData.Nodes.Values)
+            foreach (var node in await _noteNodeRepository.GetNodesByFolderAsync(noteGraphId, folderId, ct))
             {
-                if (node.FolderId == folderId)
-                {
-                    node.FolderId = null;
-                    affectedNodes.Add(node);
-                }
+                node.FolderId = null;
+                affectedNodes.Add(node);
             }
 
             try
@@ -121,12 +119,14 @@ namespace graphnotelm.Core.Services
 
         public async Task<Result<MoveNodeToFolderResponse>> MoveNodeToFolder(MoveNodeToFolderRequest request, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
         {
-            var graphDataResult = await _noteGraphAccessService.GetAuthorizedFullDocumentAsync(noteGraphId, ct);
+            // Folder definitions live on the document; only the one node is loaded.
+            var graphDataResult = await _noteGraphAccessService.GetAuthorizedGraphDataAsync(noteGraphId, ct);
             if (!graphDataResult.Success)
                 return Result<MoveNodeToFolderResponse>.Fail(graphDataResult.Error!);
 
             var graphData = graphDataResult.Value!;
-            if (!graphData.Nodes.TryGetValue(noteNodeId, out var node))
+            var node = await _noteNodeRepository.GetByIdAsync(noteGraphId, noteNodeId, ct);
+            if (node is null)
                 return Result<MoveNodeToFolderResponse>.Fail("Node not found in graph.");
             if (request.FolderId.HasValue && !graphData.Folders.ContainsKey(request.FolderId.Value))
                 return Result<MoveNodeToFolderResponse>.Fail("Folder not found in graph.");

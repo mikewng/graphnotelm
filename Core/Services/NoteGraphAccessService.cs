@@ -66,5 +66,22 @@ namespace graphnotelm.Core.Services
 
             return Result<NoteGraphDocument>.Ok(graphData);
         }
+
+        public async Task<Result<NoteGraphDocument>> GetAuthorizedSkeletonDocumentAsync(Guid noteGraphId, CancellationToken ct)
+        {
+            var metadataResult = await GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<NoteGraphDocument>.Fail(metadataResult.Error!);
+
+            var graphDataResult = await GetAuthorizedGraphDataAsync(noteGraphId, ct);
+            if (!graphDataResult.Success)
+                return Result<NoteGraphDocument>.Fail(graphDataResult.Error!);
+
+            var graphData = graphDataResult.Value!;
+            var nodes = await _noteNodeRepository.GetAllSkeletonsByGraphIdAsync(noteGraphId, ct);
+            graphData.Nodes = nodes.ToDictionary(n => n.Id);
+
+            return Result<NoteGraphDocument>.Ok(graphData);
+        }
     }
 }
