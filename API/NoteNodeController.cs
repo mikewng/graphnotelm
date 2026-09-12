@@ -1,5 +1,6 @@
 using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Core.Services.Contracts;
+using graphnotelm.Core.Utils;
 using graphnotelm.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -158,6 +159,41 @@ namespace graphnotelm.API
                 return BadRequest(Result<SetPinnedManyResponse>.Fail(result.Error ?? "Failed to update pin status."));
 
             return Result<SetPinnedManyResponse>.Ok(result.Value);
+        }
+
+        // Multipart form with a single "file" field. The limit leaves headroom above the
+        // image cap for multipart framing; the service enforces the exact image size.
+        [HttpPost("id/{noteGraphId:guid}/node/{nodeId:guid}/images")]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(ImageFormats.MaxUploadBytes + 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = ImageFormats.MaxUploadBytes + 1024 * 1024)]
+        public async Task<ActionResult<Result<UploadImageResponse>>> UploadImage(IFormFile? file, Guid noteGraphId, Guid nodeId, CancellationToken ct)
+        {
+            if (file is null)
+                return BadRequest(Result<UploadImageResponse>.Fail("No image file provided."));
+
+            await using var content = file.OpenReadStream();
+            var uploadResult = await _noteNodeService.UploadImageAsync(
+                new UploadImageRequest { Content = content, FileName = file.FileName }, noteGraphId, nodeId, ct);
+            if (!uploadResult.Success || uploadResult.Value == null)
+                return BadRequest(Result<UploadImageResponse>.Fail(uploadResult.Error ?? "Failed to upload image."));
+
+            return Result<UploadImageResponse>.Ok(uploadResult.Value);
+        }
+
+        // Anonymous because <img> requests cannot carry the bearer token; see NoteNodeService.GetImageAsync.
+        [AllowAnonymous]
+        [HttpGet("images/{imageId:guid}")]
+        public async Task<IActionResult> GetImage(Guid imageId, CancellationToken ct)
+        {
+            var imageResult = await _noteNodeService.GetImageAsync(imageId, ct);
+            if (!imageResult.Success || imageResult.Value == null)
+                return NotFound();
+
+            // Image ids are never reused for different bytes, so the response is immutable.
+            Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+            Response.Headers.XContentTypeOptions = "nosniff";
+            return File(imageResult.Value.Content, imageResult.Value.ContentType);
         }
 
         [HttpPost("id/{noteGraphId:guid}/node/paste")]

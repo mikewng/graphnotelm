@@ -2,6 +2,7 @@ using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Core.Services;
 using graphnotelm.Core.Services.Contracts;
+using graphnotelm.Core.Utils;
 using graphnotelm.Infrastructure.Contracts;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
@@ -19,6 +20,7 @@ namespace graphnotelm.Tests
         private readonly Mock<INoteGraphRepository> _graphRepoMock = new();
         private readonly Mock<INoteNodeRepository> _nodeRepoMock = new();
         private readonly Mock<ILLMAnalysisService> _llmAnalysisMock = new();
+        private readonly Mock<IImageRepository> _imageRepoMock = new();
 
         private readonly NoteNodeService _service;
 
@@ -29,7 +31,8 @@ namespace graphnotelm.Tests
                 _accessMock.Object,
                 _graphRepoMock.Object,
                 _nodeRepoMock.Object,
-                _llmAnalysisMock.Object);
+                _llmAnalysisMock.Object,
+                _imageRepoMock.Object);
         }
 
         private NoteGraphDocument AuthorizeFullDocument()
@@ -259,6 +262,49 @@ namespace graphnotelm.Tests
 
             Assert.False(result.Success);
             Assert.Equal("Node not found in graph.", result.Error);
+            _imageRepoMock.Verify(r => r.DeleteByNodeAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteNode_DeletesNodeImages()
+        {
+            var document = AuthorizeFullDocument();
+            var node = TestData.NewNode();
+            document.Nodes[node.Id] = node;
+
+            var result = await _service.DeleteNodeByIds(_graphId, node.Id, CancellationToken.None);
+
+            Assert.True(result.Success);
+            _imageRepoMock.Verify(r => r.DeleteByNodeAsync(_graphId, node.Id, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteNode_ImageCleanupFails_StillSucceeds()
+        {
+            var document = AuthorizeFullDocument();
+            var node = TestData.NewNode();
+            document.Nodes[node.Id] = node;
+            _imageRepoMock.Setup(r => r.DeleteByNodeAsync(_graphId, node.Id, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new IOException("locked"));
+
+            var result = await _service.DeleteNodeByIds(_graphId, node.Id, CancellationToken.None);
+
+            Assert.True(result.Success);
+            Assert.True(result.Value!.IsDeleted);
+        }
+
+        [Fact]
+        public async Task DeleteNode_NodeDeleteFails_DoesNotDeleteImages()
+        {
+            var document = AuthorizeFullDocument();
+            var node = TestData.NewNode();
+            document.Nodes[node.Id] = node;
+            _nodeRepoMock.Setup(r => r.DeleteAsync(_graphId, node.Id)).ThrowsAsync(new InvalidOperationException());
+
+            var result = await _service.DeleteNodeByIds(_graphId, node.Id, CancellationToken.None);
+
+            Assert.False(result.Success);
+            _imageRepoMock.Verify(r => r.DeleteByNodeAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         // ---------- SaveNodeContentAsync ----------
@@ -434,6 +480,236 @@ namespace graphnotelm.Tests
             Assert.Equal(0.9f, node.Metadata.UserConfidenceRate);
             Assert.Equal("existing", node.Metadata.LLMMetadata);
             _nodeRepoMock.Verify(r => r.SaveAsync(_graphId, node), Times.Once);
+        }
+
+        // ---------- UploadImageAsync ----------
+
+        private NoteNode AuthorizeWithNode()
+        {
+            var document = AuthorizeFullDocument();
+            var node = TestData.NewNode();
+            document.Nodes[node.Id] = node;
+            return node;
+        }
+
+        private static UploadImageRequest ImageRequest(byte[] bytes, string fileName = "photo.png")
+            => new UploadImageRequest { Content = new MemoryStream(bytes), FileName = fileName };
+
+        [Fact]
+        public async Task UploadImage_AccessDenied_Fails()
+        {
+            _accessMock.Setup(a => a.GetAuthorizedMetadataAsync(_graphId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Result<NoteGraphMetadata>.Fail("denied"));
+
+            var result = await _service.UploadImageAsync(ImageRequest(TestData.PngBytes()), _graphId, Guid.NewGuid(), CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Equal("denied", result.Error);
+            _imageRepoMock.Verify(r => r.SaveAsync(It.IsAny<NoteImage>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UploadImage_NodeNotFound_Fails()
+        {
+            AuthorizeFullDocument();
+
+            var result = await _service.UploadImageAsync(ImageRequest(TestData.PngBytes()), _graphId, Guid.NewGuid(), CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Equal("Node not found in graph.", result.Error);
+        }
+
+        [Fact]
+        public async Task UploadImage_EmptyFile_Fails()
+        {
+            var node = AuthorizeWithNode();
+
+            var result = await _service.UploadImageAsync(ImageRequest(Array.Empty<byte>()), _graphId, node.Id, CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Equal("Image was empty.", result.Error);
+        }
+
+        [Fact]
+        public async Task UploadImage_OverSizeLimit_Fails()
+        {
+            var node = AuthorizeWithNode();
+
+            var result = await _service.UploadImageAsync(
+                ImageRequest(TestData.PngBytes((int)ImageFormats.MaxUploadBytes + 1)), _graphId, node.Id, CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Contains("MB limit", result.Error);
+            _imageRepoMock.Verify(r => r.SaveAsync(It.IsAny<NoteImage>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UploadImage_AtSizeLimit_Succeeds()
+        {
+            var node = AuthorizeWithNode();
+
+            var result = await _service.UploadImageAsync(
+                ImageRequest(TestData.PngBytes((int)ImageFormats.MaxUploadBytes)), _graphId, node.Id, CancellationToken.None);
+
+            Assert.True(result.Success);
+        }
+
+        [Theory]
+        [InlineData("fake.png", "not an image at all")]
+        [InlineData("drawing.svg", "<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>")]
+        public async Task UploadImage_UnsupportedBytes_FailsRegardlessOfFileName(string fileName, string content)
+        {
+            var node = AuthorizeWithNode();
+
+            var result = await _service.UploadImageAsync(
+                ImageRequest(System.Text.Encoding.UTF8.GetBytes(content), fileName), _graphId, node.Id, CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.StartsWith("Unsupported image type", result.Error);
+            _imageRepoMock.Verify(r => r.SaveAsync(It.IsAny<NoteImage>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UploadImage_ValidPng_SavesFullStreamAndReturnsUrl()
+        {
+            var node = AuthorizeWithNode();
+            var bytes = TestData.PngBytes(128);
+            NoteImage? saved = null;
+            byte[]? savedBytes = null;
+            _imageRepoMock.Setup(r => r.SaveAsync(It.IsAny<NoteImage>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .Callback<NoteImage, Stream, CancellationToken>((image, stream, _) =>
+                {
+                    saved = image;
+                    using var copy = new MemoryStream();
+                    stream.CopyTo(copy);
+                    savedBytes = copy.ToArray();
+                })
+                .Returns(Task.CompletedTask);
+
+            var result = await _service.UploadImageAsync(ImageRequest(bytes), _graphId, node.Id, CancellationToken.None);
+
+            Assert.True(result.Success);
+            Assert.NotNull(saved);
+            Assert.Equal(_graphId, saved!.GraphId);
+            Assert.Equal(node.Id, saved.NodeId);
+            Assert.Equal("image/png", saved.ContentType);
+            Assert.Equal(bytes.Length, saved.SizeBytes);
+            Assert.Equal("photo.png", saved.OriginalFileName);
+            // Format detection reads the header; the repository must still receive every byte.
+            Assert.Equal(bytes, savedBytes);
+            Assert.Equal(saved.Id, result.Value!.ImageId);
+            Assert.Equal($"/NoteGraph/images/{saved.Id}", result.Value.Url);
+        }
+
+        [Fact]
+        public async Task UploadImage_NonSeekableStream_IsBufferedAndSaved()
+        {
+            var node = AuthorizeWithNode();
+            var bytes = TestData.PngBytes(128);
+            byte[]? savedBytes = null;
+            _imageRepoMock.Setup(r => r.SaveAsync(It.IsAny<NoteImage>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .Callback<NoteImage, Stream, CancellationToken>((_, stream, _) =>
+                {
+                    using var copy = new MemoryStream();
+                    stream.CopyTo(copy);
+                    savedBytes = copy.ToArray();
+                })
+                .Returns(Task.CompletedTask);
+
+            var request = new UploadImageRequest { Content = new NonSeekableStream(new MemoryStream(bytes)), FileName = "photo.png" };
+            var result = await _service.UploadImageAsync(request, _graphId, node.Id, CancellationToken.None);
+
+            Assert.True(result.Success);
+            Assert.Equal(bytes, savedBytes);
+        }
+
+        [Theory]
+        [InlineData("../../evil.png", "evil.png")]
+        [InlineData("C:\\Windows\\evil.png", "evil.png")]
+        public async Task UploadImage_StripsDirectoriesFromFileName(string fileName, string expected)
+        {
+            var node = AuthorizeWithNode();
+            NoteImage? saved = null;
+            _imageRepoMock.Setup(r => r.SaveAsync(It.IsAny<NoteImage>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .Callback<NoteImage, Stream, CancellationToken>((image, _, _) => saved = image)
+                .Returns(Task.CompletedTask);
+
+            await _service.UploadImageAsync(ImageRequest(TestData.PngBytes(), fileName), _graphId, node.Id, CancellationToken.None);
+
+            Assert.Equal(expected, saved!.OriginalFileName);
+        }
+
+        [Fact]
+        public async Task UploadImage_RepositoryThrows_Fails()
+        {
+            var node = AuthorizeWithNode();
+            _imageRepoMock.Setup(r => r.SaveAsync(It.IsAny<NoteImage>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new IOException("disk full"));
+
+            var result = await _service.UploadImageAsync(ImageRequest(TestData.PngBytes()), _graphId, node.Id, CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Equal("Failed to save image.", result.Error);
+        }
+
+        // ---------- GetImageAsync ----------
+
+        [Fact]
+        public async Task GetImage_UnknownId_Fails()
+        {
+            _imageRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((NoteImage?)null);
+
+            var result = await _service.GetImageAsync(Guid.NewGuid(), CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Equal("Image not found.", result.Error);
+        }
+
+        [Fact]
+        public async Task GetImage_StoredBytesMissing_Fails()
+        {
+            var image = new NoteImage { Id = Guid.NewGuid(), ContentType = "image/png" };
+            _imageRepoMock.Setup(r => r.GetByIdAsync(image.Id, It.IsAny<CancellationToken>())).ReturnsAsync(image);
+            _imageRepoMock.Setup(r => r.OpenReadAsync(image, It.IsAny<CancellationToken>())).ReturnsAsync((Stream?)null);
+
+            var result = await _service.GetImageAsync(image.Id, CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Equal("Image not found.", result.Error);
+        }
+
+        [Fact]
+        public async Task GetImage_ReturnsStreamWithStoredContentType()
+        {
+            var image = new NoteImage { Id = Guid.NewGuid(), ContentType = "image/webp" };
+            var stream = new MemoryStream(TestData.PngBytes());
+            _imageRepoMock.Setup(r => r.GetByIdAsync(image.Id, It.IsAny<CancellationToken>())).ReturnsAsync(image);
+            _imageRepoMock.Setup(r => r.OpenReadAsync(image, It.IsAny<CancellationToken>())).ReturnsAsync(stream);
+
+            var result = await _service.GetImageAsync(image.Id, CancellationToken.None);
+
+            Assert.True(result.Success);
+            Assert.Same(stream, result.Value!.Content);
+            Assert.Equal("image/webp", result.Value.ContentType);
+        }
+
+        private sealed class NonSeekableStream(Stream inner) : Stream
+        {
+            public override bool CanRead => true;
+            public override bool CanSeek => false;
+            public override bool CanWrite => false;
+            public override long Length => throw new NotSupportedException();
+            public override long Position
+            {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+            public override int Read(byte[] buffer, int offset, int count) => inner.Read(buffer, offset, count);
+            public override void Flush() { }
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
         }
     }
 }

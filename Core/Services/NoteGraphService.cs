@@ -18,6 +18,7 @@ namespace graphnotelm.Core.Services
         private readonly INoteGraphAccessService _noteGraphAccessService;
         private readonly INoteNodeRepository _noteNodeRepository;
         private readonly ILLMAnalysisService _llmAnalysisService;
+        private readonly IImageRepository _imageRepository;
 
         public NoteGraphService(
             IUnitOfWork unitOfWork,
@@ -26,7 +27,8 @@ namespace graphnotelm.Core.Services
             INoteGraphRepository noteGraphRepository,
             INoteGraphAccessService noteGraphAccessService,
             INoteNodeRepository noteNodeRepository,
-            ILLMAnalysisService llmAnalysisService
+            ILLMAnalysisService llmAnalysisService,
+            IImageRepository imageRepository
             )
         {
             _unitOfWork = unitOfWork;
@@ -36,6 +38,7 @@ namespace graphnotelm.Core.Services
             _noteGraphAccessService = noteGraphAccessService;
             _noteNodeRepository = noteNodeRepository;
             _llmAnalysisService = llmAnalysisService;
+            _imageRepository = imageRepository;
         }
 
         public async Task<Result<GetGraphSkeletonResponse>> GetNoteGraphById(Guid noteGraphId, CancellationToken ct)
@@ -187,13 +190,20 @@ namespace graphnotelm.Core.Services
                 await _noteGraphRepository.DeleteByIdAsync(noteGraphId);
                 await _noteGraphMetadataRepository.DeleteAsync(noteGraphId, ct);
                 await _unitOfWork.SaveChangesAsync(ct);
-
-                return Result<DeleteGraphResponse>.Ok(metadata.ToDeleteGraphResponse());
             }
             catch
             {
                 return Result<DeleteGraphResponse>.Fail("Failed to hard delete graph.");
             }
+
+            // Best-effort: the graph is already gone; leftover images only waste disk space.
+            try
+            {
+                await _imageRepository.DeleteByGraphAsync(noteGraphId, ct);
+            }
+            catch { }
+
+            return Result<DeleteGraphResponse>.Ok(metadata.ToDeleteGraphResponse());
         }
 
         public async Task<Result<DeleteGraphResponse>> UnarchiveNoteGraphById(Guid noteGraphId, CancellationToken ct)
