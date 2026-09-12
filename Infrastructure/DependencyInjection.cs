@@ -1,6 +1,3 @@
-using Amazon;
-using Amazon.DynamoDBv2;
-using Amazon.Runtime;
 using graphnotelm.Infrastructure.Contracts;
 using graphnotelm.Infrastructure.Repository;
 using graphnotelm.Infrastructure.Repository.Contracts;
@@ -11,7 +8,7 @@ namespace graphnotelm.Infrastructure
 {
     public static class DependencyInjection
     {
-        public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration, IHostEnvironment env)
+        public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             var localDb = configuration.GetConnectionString("LocalDB");
 
@@ -42,27 +39,7 @@ namespace graphnotelm.Infrastructure
                 services.AddScoped<IUserRepository, UserRepository>();
                 services.AddScoped<INoteGraphMetadataRepository, PostgreSQLNoteGraphMetadataRepository>();
 
-                // NoteGraph repository
-                if (env.IsDevelopment())
-                {
-                    services.AddSingleton<INoteGraphRepository, InMemoryDBNoteGraphRepository>();
-                    services.AddSingleton<INoteNodeRepository, InMemoryDBNoteNodeRepository>();
-                }
-                else
-                {
-                    var awsSection = configuration.GetSection("Aws");
-                    var credentials = new BasicAWSCredentials(
-                        awsSection["AccessKey"] ?? throw new InvalidOperationException("Aws:AccessKey missing"),
-                        awsSection["SecretKey"] ?? throw new InvalidOperationException("Aws:SecretKey missing")
-                    );
-                    var region = RegionEndpoint.GetBySystemName(awsSection["Region"] ?? "us-east-1");
-
-                    services.AddSingleton<IAmazonDynamoDB>(new AmazonDynamoDBClient(credentials, region));
-                    services.Configure<DynamoDbSettings>(configuration.GetSection("DynamoDb"));
-                    services.Configure<DynamoDbNodeSettings>(configuration.GetSection("DynamoDbNodes"));
-                    services.AddScoped<INoteGraphRepository, DynamoDBNoteGraphRepository>();
-                    services.AddScoped<INoteNodeRepository, DynamoDBNoteNodeRepository>();
-                }
+                // TODO: register PostgreSQL INoteGraphRepository and INoteNodeRepository implementations
             }
 
             return services;
