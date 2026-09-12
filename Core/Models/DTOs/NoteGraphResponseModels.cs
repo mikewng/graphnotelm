@@ -53,6 +53,18 @@ namespace graphnotelm.Core.Models.DTOs
         public Guid? FolderId { get; set; }
     }
 
+    public class UploadImageResponse
+    {
+        public Guid ImageId { get; set; }
+        public string Url { get; set; } = string.Empty;
+    }
+
+    public class GetImageResponse
+    {
+        public Stream Content { get; set; } = Stream.Null;
+        public string ContentType { get; set; } = string.Empty;
+    }
+
     public class GetNodeBatchResponse
     {
         public Dictionary<Guid, GetNodeResponse> Nodes { get; set; } = new();

@@ -3,6 +3,7 @@ using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Core.Models.Mappers;
 using graphnotelm.Core.Services.Contracts;
+using graphnotelm.Core.Utils;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
 
@@ -15,14 +16,16 @@ namespace graphnotelm.Core.Services
         private readonly INoteGraphRepository _noteGraphRepository;
         private readonly INoteNodeRepository _noteNodeRepository;
         private readonly ILLMAnalysisService _llmAnalysisService;
+        private readonly IImageRepository _imageRepository;
 
-        public NoteNodeService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository, INoteNodeRepository noteNodeRepository, ILLMAnalysisService llmAnalysisService)
+        public NoteNodeService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository, INoteNodeRepository noteNodeRepository, ILLMAnalysisService llmAnalysisService, IImageRepository imageRepository)
         {
             _unitOfWork = unitOfWork;
             _noteGraphAccessService = noteGraphAccessService;
             _noteGraphRepository = noteGraphRepository;
             _noteNodeRepository = noteNodeRepository;
             _llmAnalysisService = llmAnalysisService;
+            _imageRepository = imageRepository;
         }
 
         public async Task<Result<GetNodeResponse>> GetNodeByIds(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
@@ -153,12 +156,21 @@ namespace graphnotelm.Core.Services
                 await _noteNodeRepository.DeleteAsync(noteGraphId, noteNodeId);
                 if (affectedNodes.Count > 0)
                     await _noteNodeRepository.SaveManyAsync(noteGraphId, affectedNodes);
-                return Result<DeleteNodeResponse>.Ok(new DeleteNodeResponse { Id = noteNodeId, IsDeleted = true });
             }
             catch
             {
                 return Result<DeleteNodeResponse>.Fail("Failed to delete node.");
             }
+
+            // Best-effort: the node is already gone, and a leftover image is only wasted
+            // disk space, so an image cleanup failure must not report the delete as failed.
+            try
+            {
+                await _imageRepository.DeleteByNodeAsync(noteGraphId, noteNodeId, ct);
+            }
+            catch { }
+
+            return Result<DeleteNodeResponse>.Ok(new DeleteNodeResponse { Id = noteNodeId, IsDeleted = true });
         }
 
         public async Task<Result<SaveNodeContentResponse>> SaveNodeContentAsync(SaveNodeContentRequest saveNodeContentRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
@@ -314,6 +326,68 @@ namespace graphnotelm.Core.Services
             {
                 return Result<SetPinnedManyResponse>.Fail("Failed to update pin status.");
             }
+        }
+
+        public async Task<Result<UploadImageResponse>> UploadImageAsync(UploadImageRequest uploadImageRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
+        {
+            var metadataResult = await _noteGraphAccessService.GetAuthorizedMetadataAsync(noteGraphId, ct);
+            if (!metadataResult.Success)
+                return Result<UploadImageResponse>.Fail(metadataResult.Error!);
+
+            if (!await _noteNodeRepository.ExistsAsync(noteGraphId, noteNodeId, ct))
+                return Result<UploadImageResponse>.Fail("Node not found in graph.");
+
+            // Size and format checks need to rewind; form uploads are already seekable.
+            var content = uploadImageRequest.Content;
+            if (!content.CanSeek)
+            {
+                var buffered = new MemoryStream();
+                await content.CopyToAsync(buffered, ct);
+                buffered.Position = 0;
+                content = buffered;
+            }
+
+            var sizeBytes = content.Length - content.Position;
+            if (sizeBytes <= 0)
+                return Result<UploadImageResponse>.Fail("Image was empty.");
+            if (sizeBytes > ImageFormats.MaxUploadBytes)
+                return Result<UploadImageResponse>.Fail($"Image exceeds the {ImageFormats.MaxUploadBytes / (1024 * 1024)} MB limit.");
+
+            var start = content.Position;
+            var header = new byte[ImageFormats.HeaderLength];
+            var headerLength = await content.ReadAtLeastAsync(header, header.Length, throwOnEndOfStream: false, ct);
+            content.Position = start;
+
+            var format = ImageFormats.Detect(header.AsSpan(0, headerLength));
+            if (format is null)
+                return Result<UploadImageResponse>.Fail("Unsupported image type. Use PNG, JPEG, GIF, or WebP.");
+
+            var image = uploadImageRequest.ToNoteImage(Guid.NewGuid(), noteGraphId, noteNodeId, format, sizeBytes);
+
+            try
+            {
+                await _imageRepository.SaveAsync(image, content, ct);
+                return Result<UploadImageResponse>.Ok(image.ToUploadImageResponse());
+            }
+            catch
+            {
+                return Result<UploadImageResponse>.Fail("Failed to save image.");
+            }
+        }
+
+        // No graph access check: <img> tags cannot send the bearer token, so images are
+        // addressed by their unguessable id. Local mode only listens on localhost.
+        public async Task<Result<GetImageResponse>> GetImageAsync(Guid imageId, CancellationToken ct)
+        {
+            var image = await _imageRepository.GetByIdAsync(imageId, ct);
+            if (image is null)
+                return Result<GetImageResponse>.Fail("Image not found.");
+
+            var content = await _imageRepository.OpenReadAsync(image, ct);
+            if (content is null)
+                return Result<GetImageResponse>.Fail("Image not found.");
+
+            return Result<GetImageResponse>.Ok(new GetImageResponse { Content = content, ContentType = image.ContentType });
         }
 
         private static string BuildSnippet(string text, string query, int halfWindow = 80)

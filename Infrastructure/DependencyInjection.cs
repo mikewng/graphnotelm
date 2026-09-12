@@ -29,6 +29,7 @@ namespace graphnotelm.Infrastructure
                 services.AddScoped<INoteGraphMetadataRepository, SQLiteNoteGraphMetadataRepository>();
                 services.AddSingleton<INoteGraphRepository, SQLiteNoteGraphRepository>();
                 services.AddSingleton<INoteNodeRepository, SQLiteNoteNodeRepository>();
+                services.AddSingleton<IImageRepository, LocalImageRepository>();
             }
             else
             {
@@ -40,6 +41,7 @@ namespace graphnotelm.Infrastructure
                 services.AddScoped<INoteGraphMetadataRepository, PostgreSQLNoteGraphMetadataRepository>();
 
                 // TODO: register PostgreSQL INoteGraphRepository and INoteNodeRepository implementations
+                // TODO: register a cloud IImageRepository implementation (e.g. object storage + PostgreSQL)
             }
 
             return services;

@@ -17,6 +17,14 @@ namespace graphnotelm.Tests
         public static NoteNode NewNode(string title = "Node", string note = "note text")
             => new NoteNode { Id = Guid.NewGuid(), Title = title, Note = note };
 
+        // Byte payload that passes image format detection as a PNG.
+        public static byte[] PngBytes(int length = 64)
+        {
+            var bytes = new byte[length];
+            new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }.CopyTo(bytes, 0);
+            return bytes;
+        }
+
         public static NoteGraphMetadata NewMetadata(Guid userId, Guid? graphId = null, string name = "My Graph")
             => new NoteGraphMetadata
             {

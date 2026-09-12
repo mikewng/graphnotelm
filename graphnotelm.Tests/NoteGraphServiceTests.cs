@@ -22,6 +22,7 @@ namespace graphnotelm.Tests
         private readonly Mock<INoteGraphAccessService> _accessMock = new();
         private readonly Mock<INoteNodeRepository> _nodeRepoMock = new();
         private readonly Mock<ILLMAnalysisService> _llmAnalysisMock = new();
+        private readonly Mock<IImageRepository> _imageRepoMock = new();
 
         private readonly NoteGraphService _service;
 
@@ -36,7 +37,8 @@ namespace graphnotelm.Tests
                 _graphRepoMock.Object,
                 _accessMock.Object,
                 _nodeRepoMock.Object,
-                _llmAnalysisMock.Object);
+                _llmAnalysisMock.Object,
+                _imageRepoMock.Object);
         }
 
         private NoteGraphDocument AuthorizeFullDocument()
@@ -304,6 +306,33 @@ namespace graphnotelm.Tests
             _nodeRepoMock.Verify(r => r.DeleteAsync(_graphId, nodeB.Id), Times.Once);
             _graphRepoMock.Verify(r => r.DeleteByIdAsync(_graphId), Times.Once);
             _metadataRepoMock.Verify(r => r.DeleteAsync(_graphId, It.IsAny<CancellationToken>()), Times.Once);
+            _imageRepoMock.Verify(r => r.DeleteByGraphAsync(_graphId, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task HardDelete_ImageCleanupFails_StillSucceeds()
+        {
+            _metadataRepoMock.Setup(r => r.GetDeletedByIdAsync(_graphId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(TestData.NewMetadata(_userId, _graphId));
+            _nodeRepoMock.Setup(r => r.GetAllByGraphIdAsync(_graphId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<NoteNode>());
+            _imageRepoMock.Setup(r => r.DeleteByGraphAsync(_graphId, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new IOException("locked"));
+
+            var result = await _service.HardDeleteNoteGraphById(_graphId, CancellationToken.None);
+
+            Assert.True(result.Success);
+        }
+
+        [Fact]
+        public async Task HardDelete_OtherUsersGraph_DoesNotDeleteImages()
+        {
+            _metadataRepoMock.Setup(r => r.GetDeletedByIdAsync(_graphId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(TestData.NewMetadata(Guid.NewGuid(), _graphId));
+
+            await _service.HardDeleteNoteGraphById(_graphId, CancellationToken.None);
+
+            _imageRepoMock.Verify(r => r.DeleteByGraphAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         // ---------- UnarchiveNoteGraphById ----------

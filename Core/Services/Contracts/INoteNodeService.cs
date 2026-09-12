@@ -17,5 +17,7 @@ namespace graphnotelm.Core.Services.Contracts
         public Task<Result<GetPinnedNodesResponse>> GetPinnedNodes(Guid noteGraphId, CancellationToken ct);
         public Task<Result<SetPinnedResponse>> SetNodePinned(Guid noteGraphId, Guid noteNodeId, bool isPinned, CancellationToken ct);
         public Task<Result<SetPinnedManyResponse>> SetNodesPinned(SetPinnedManyRequest request, Guid noteGraphId, bool isPinned, CancellationToken ct);
+        public Task<Result<UploadImageResponse>> UploadImageAsync(UploadImageRequest uploadImageRequest, Guid noteGraphId, Guid noteNodeId, CancellationToken ct);
+        public Task<Result<GetImageResponse>> GetImageAsync(Guid imageId, CancellationToken ct);
     }
 }

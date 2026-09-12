@@ -44,6 +44,14 @@ namespace graphnotelm.Core.Models.DTOs
         public string PastedContent { get; set; } = string.Empty;
     }
 
+    // Built by the controller from the multipart upload. The client's content type is
+    // deliberately absent — the format is detected from the bytes.
+    public class UploadImageRequest
+    {
+        public Stream Content { get; set; } = Stream.Null;
+        public string FileName { get; set; } = string.Empty;
+    }
+
     public class EditNodeRequest
     {
         public string Title { get; set; } = string.Empty;
