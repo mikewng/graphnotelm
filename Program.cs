@@ -98,7 +98,7 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
-builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplicationServices(builder.Configuration);
 
 builder.Services.AddCors(options =>
