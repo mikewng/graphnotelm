@@ -61,6 +61,13 @@ namespace graphnotelm.Core.Models.Mappers
         [MapperIgnoreSource(nameof(NoteNode.FolderId))]
         public static partial NodeSearchResult ToNodeSearchResult(this NoteNode node, string snippet, bool matchedTitle, bool matchedNote);
 
+        [MapProperty(new[] { nameof(NoteNode.Metadata), nameof(NoteNodeMetadata.UserConfidenceRate) }, nameof(AnalysisNodeResult.UserConfidenceRate))]
+        [MapperIgnoreSource(nameof(NoteNode.Note))]
+        [MapperIgnoreSource(nameof(NoteNode.Relationships))]
+        [MapperIgnoreSource(nameof(NoteNode.Tags))]
+        [MapperIgnoreSource(nameof(NoteNode.FolderId))]
+        public static partial AnalysisNodeResult ToAnalysisNodeResult(this NoteNode node);
+
         [MapProperty(nameof(NoteNode.Id), nameof(EditNodeMetadataResponse.NodeId))]
         [MapperIgnoreSource(nameof(NoteNode.Title))]
         [MapperIgnoreSource(nameof(NoteNode.Note))]

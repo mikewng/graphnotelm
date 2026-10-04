@@ -115,7 +115,7 @@ namespace graphnotelm.Tests
 
             Assert.NotNull(sentOptions);
             Assert.NotNull(sentOptions!.Tools);
-            Assert.Equal(8, sentOptions.Tools!.Count);
+            Assert.Equal(9, sentOptions.Tools!.Count);
         }
 
         [Fact]
