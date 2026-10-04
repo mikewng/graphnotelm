@@ -265,6 +265,27 @@ namespace graphnotelm.Core.Models.DTOs
         public List<FlashcardResult> Cards { get; set; } = new();
     }
 
+    // One note in the graph-wide flashcards list, with its review status.
+    public class FlashcardNoteGroup
+    {
+        public Guid NodeId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public float Confidence { get; set; }
+        // Null until the note's first review.
+        public DateTime? DueAt { get; set; }
+        public int Reviews { get; set; }
+        // Same rules as the review queue: reviewed and due now, or never reviewed but has cards.
+        public bool IsDue { get; set; }
+        public bool IsNew { get; set; }
+        public List<FlashcardResult> Cards { get; set; } = new();
+    }
+
+    public class GetGraphFlashcardsResponse
+    {
+        // Every note in the graph, including those without cards, ordered by title.
+        public List<FlashcardNoteGroup> Notes { get; set; } = new();
+    }
+
     public class DeleteFlashcardResponse
     {
         public Guid Id { get; set; }

@@ -114,6 +114,60 @@ namespace graphnotelm.Tests
         }
 
         [Fact]
+        public async Task GetGraphFlashcards_ListsEveryNoteWithItsCardsAndReviewStatus()
+        {
+            var document = TestData.NewDocument(Guid.NewGuid(), _graphId);
+            NoteNode Add(string title, DateTime? dueAt = null)
+            {
+                var node = TestData.NewNode(title);
+                if (dueAt is { } due)
+                    node.Metadata.Memory = new MemoryState { Stability = 5, Difficulty = 5, LastReviewedAt = due.AddDays(-5), DueAt = due, Reviews = 2 };
+                document.Nodes[node.Id] = node;
+                return node;
+            }
+            var fresh = Add("b fresh");
+            var due = Add("A due", _time.Now.AddDays(-1));
+            var later = Add("C later", _time.Now.AddDays(1));
+            var bare = Add("D bare");
+            _accessMock.Setup(a => a.GetAuthorizedSkeletonDocumentAsync(_graphId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Result<NoteGraphDocument>.Ok(document));
+            _cardRepoMock.Setup(r => r.GetByGraphAsync(_graphId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<Flashcard>
+                {
+                    new() { Id = Guid.NewGuid(), GraphId = _graphId, NodeId = fresh.Id, Front = "Fresh Q", Back = "A" },
+                    new() { Id = Guid.NewGuid(), GraphId = _graphId, NodeId = later.Id, Front = "Later Q", Back = "A" },
+                    // Left behind by a failed cleanup — its note is gone, so it isn't listed.
+                    new() { Id = Guid.NewGuid(), GraphId = _graphId, NodeId = Guid.NewGuid(), Front = "Orphan", Back = "A" },
+                });
+
+            var result = await _service.GetGraphFlashcards(_graphId, CancellationToken.None);
+
+            Assert.True(result.Success);
+            var notes = result.Value!.Notes;
+            Assert.Equal(new[] { due.Id, fresh.Id, later.Id, bare.Id }, notes.Select(n => n.NodeId));
+            Assert.Equal(new[] { true, false, false, false }, notes.Select(n => n.IsDue));
+            Assert.Equal(new[] { false, true, false, false }, notes.Select(n => n.IsNew));
+            Assert.Equal(new[] { 0, 1, 1, 0 }, notes.Select(n => n.Cards.Count));
+            Assert.Equal("Fresh Q", notes[1].Cards[0].Front);
+            Assert.Null(notes[1].DueAt);
+            Assert.Equal((_time.Now.AddDays(1), 2), (notes[2].DueAt!.Value, notes[2].Reviews));
+            Assert.Equal(Core.Utils.MemoryModel.Confidence(later.Metadata, _time.Now), notes[2].Confidence);
+        }
+
+        [Fact]
+        public async Task GetGraphFlashcards_AccessDenied_Fails()
+        {
+            var otherGraph = Guid.NewGuid();
+            _accessMock.Setup(a => a.GetAuthorizedSkeletonDocumentAsync(otherGraph, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Result<NoteGraphDocument>.Fail("Access denied."));
+
+            var result = await _service.GetGraphFlashcards(otherGraph, CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Equal("Access denied.", result.Error);
+        }
+
+        [Fact]
         public async Task Get_ReturnsTheNotesCards()
         {
             var card = StoreCard();

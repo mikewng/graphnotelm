@@ -2,6 +2,7 @@ using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Core.Models.Mappers;
 using graphnotelm.Core.Services.Contracts;
+using graphnotelm.Core.Utils;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
 
@@ -24,6 +25,41 @@ namespace graphnotelm.Core.Services
             _noteNodeRepository = noteNodeRepository;
             _flashcardRepository = flashcardRepository;
             _time = time;
+        }
+
+        public async Task<Result<GetGraphFlashcardsResponse>> GetGraphFlashcards(Guid noteGraphId, CancellationToken ct)
+        {
+            // Titles and memory state are all this needs, so skip loading note bodies.
+            var documentResult = await _noteGraphAccessService.GetAuthorizedSkeletonDocumentAsync(noteGraphId, ct);
+            if (!documentResult.Success)
+                return Result<GetGraphFlashcardsResponse>.Fail(documentResult.Error!);
+
+            var now = _time.GetUtcNow().UtcDateTime;
+            var cardsByNode = (await _flashcardRepository.GetByGraphAsync(noteGraphId, ct))
+                .GroupBy(c => c.NodeId)
+                .ToDictionary(g => g.Key, g => g.Select(c => c.ToFlashcardResult()).ToList());
+
+            var notes = documentResult.Value!.Nodes.Values
+                .OrderBy(n => n.Title, StringComparer.OrdinalIgnoreCase)
+                .Select(node =>
+                {
+                    var memory = node.Metadata.Memory;
+                    var cards = cardsByNode.GetValueOrDefault(node.Id) ?? new();
+                    return new FlashcardNoteGroup
+                    {
+                        NodeId = node.Id,
+                        Title = node.Title,
+                        Confidence = MemoryModel.Confidence(node.Metadata, now),
+                        DueAt = memory?.DueAt,
+                        Reviews = memory?.Reviews ?? 0,
+                        IsDue = memory is not null && memory.DueAt <= now,
+                        IsNew = memory is null && cards.Count > 0,
+                        Cards = cards
+                    };
+                })
+                .ToList();
+
+            return Result<GetGraphFlashcardsResponse>.Ok(new GetGraphFlashcardsResponse { Notes = notes });
         }
 
         public async Task<Result<GetFlashcardsResponse>> GetFlashcards(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)

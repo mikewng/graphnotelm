@@ -22,6 +22,16 @@ namespace graphnotelm.API
             _flashcardService = flashcardService;
         }
 
+        [HttpGet("id/{noteGraphId:guid}/flashcards")]
+        public async Task<ActionResult<Result<GetGraphFlashcardsResponse>>> GetGraphFlashcards(Guid noteGraphId, CancellationToken ct)
+        {
+            var response = await _flashcardService.GetGraphFlashcards(noteGraphId, ct);
+            if (!response.Success || response.Value == null)
+                return BadRequest(Result<GetGraphFlashcardsResponse>.Fail(response.Error ?? "Failed to retrieve flashcards."));
+
+            return Result<GetGraphFlashcardsResponse>.Ok(response.Value);
+        }
+
         [HttpGet("id/{noteGraphId:guid}/node/{nodeId:guid}/flashcards")]
         public async Task<ActionResult<Result<GetFlashcardsResponse>>> GetFlashcards(Guid noteGraphId, Guid nodeId, CancellationToken ct)
         {
