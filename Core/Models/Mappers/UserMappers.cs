@@ -15,5 +15,15 @@ namespace graphnotelm.Core.Models.Mappers
 
         public static AuthResponse ToAuthResponse(this (string Token, DateTime ExpiresAtUtc) accessToken)
             => new() { AccessToken = accessToken.Token, ExpiresAtUtc = accessToken.ExpiresAtUtc };
+
+        public static AccountResponse ToAccountResponse(this User user)
+            => new()
+            {
+                Id          = user.Id,
+                Username    = user.Username,
+                Email       = user.Email,
+                CreatedAt   = user.CreatedAt,
+                LastLoginAt = user.LastLoginAt
+            };
     }
 }

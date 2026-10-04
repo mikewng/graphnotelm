@@ -1,9 +1,10 @@
-﻿using graphnotelm.Core.Models;
+using graphnotelm.Core.Models;
 
 namespace graphnotelm.Core.Services.Contracts
 {
     public interface IJwtTokenService
     {
-        (string token, DateTime expiresAtUtc) CreateAccessToken(User user);
+        /// <param name="lifetime">Overrides the configured Jwt:AccessTokenMinutes when supplied.</param>
+        (string token, DateTime expiresAtUtc) CreateAccessToken(User user, TimeSpan? lifetime = null);
     }
 }

@@ -1,4 +1,4 @@
-﻿using graphnotelm.Core.Models;
+using graphnotelm.Core.Models;
 using graphnotelm.Core.Services.Contracts;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -16,7 +16,7 @@ namespace graphnotelm.Core.Services
             _config = config;
         }
 
-        public (string token, DateTime expiresAtUtc) CreateAccessToken(User user)
+        public (string token, DateTime expiresAtUtc) CreateAccessToken(User user, TimeSpan? lifetime = null)
         {
             var jwtSection = _config.GetSection("Jwt");
 
@@ -27,7 +27,7 @@ namespace graphnotelm.Core.Services
             if (!int.TryParse(jwtSection["AccessTokenMinutes"], out var minutes))
                 minutes = 15;
 
-            var expiresAtUtc = DateTime.UtcNow.AddMinutes(minutes);
+            var expiresAtUtc = DateTime.UtcNow.Add(lifetime ?? TimeSpan.FromMinutes(minutes));
 
             var claims = new List<Claim>
             {
