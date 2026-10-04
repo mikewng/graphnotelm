@@ -2,6 +2,14 @@
 
 namespace graphnotelm.Core.Utils
 {
+    // Which way to follow a relationship edge, relative to how it is stored (source → target).
+    public enum EdgeDirection
+    {
+        Both,
+        Outgoing,
+        Incoming,
+    }
+
     public class GraphView
     {
         private readonly NoteGraphDocument _document;
@@ -34,6 +42,7 @@ namespace graphnotelm.Core.Utils
 
         // Core accessors the algorithms use
         public NoteNode GetNode(Guid id) => _document.Nodes[id];
+        public bool HasNode(Guid id) => _document.Nodes.ContainsKey(id);
         public IReadOnlyDictionary<Guid, NoteNode> AllNodes => _document.Nodes;
         public double GetConfidence(Guid id) => _document.Nodes[id].Metadata.UserConfidenceRate;
 
@@ -44,10 +53,26 @@ namespace graphnotelm.Core.Utils
             => _reverseAdjacency.GetValueOrDefault(nodeId, new());
 
         public List<Guid> GetNeighbors(Guid nodeId)
-            => GetOutgoing(nodeId).Select(e => e.TargetNodeId)
-                .Concat(GetIncoming(nodeId).Select(e => e.TargetNodeId))
+            => GetNeighbors(nodeId, EdgeDirection.Both);
+
+        // Neighbors across edges of the given relationship types (null = every type),
+        // following edges forward, backward, or both ways.
+        public List<Guid> GetNeighbors(Guid nodeId, EdgeDirection direction, IReadOnlySet<Guid>? relationshipIds = null)
+        {
+            IEnumerable<NodeRelationship> edges = direction switch
+            {
+                EdgeDirection.Outgoing => GetOutgoing(nodeId),
+                EdgeDirection.Incoming => GetIncoming(nodeId),
+                _ => GetOutgoing(nodeId).Concat(GetIncoming(nodeId)),
+            };
+
+            return edges
+                .Where(e => relationshipIds is null || relationshipIds.Contains(e.RelationshipId))
+                .Select(e => e.TargetNodeId)
+                .Where(HasNode) // skip edges still pointing at a deleted node
                 .Distinct()
                 .ToList();
+        }
 
         // Finds nodes with no incoming edges — root concepts
         public List<Guid> GetRootNodes()

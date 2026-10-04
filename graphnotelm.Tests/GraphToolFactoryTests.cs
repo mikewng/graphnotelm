@@ -15,7 +15,7 @@ namespace graphnotelm.Tests
 
             var tools = factory.Build(document, new GraphView(document));
 
-            Assert.Equal(8, tools.Count);
+            Assert.Equal(9, tools.Count);
         }
 
         [Fact]

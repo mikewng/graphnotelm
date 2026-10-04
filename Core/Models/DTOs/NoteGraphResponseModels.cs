@@ -185,6 +185,32 @@ namespace graphnotelm.Core.Models.DTOs
         public List<NodeSearchResult> Results { get; set; } = new();
     }
 
+    public class AnalysisNodeResult
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public float UserConfidenceRate { get; set; }
+    }
+
+    public class WeakestPathResponse
+    {
+        // Start to target; empty when the target can't be reached.
+        public List<AnalysisNodeResult> Path { get; set; } = new();
+    }
+
+    public class KnowledgeFrontierResponse
+    {
+        public List<AnalysisNodeResult> Known { get; set; } = new();
+        public List<AnalysisNodeResult> Frontier { get; set; } = new();
+    }
+
+    public class LearningOrderResponse
+    {
+        public List<AnalysisNodeResult> Order { get; set; } = new();
+        // Nodes in, or waiting on, a prerequisite cycle.
+        public List<AnalysisNodeResult> Cyclic { get; set; } = new();
+    }
+
     public class SaveNodeContentResponse
     {
         public bool IsSuccess = false;

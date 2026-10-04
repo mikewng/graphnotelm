@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using graphnotelm.Core.Models;
+using graphnotelm.Core.Utils;
 
 namespace graphnotelm.Core.Models.DTOs
 {
@@ -171,5 +172,34 @@ namespace graphnotelm.Core.Models.DTOs
     {
         [Required]
         public List<Guid> NodeIds { get; set; } = new();
+    }
+
+    // Analysis requests bind from the query string. An empty RelationshipIds follows every relationship type.
+    public class WeakestPathRequest
+    {
+        [Required]
+        public Guid StartNodeId { get; set; }
+        [Required]
+        public Guid TargetNodeId { get; set; }
+        public EdgeDirection Direction { get; set; } = EdgeDirection.Both;
+        public List<Guid> RelationshipIds { get; set; } = new();
+    }
+
+    public class KnowledgeFrontierRequest
+    {
+        [Required]
+        public Guid StartNodeId { get; set; }
+        public float MinConfidence { get; set; } = 3.0f;
+        public EdgeDirection Direction { get; set; } = EdgeDirection.Both;
+        public List<Guid> RelationshipIds { get; set; } = new();
+    }
+
+    public class LearningOrderRequest
+    {
+        [Required]
+        public Guid TargetNodeId { get; set; }
+        // Outgoing when edges point from a prerequisite to the node that needs it; Incoming for the reverse.
+        public EdgeDirection Direction { get; set; } = EdgeDirection.Outgoing;
+        public List<Guid> RelationshipIds { get; set; } = new();
     }
 }
