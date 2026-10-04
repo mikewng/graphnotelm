@@ -100,6 +100,9 @@ namespace graphnotelm.Core.Services
                 Only assign tags and relationships you are confident about. Zero matches for either is acceptable.
                 Do NOT invent tag IDs or node IDs — only use the exact GUIDs provided.
 
+                Write note text in Markdown: paragraphs, headings, **bold**, *italic*, bullet or numbered lists,
+                `inline code`, fenced code blocks, blockquotes, and links. Do not use tables.
+
                 Respond ONLY with a raw JSON object in this exact schema:
                 {
                   "title": "string",
@@ -107,7 +110,7 @@ namespace graphnotelm.Core.Services
                   "tags": ["<guid>", ...],
                   "relationships": [{ "targetNodeId": "<guid>", "relationshipId": "<guid>" }, ...]
                 }
-                No markdown, no preamble, no explanation.
+                Do not wrap the JSON in a code fence. No preamble, no explanation.
                 """;
 
             var userPrompt = $"""
@@ -140,6 +143,9 @@ namespace graphnotelm.Core.Services
                 Do NOT wire any relationships between nodes yet — that comes in a second step.
                 Each node's "tags" array must only contain names that appear in the top-level "tags" list.
 
+                Write note text in Markdown: paragraphs, headings, **bold**, *italic*, bullet or numbered lists,
+                `inline code`, fenced code blocks, blockquotes, and links. Do not use tables.
+
                 Respond ONLY with a raw JSON object in this exact schema:
                 {
                   "graphName": "string",
@@ -147,7 +153,7 @@ namespace graphnotelm.Core.Services
                   "tags": [{ "name": "string" }],
                   "relationshipTypes": [{ "name": "string", "inverse": "string" }]
                 }
-                No markdown, no preamble, no explanation.
+                Do not wrap the JSON in a code fence. No preamble, no explanation.
                 """;
 
             return new LLMPrompt { System = systemPrompt, User = content };

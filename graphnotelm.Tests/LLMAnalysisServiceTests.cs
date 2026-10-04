@@ -199,7 +199,7 @@ namespace graphnotelm.Tests
                 {
                   "graphName": "Extracted",
                   "nodes": [
-                    { "title": "A", "note": "note a", "tags": ["Concept"] },
+                    { "title": "A", "note": "note *a*", "tags": ["Concept"] },
                     { "title": "B", "note": "note b", "tags": ["Bogus Tag"] }
                   ],
                   "tags": [ { "name": "Concept" } ],
@@ -245,6 +245,7 @@ namespace graphnotelm.Tests
 
             var a = graph.Nodes.Values.First(n => n.Title == "A");
             var b = graph.Nodes.Values.First(n => n.Title == "B");
+            Assert.Equal("<p>note <em>a</em></p>", a.Note); // Markdown converted to editor HTML
             Assert.Single(a.Tags);           // "Concept" resolved
             Assert.Empty(b.Tags);            // "Bogus Tag" not defined => dropped
             var edge = Assert.Single(a.Relationships);
@@ -312,7 +313,7 @@ namespace graphnotelm.Tests
             var responseJson = JsonSerializer.Serialize(new
             {
                 title = "Extracted Title",
-                note = "extracted note",
+                note = "**extracted** note",
                 tags = new[] { knownTagId.ToString(), Guid.NewGuid().ToString() },
                 relationships = new[]
                 {
@@ -326,10 +327,25 @@ namespace graphnotelm.Tests
 
             Assert.True(result.Success);
             Assert.Equal("Extracted Title", result.Value!.Title);
-            Assert.Equal("extracted note", result.Value.Note);
+            Assert.Equal("<p><strong>extracted</strong> note</p>", result.Value.Note);
             Assert.Equal(new List<Guid> { knownTagId }, result.Value.Tags);
             var rel = Assert.Single(result.Value.Relationships);
             Assert.Equal(knownTarget.Id, rel.TargetNodeId);
+        }
+
+        [Fact]
+        public async Task ExtractNodeFromPaste_FencedResponse_KeepsCodeBlocksInNote()
+        {
+            var document = AuthorizeFullDocument();
+            _contextBuilderMock.Setup(b => b.BuildNodeFromPastePrompt(document, "pasted"))
+                .Returns(new LLMPrompt { System = "s", User = "u" });
+            var json = JsonSerializer.Serialize(new { title = "T", note = "```js\nlet x = 1\n```" });
+            SetupClientResponse($"```json\n{json}\n```");
+
+            var result = await _service.ExtractNodeFromPasteAsync(_graphId, "pasted", CancellationToken.None);
+
+            Assert.True(result.Success);
+            Assert.Equal("<pre><code class=\"language-js\">let x = 1\n</code></pre>", result.Value!.Note);
         }
 
         [Fact]

@@ -76,7 +76,7 @@ namespace graphnotelm.Core.Services
             }
             var response = completion.Messages.LastOrDefault()?.Text ?? "";
 
-            var clean = response.Replace("```json", "").Replace("```", "").Trim();
+            var clean = ExtractJsonObject(response);
 
             try
             {
@@ -135,7 +135,7 @@ namespace graphnotelm.Core.Services
             }
 
             var pass1Raw = pass1Response.Messages.LastOrDefault()?.Text ?? "";
-            var pass1Clean = pass1Raw.Replace("```json", "").Replace("```", "").Trim();
+            var pass1Clean = ExtractJsonObject(pass1Raw);
 
             JsonElement pass1Root;
             try
@@ -212,7 +212,7 @@ namespace graphnotelm.Core.Services
                     }
 
                     var nodeId = Guid.NewGuid();
-                    alignedNodes[nodeId] = new NoteNode { Id = nodeId, Title = nodeTitle!, Note = nodeNote, Tags = nodeTags };
+                    alignedNodes[nodeId] = new NoteNode { Id = nodeId, Title = nodeTitle!, Note = NoteContent.FromMarkdown(nodeNote), Tags = nodeTags };
                 }
             }
 
@@ -238,7 +238,7 @@ namespace graphnotelm.Core.Services
             }
 
             var pass2Raw = pass2Response.Messages.LastOrDefault()?.Text ?? "";
-            var pass2Clean = pass2Raw.Replace("```json", "").Replace("```", "").Trim();
+            var pass2Clean = ExtractJsonObject(pass2Raw);
 
             try
             {
@@ -311,7 +311,7 @@ namespace graphnotelm.Core.Services
             }
 
             var raw = completion.Messages.LastOrDefault()?.Text ?? "";
-            var clean = raw.Replace("```json", "").Replace("```", "").Trim();
+            var clean = ExtractJsonObject(raw);
 
             JsonElement root;
             try
@@ -324,7 +324,7 @@ namespace graphnotelm.Core.Services
             }
 
             var title = root.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "";
-            var note = root.TryGetProperty("note", out var n) ? n.GetString() ?? "" : "";
+            var note = NoteContent.FromMarkdown(root.TryGetProperty("note", out var n) ? n.GetString() ?? "" : "");
 
             if (string.IsNullOrWhiteSpace(title))
                 return Result<CreateNodeRequest>.Fail("LLM did not return a valid title.");
@@ -368,6 +368,15 @@ namespace graphnotelm.Core.Services
                 Tags = tags,
                 Relationships = relationships
             });
+        }
+
+        // Models sometimes wrap their JSON in a ```json fence. Take the outermost object rather
+        // than deleting every fence, which would also strip code blocks out of note text.
+        private static string ExtractJsonObject(string raw)
+        {
+            var start = raw.IndexOf('{');
+            var end = raw.LastIndexOf('}');
+            return start >= 0 && end > start ? raw[start..(end + 1)] : raw.Trim();
         }
     }
 }

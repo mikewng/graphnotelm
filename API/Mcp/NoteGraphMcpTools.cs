@@ -1,4 +1,5 @@
 using graphnotelm.Core.Models;
+using graphnotelm.Core.Utils;
 using graphnotelm.Infrastructure.Contracts;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using ModelContextProtocol.Server;
@@ -92,7 +93,7 @@ namespace graphnotelm.API.Mcp
         }
 
         [McpServerTool(Name = "get_node")]
-        [Description("Get the full content of a specific node, including its note text, tags, relationships, and confidence metadata.")]
+        [Description("Get the full content of a specific node, including its note text (as HTML), tags, relationships, and confidence metadata.")]
         public async Task<string> GetNodeAsync(
             [Description("The GUID of the note graph")] string graphId,
             [Description("The GUID of the node, obtained from get_graph_skeleton")] string nodeId,
@@ -231,7 +232,7 @@ namespace graphnotelm.API.Mcp
             [Description("The GUID of the note graph")] string graphId,
             [Description("The GUID of the node to update")] string nodeId,
             [Description("New title for the node, without the '[DRAFT] ' prefix")] string? title = null,
-            [Description("New note content for the node")] string? note = null,
+            [Description("New note content for the node, written in Markdown (headings, bold, italic, strikethrough, lists, inline code, fenced code blocks, blockquotes, links). HTML as returned by get_node is also accepted. Tables are not supported.")] string? note = null,
             CancellationToken ct = default)
         {
             if (!Guid.TryParse(graphId, out var gId) || !Guid.TryParse(nodeId, out var nId))
@@ -258,7 +259,7 @@ namespace graphnotelm.API.Mcp
             }
 
             if (note is not null)
-                node.Note = note;
+                node.Note = NoteContent.FromMarkdown(note);
 
             try
             {
@@ -372,7 +373,7 @@ namespace graphnotelm.API.Mcp
                 {
                     Id    = nodeId,
                     Title = $"[DRAFT] {input.Title}",
-                    Note  = input.Note,
+                    Note  = NoteContent.FromMarkdown(input.Note),
                     Tags  = input.Tags
                         .Where(t => tagNameToId.ContainsKey(t.Name))
                         .Select(t => tagNameToId[t.Name])
@@ -477,7 +478,7 @@ namespace graphnotelm.API.Mcp
                 {
                     Id    = nodeId,
                     Title = input.Title,
-                    Note  = input.Note,
+                    Note  = NoteContent.FromMarkdown(input.Note),
                     Tags  = input.Tags
                         .Where(t => tagNameToId.ContainsKey(t.Name))
                         .Select(t => tagNameToId[t.Name])

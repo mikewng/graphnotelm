@@ -7,7 +7,7 @@ namespace graphnotelm.API.Mcp
         [Description("Title of the node")]
         public string Title { get; set; } = string.Empty;
 
-        [Description("Full note content for this node")]
+        [Description("Full note content for this node, written in Markdown (headings, bold, italic, strikethrough, lists, inline code, fenced code blocks, blockquotes, links). Tables are not supported.")]
         public string Note { get; set; } = string.Empty;
 
         [Description("Tags to apply to this node. Tags are created automatically if they do not exist.")]
