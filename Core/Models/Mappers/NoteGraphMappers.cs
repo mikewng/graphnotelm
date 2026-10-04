@@ -16,6 +16,7 @@ namespace graphnotelm.Core.Models.Mappers
         [MapperIgnoreSource(nameof(NoteGraphDocumentREADONLY.Folders))]
         [MapperIgnoreSource(nameof(NoteGraphDocumentREADONLY.Relationships))]
         [MapperIgnoreSource(nameof(NoteGraphDocumentREADONLY.Nodes))]
+        [MapperIgnoreSource(nameof(NoteGraphDocumentREADONLY.Flashcards))]
         [MapperIgnoreTarget(nameof(NoteGraphMetadata.Description))]
         [MapperIgnoreTarget(nameof(NoteGraphMetadata.IsPublic))]
         [MapperIgnoreTarget(nameof(NoteGraphMetadata.IsDeleted))]
@@ -23,9 +24,10 @@ namespace graphnotelm.Core.Models.Mappers
         [MapperIgnoreTarget(nameof(NoteGraphMetadata.UpdatedAt))]
         public static partial NoteGraphMetadata ToNoteGraphMetadata(this NoteGraphDocumentREADONLY document, Guid id, Guid userId);
 
-        // Nodes are persisted separately per node, never inside the document.
+        // Nodes and flashcards are persisted separately, never inside the document.
         [MapperIgnoreSource(nameof(NoteGraphDocumentREADONLY.Name))]
         [MapperIgnoreSource(nameof(NoteGraphDocumentREADONLY.Nodes))]
+        [MapperIgnoreSource(nameof(NoteGraphDocumentREADONLY.Flashcards))]
         [MapperIgnoreTarget(nameof(NoteGraphDocument.Context))]
         [MapperIgnoreTarget(nameof(NoteGraphDocument.Nodes))]
         public static partial NoteGraphDocument ToNoteGraphDocument(this NoteGraphDocumentREADONLY document, Guid id, Guid userId);
@@ -51,10 +53,13 @@ namespace graphnotelm.Core.Models.Mappers
         [MapProperty("Context.SystemPrompt", nameof(GetGraphSkeletonResponse.SystemPrompt))]
         public static partial GetGraphSkeletonResponse ToGetGraphSkeletonResponse(this NoteGraphDocument document);
 
+        // Confidence depends on the current time, so the service fills it in.
         [MapperIgnoreSource(nameof(NoteNode.Note))]
+        [MapperIgnoreTarget(nameof(NodeSkeleton.Confidence))]
         public static partial NodeSkeleton ToNodeSkeleton(this NoteNode node);
 
         [MapperIgnoreSource(nameof(NoteNodeMetadata.LLMMetadata))]
+        [MapperIgnoreSource(nameof(NoteNodeMetadata.Memory))]
         public static partial NodeSkeletonMetadata ToNodeSkeletonMetadata(this NoteNodeMetadata metadata);
 
         public static GetGraphListResponse ToGetGraphListResponse(this List<NoteGraphMetadata> graphList)

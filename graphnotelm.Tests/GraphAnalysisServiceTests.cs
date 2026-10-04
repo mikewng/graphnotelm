@@ -14,10 +14,11 @@ namespace graphnotelm.Tests
         private readonly GraphAnalysisService _service;
         private readonly NoteGraphDocument _document = TestData.NewDocument(Guid.NewGuid());
         private readonly Guid _prerequisiteTo = Guid.NewGuid();
+        private readonly FixedTimeProvider _time = new();
 
         public GraphAnalysisServiceTests()
         {
-            _service = new GraphAnalysisService(_accessMock.Object);
+            _service = new GraphAnalysisService(_accessMock.Object, _time);
             _document.Relationships[_prerequisiteTo] = new RelationshipDefinition { Name = "prerequisite to", Inverse = "has prerequisite" };
             _accessMock.Setup(a => a.GetAuthorizedSkeletonDocumentAsync(_document.Id, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Result<NoteGraphDocument>.Ok(_document));
@@ -84,7 +85,24 @@ namespace graphnotelm.Tests
             Assert.True(result.Success);
             Assert.Equal(new[] { start.Id, target.Id }, result.Value!.Path.Select(n => n.Id));
             Assert.Equal("Target", result.Value.Path[1].Title);
-            Assert.Equal(4f, result.Value.Path[1].UserConfidenceRate);
+            Assert.Equal(4f, result.Value.Path[1].Confidence);
+        }
+
+        [Fact]
+        public async Task FindKnowledgeFrontier_UsesMeasuredConfidenceOverTheSelfRating()
+        {
+            var start = AddNode("Start", 8);
+            // Rated 9 by the user, but forgotten at its last review two months ago.
+            var forgotten = AddNode("Forgotten", 9);
+            forgotten.Metadata.Memory = MemoryModel.Review(null, ReviewGrade.Again, _time.Now.AddDays(-60));
+            Link(start, forgotten);
+
+            var result = await _service.FindKnowledgeFrontier(_document.Id,
+                new KnowledgeFrontierRequest { StartNodeId = start.Id, MinConfidence = 5f }, CancellationToken.None);
+
+            var next = Assert.Single(result.Value!.Frontier);
+            Assert.Equal(forgotten.Id, next.Id);
+            Assert.InRange(next.Confidence, 0f, 2f);
         }
 
         [Fact]

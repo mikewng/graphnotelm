@@ -134,6 +134,8 @@ namespace graphnotelm.Infrastructure.Repository
             public string LLMMetadata { get; set; } = string.Empty;
             public List<NodeRelationship> Relationships { get; set; } = new();
             public List<Guid> Tags { get; set; } = new();
+            // Absent from blobs written before reviews existed, which hydrate as never reviewed.
+            public MemoryState? Memory { get; set; }
         }
 
         private static string SerializeBlob(NoteNode node) =>
@@ -142,7 +144,8 @@ namespace graphnotelm.Infrastructure.Repository
                 UserConfidenceRate = node.Metadata.UserConfidenceRate,
                 LLMMetadata = node.Metadata.LLMMetadata,
                 Relationships = node.Relationships,
-                Tags = node.Tags
+                Tags = node.Tags,
+                Memory = node.Metadata.Memory
             });
 
         private static NoteNode Hydrate(Guid nodeId, string title, string note, bool isPinned, Guid? folderId, string blobJson)
@@ -157,7 +160,8 @@ namespace graphnotelm.Infrastructure.Repository
                 {
                     UserConfidenceRate = blob.UserConfidenceRate,
                     LLMMetadata = blob.LLMMetadata,
-                    IsPinned = isPinned
+                    IsPinned = isPinned,
+                    Memory = blob.Memory
                 },
                 Relationships = blob.Relationships,
                 Tags = blob.Tags,

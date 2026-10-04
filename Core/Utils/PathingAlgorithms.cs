@@ -44,7 +44,7 @@ namespace graphnotelm.Core.Utils
                     if (visited.Contains(neighbor)) continue;
 
                     // Dijkstra needs non-negative costs, and confidence isn't range-checked on save.
-                    float cost = Math.Max(0f, graph.GetNode(neighbor).Metadata.UserConfidenceRate);
+                    float cost = Math.Max(0f, graph.GetConfidence(neighbor));
                     var candidate = (currBest.Cost + cost, currBest.Hops + 1);
                     if (!best.TryGetValue(neighbor, out var known) || candidate.CompareTo(known) < 0)
                     {
@@ -92,7 +92,7 @@ namespace graphnotelm.Core.Utils
             void Classify(Guid nodeId)
             {
                 NoteNode node = graph.GetNode(nodeId);
-                if (node.Metadata.UserConfidenceRate >= minConfidence)
+                if (graph.GetConfidence(nodeId) >= minConfidence)
                 {
                     result.Known.Add(selector(node));
                     queue.Enqueue(nodeId);

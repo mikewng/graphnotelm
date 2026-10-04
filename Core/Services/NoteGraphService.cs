@@ -4,6 +4,7 @@ using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Core.Models.Mappers;
 using graphnotelm.Core.Services.Contracts;
+using graphnotelm.Core.Utils;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
 
@@ -19,6 +20,9 @@ namespace graphnotelm.Core.Services
         private readonly INoteNodeRepository _noteNodeRepository;
         private readonly ILLMAnalysisService _llmAnalysisService;
         private readonly IImageRepository _imageRepository;
+        private readonly IFlashcardRepository _flashcardRepository;
+        private readonly IReviewLogRepository _reviewLogRepository;
+        private readonly TimeProvider _time;
 
         public NoteGraphService(
             IUnitOfWork unitOfWork,
@@ -28,7 +32,10 @@ namespace graphnotelm.Core.Services
             INoteGraphAccessService noteGraphAccessService,
             INoteNodeRepository noteNodeRepository,
             ILLMAnalysisService llmAnalysisService,
-            IImageRepository imageRepository
+            IImageRepository imageRepository,
+            IFlashcardRepository flashcardRepository,
+            IReviewLogRepository reviewLogRepository,
+            TimeProvider time
             )
         {
             _unitOfWork = unitOfWork;
@@ -39,6 +46,9 @@ namespace graphnotelm.Core.Services
             _noteNodeRepository = noteNodeRepository;
             _llmAnalysisService = llmAnalysisService;
             _imageRepository = imageRepository;
+            _flashcardRepository = flashcardRepository;
+            _reviewLogRepository = reviewLogRepository;
+            _time = time;
         }
 
         public async Task<Result<GetGraphSkeletonResponse>> GetNoteGraphById(Guid noteGraphId, CancellationToken ct)
@@ -48,7 +58,13 @@ namespace graphnotelm.Core.Services
             if (!graphDataResult.Success)
                 return Result<GetGraphSkeletonResponse>.Fail(graphDataResult.Error!);
 
-            return Result<GetGraphSkeletonResponse>.Ok(graphDataResult.Value!.ToGetGraphSkeletonResponse());
+            var document = graphDataResult.Value!;
+            var response = document.ToGetGraphSkeletonResponse();
+            var now = _time.GetUtcNow().UtcDateTime;
+            foreach (var (nodeId, skeleton) in response.Nodes)
+                skeleton.Confidence = MemoryModel.Confidence(document.Nodes[nodeId].Metadata, now);
+
+            return Result<GetGraphSkeletonResponse>.Ok(response);
         }
 
         public async Task<Result<GetGraphListResponse>> GetNoteGraphList(CancellationToken ct)
@@ -196,10 +212,18 @@ namespace graphnotelm.Core.Services
                 return Result<DeleteGraphResponse>.Fail("Failed to hard delete graph.");
             }
 
-            // Best-effort: the graph is already gone; leftover images only waste disk space.
+            // Best-effort: the graph is already gone; leftover images only waste disk space,
+            // and leftover cards and review history are unreachable without it.
             try
             {
                 await _imageRepository.DeleteByGraphAsync(noteGraphId, ct);
+            }
+            catch { }
+
+            try
+            {
+                await _flashcardRepository.DeleteByGraphAsync(noteGraphId, ct);
+                await _reviewLogRepository.DeleteByGraphAsync(noteGraphId, ct);
             }
             catch { }
 
@@ -259,6 +283,26 @@ namespace graphnotelm.Core.Services
                 foreach (var node in document.Nodes.Values)
                     await _noteNodeRepository.SaveAsync(newMetadata.Id, node);
 
+                // Node ids are kept within the new graph, but cards get fresh ids so the same
+                // file can be imported more than once.
+                var nodeIds = document.Nodes.Values.Select(n => n.Id).ToHashSet();
+                var now = _time.GetUtcNow().UtcDateTime;
+                var cards = document.Flashcards
+                    .Where(c => nodeIds.Contains(c.NodeId) && !string.IsNullOrWhiteSpace(c.Front) && !string.IsNullOrWhiteSpace(c.Back))
+                    .Select(c => new Flashcard
+                    {
+                        Id = Guid.NewGuid(),
+                        GraphId = newMetadata.Id,
+                        NodeId = c.NodeId,
+                        Front = c.Front,
+                        Back = c.Back,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    })
+                    .ToList();
+                if (cards.Count > 0)
+                    await _flashcardRepository.SaveManyAsync(cards, ct);
+
                 return Result<CreateGraphResponse>.Ok(new CreateGraphResponse
                 {
                     Id = newMetadata.Id,
@@ -283,13 +327,16 @@ namespace graphnotelm.Core.Services
 
             var graphData = graphDataResult.Value!;
             var nodes = await _noteNodeRepository.GetAllByGraphIdAsync(noteGraphId, ct);
+            var nodeIds = nodes.Select(n => n.Id).ToHashSet();
+            var cards = await _flashcardRepository.GetByGraphAsync(noteGraphId, ct);
             var exportDoc = new NoteGraphDocumentREADONLY
             {
                 Name = metadataResult.Value!.Name,
                 Tags = graphData.Tags,
                 Folders = graphData.Folders,
                 Relationships = graphData.Relationships,
-                Nodes = nodes.ToDictionary(n => n.Id)
+                Nodes = nodes.ToDictionary(n => n.Id),
+                Flashcards = cards.Where(c => nodeIds.Contains(c.NodeId)).Select(c => c.ToFlashcardDefinition()).ToList()
             };
 
             return Result<NoteGraphDocumentREADONLY>.Ok(exportDoc);

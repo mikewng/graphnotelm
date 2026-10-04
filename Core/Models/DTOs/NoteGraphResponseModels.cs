@@ -26,6 +26,8 @@ namespace graphnotelm.Core.Models.DTOs
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
+        // Measured when the node has been reviewed, its self-rating (Metadata.UserConfidenceRate) otherwise.
+        public float Confidence { get; set; }
         public NodeSkeletonMetadata Metadata { get; set; } = new();
         public List<NodeRelationship> Relationships { get; set; } = new();
         public List<Guid> Tags { get; set; } = new();
@@ -47,6 +49,7 @@ namespace graphnotelm.Core.Models.DTOs
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
+        public float Confidence { get; set; }
         public NoteNodeMetadata Metadata { get; set; } = new();
         public List<NodeRelationship> Relationships { get; set; } = new();
         public List<Guid> Tags { get; set; } = new();
@@ -189,7 +192,7 @@ namespace graphnotelm.Core.Models.DTOs
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
-        public float UserConfidenceRate { get; set; }
+        public float Confidence { get; set; }
     }
 
     public class WeakestPathResponse
@@ -243,7 +246,62 @@ namespace graphnotelm.Core.Models.DTOs
     public class EditNodeMetadataResponse
     {
         public Guid NodeId { get; set; }
+        public float Confidence { get; set; }
         public NoteNodeMetadata Metadata { get; set; } = new();
+    }
+
+    public class FlashcardResult
+    {
+        public Guid Id { get; set; }
+        public Guid NodeId { get; set; }
+        public string Front { get; set; } = string.Empty;
+        public string Back { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    public class GetFlashcardsResponse
+    {
+        public List<FlashcardResult> Cards { get; set; } = new();
+    }
+
+    public class DeleteFlashcardResponse
+    {
+        public Guid Id { get; set; }
+        public bool IsDeleted { get; set; }
+    }
+
+    public class ReviewSummaryResponse
+    {
+        public int DueCount { get; set; }
+        // Never-reviewed notes with cards, capped at the session's new-note limit.
+        public int NewCount { get; set; }
+    }
+
+    public class ReviewQueueItem
+    {
+        public Guid NodeId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public bool IsNew { get; set; }
+        public DateTime? DueAt { get; set; }
+        public float Confidence { get; set; }
+        // Empty when the note is reviewed from its own title and text.
+        public List<FlashcardResult> Cards { get; set; } = new();
+    }
+
+    public class ReviewQueueResponse
+    {
+        // Due notes, most overdue first, then new notes, lowest self-rating first.
+        public List<ReviewQueueItem> Items { get; set; } = new();
+        public int DueCount { get; set; }
+        public int NewCount { get; set; }
+    }
+
+    public class SubmitReviewResponse
+    {
+        public Guid NodeId { get; set; }
+        public float Confidence { get; set; }
+        public MemoryState Memory { get; set; } = new();
     }
 
     public class AddNodeTagResponse

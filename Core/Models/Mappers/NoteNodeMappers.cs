@@ -17,6 +17,8 @@ namespace graphnotelm.Core.Models.Mappers
         [MapperIgnoreTarget(nameof(NoteNode.FolderId))]
         public static partial NoteNode ToNoteNode(this CreateNodeRequest request, Guid id);
 
+        // Confidence depends on the current time, so services fill it in.
+        [MapperIgnoreTarget(nameof(GetNodeResponse.Confidence))]
         public static partial GetNodeResponse ToGetNodeResponse(this NoteNode node);
 
         [MapperIgnoreTarget(nameof(NoteNode.Id))]
@@ -61,14 +63,15 @@ namespace graphnotelm.Core.Models.Mappers
         [MapperIgnoreSource(nameof(NoteNode.FolderId))]
         public static partial NodeSearchResult ToNodeSearchResult(this NoteNode node, string snippet, bool matchedTitle, bool matchedNote);
 
-        [MapProperty(new[] { nameof(NoteNode.Metadata), nameof(NoteNodeMetadata.UserConfidenceRate) }, nameof(AnalysisNodeResult.UserConfidenceRate))]
         [MapperIgnoreSource(nameof(NoteNode.Note))]
+        [MapperIgnoreSource(nameof(NoteNode.Metadata))]
         [MapperIgnoreSource(nameof(NoteNode.Relationships))]
         [MapperIgnoreSource(nameof(NoteNode.Tags))]
         [MapperIgnoreSource(nameof(NoteNode.FolderId))]
-        public static partial AnalysisNodeResult ToAnalysisNodeResult(this NoteNode node);
+        public static partial AnalysisNodeResult ToAnalysisNodeResult(this NoteNode node, float confidence);
 
         [MapProperty(nameof(NoteNode.Id), nameof(EditNodeMetadataResponse.NodeId))]
+        [MapperIgnoreTarget(nameof(EditNodeMetadataResponse.Confidence))]
         [MapperIgnoreSource(nameof(NoteNode.Title))]
         [MapperIgnoreSource(nameof(NoteNode.Note))]
         [MapperIgnoreSource(nameof(NoteNode.Relationships))]

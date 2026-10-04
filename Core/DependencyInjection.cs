@@ -28,6 +28,12 @@ public static class DependencyInjection
         services.AddScoped<INoteGraphFolderService, NoteGraphFolderService>();
         services.AddScoped<INoteGraphRelationshipService, NoteGraphRelationshipService>();
 
+        // Confidence fades with time; services read the clock through this so tests can fix it.
+        services.AddSingleton(TimeProvider.System);
+
+        services.AddScoped<IFlashcardService, FlashcardService>();
+        services.AddScoped<IReviewService, ReviewService>();
+
         services.AddScoped<IGraphAnalysisService, GraphAnalysisService>();
         services.AddScoped<ILLMContextBuilder, LLMContextBuilder>();
         services.AddScoped<ILLMAnalysisService, LLMAnalysisService>();
