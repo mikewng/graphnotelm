@@ -16,10 +16,10 @@ In addition to each notebook, or "notegraph", being powered by a graph datastruc
 Tech Stack
 - ElectronJS Bundling
 - ReactJS + Vite (JavaScript, HTML & CSS)
-- .NET Core 9.0 (C#)
+- .NET 9.0 (C#)
 - SignalR Websocket Connection
-- PostgreSQL
-- SQLite
+- SQLite (desktop app)
+- PostgreSQL (accounts and graph metadata for the hosted version)
 - Environment-based Dockerization
 
 Deployment
@@ -27,24 +27,34 @@ Deployment
 - AWS RDS
 - AWS S3 + CloudFront
 
-Third Party Libraries
-- Anthropic Client
-- OpenAI Client
+Libraries
+- Microsoft.Extensions.AI, with GraphNoteLM's own Anthropic and OpenAI-compatible clients (OpenAI, Ollama, or any local OpenAI-compatible endpoint)
+- ModelContextProtocol for the MCP server
+- Entity Framework Core, Mapperly, and Markdig
+- TipTap (note editor) and D3 (graph view) in the frontend
+
+The frontend lives in its own repository: [graphnotelm-fe](https://github.com/mikewng/graphnotelm-fe).
 
 # Features
-## 📓 Basic Note Taking and Saving
-The application gives you basic note taking features like editting and tagging notes. Has autosave functionality so that there is no manual button you have to press to save your note.
+## 📓 Note Taking and Saving
+Notes save automatically as you type, so there is no save button to press. Notes can be tagged, filed into folders, and pinned, and the Table View lets you tag or pin many notes at once. Search Note Content finds a keyword, sentence, or paragraph across every note's title and text.
 
-### Basic Markdown Support
-Basic markdown support is included with the note content, allowing you to underline, bolden, italicize, and even embed image urls to your notes.
+### Rich Text Editing
+Notes are written in a rich text editor with bold, italic, underline, strikethrough, inline code, headings, bullet and numbered lists, quotes, and code blocks. You can add images by uploading, pasting, or dragging them in, and link any word or phrase to another note.
 
 <img width="925" height="693" alt="image" src="https://github.com/user-attachments/assets/b1a21a56-a788-46fc-ae79-14af4eb37c04" />
 
+### Connections Between Notes
+Notes connect through relationship types you define, each with a direction, a color, and an optional inverse name, so "prerequisite to" reads as "has prerequisite" from the other side. The note editor groups a note's connections by relationship type, and hovering a linked note shows a preview of it.
+
 ### Importable and Exportable NoteGraphs as JSON
-This gives you to option to create notegraphs without creating an account. Once you are at a good stopping point within the NoteGraph, you're able to export the notegraph as a json and reimport it again to begin writing. In addition, since all information is encapsulated within the JSON, this means that you are not limited to the NoteGraph UI. As long as your UI is able to parse the JSON file, you can create your own views.
+Export a notegraph as JSON at any point and import it again later, whether on another install or another account. Exports include each note's flashcards and review progress, so nothing is lost along the way. In addition, since all information is encapsulated within the JSON, this means that you are not limited to the NoteGraph UI. As long as your UI is able to parse the JSON file, you can create your own views.
+
+### Graph View
+Every notegraph opens as an interactive graph. You can lay it out hierarchically, with pinned notes on top, radially around the selected note, or clustered by tag; filter it by tag; search it; focus on a note's neighborhood; and switch to a compact view for large graphs.
 
 ### Split-screen for Graph-View and NoteNode Editors
-In case you need to see the graph and edit your notes simutaneously.
+In case you need to see the graph and edit your notes simultaneously.
 <img width="1907" height="988" alt="image" src="https://github.com/user-attachments/assets/b0c2291c-4c49-4364-9572-ffec7bbc7142" />
 
 ### In-Graph View Quick-edit Functionality
@@ -52,26 +62,45 @@ Edit relationships, tags, and note data within the graph view itself.
 
 <img width="507" height="273" alt="image" src="https://github.com/user-attachments/assets/874581aa-8c66-4b92-b5ad-774693406b3e" />
 
-### Cloud Storage via PostgreSQL
-If you want to streamline the saving process of notegraphs, you can utilize the publicly deployed GraphNoteLM. We will handle the storage of your notes securely. Furthermore, you will have access to connected LLMs through a chat, in which has access to conduct graph algorithm and gather notebook-contexted insights for you.
+### Cloud Storage (In Progress)
+A hosted version with cloud storage is planned. The backend already keeps accounts and graph metadata in PostgreSQL, but storing the notes themselves in the cloud is still being built, so for now GraphNoteLM runs locally through the desktop app.
 
 ## 🗺️ Notebook as a Graph and Graph Algorithms
-Notebooks, or "NoteGraphs" are backed up by graph datastructure, giving you not only a visual representation of your notes and connections, but also gives way to graph algorithms to be used as applications for further insights.
+Notebooks, or "NoteGraphs", are backed by a graph data structure, giving you not only a visual representation of your notes and connections, but also graph algorithms that turn your notes into a study plan.
 
-#### Dijkstra's Shortest Path on note nodes' user confidence rating
-This can allow you to get either the hardest or easiest path of learning concepts. By conducting shortest paths on your note's confidence rates, you can find the hardest topics and concepts that you should cover. By reversing the value of the confidence score to be negative, we can find the easiest path in which you should cover.
+### Confidence
+Every note has a confidence score from 0 to 10. Until you review a note, it's your own self-rating. Once you've reviewed it with flashcards, confidence is measured instead: it's the chance you'd still remember the note a week from now, and it fades over time until you review the note again (see [Flashcards and Spaced Repetition](#-flashcards-and-spaced-repetition)).
 
-#### Breadth First Search on minimum confidence rating
-This gives the you the ability to find your "knowledge frontiers". Use this to conduct a search of all notes that you have a good grasp of, and where that grasp ends. This gives you a better idea of where and what concepts you should start refining and honing.
+### Study Path
+The Study Path panel runs the algorithms below without needing an AI key, and highlights the result on the graph: steps are numbered, the edges between them are drawn, and everything else is dimmed. Each algorithm can follow a single relationship type (such as "prerequisite to") in either direction, so both "A prerequisite to B" and "B depends on A" work.
 
-#### Topological sort for automatic node sequencing
-Using Kahn's algorithm for topological sort, given a target node, we are able to find the best sequence of notes that you should review in that order to best understand the topic. For example, let's say you are taking an AWS Data Engineering Certification, and you need to find the best order to review and learn AWS services. Applying topological sort gives you a good idea of where to start and how to continue.
+#### Learning Order (Kahn's topological sort)
+Pick a goal note to get everything you need to learn before it, each note coming after its prerequisites. For example, if you are taking an AWS Data Engineering Certification, this gives you an order to learn the AWS services in. Notes caught in a prerequisite cycle (found with Tarjan's algorithm) are kept together as a group and flagged, so you can spot the loop.
+
+#### Knowledge Frontier (breadth-first search)
+From a start note, walks through everything you know (confidence at or above a threshold you choose) and returns where that knowledge ends: the notes just past it, which are what to study next.
+
+#### Weakest Path (Dijkstra's shortest path)
+From a start note to a target note, finds the route through the notes you know least. That is the hardest way to the target, and it shows the concepts to shore up along it.
+
+#### Bottlenecks
+Ranks the notes holding you back the most: how many notes depend on each one, directly or through others, weighted by how far its confidence is from full. A shaky note that much of the graph builds on ranks above a weaker one that little depends on.
+
+#### Ready to Learn
+Across the whole graph, finds the notes you haven't learned yet whose prerequisites you already know. These are what you can start on right now.
+
+## 🃏 Flashcards and Spaced Repetition
+Each note can have flashcards, written in the note editor or on the Flashcards screen. That screen lists every card in the notegraph grouped by note, with search, filters for what's due, new, or missing cards, and sorting by next review.
+
+The Review screen quizzes you on what's due: reveal the answer, then grade yourself Again, Hard, Good, or Easy (or press 1–4). Notes you forget come back later in the same session. Scheduling uses the FSRS spaced-repetition model, and every grade updates the note's measured confidence, so the Study Path and the AI assistant work from what you actually remember. Notes join the review queue once they have cards, up to 10 new notes per session, and any note can also be reviewed on demand from its own text.
 
 ## ✨ AI Insights and Assistant
-This is where the "LM" comes from I guess... Like I mentioned, I really liked Google's NotebookLM and how they used AI as an assistant for answering questions within the notebook, but I wanted to find a way to integrate LLMs with this graph-based note architecture. 
+This is where the "LM" comes from I guess... Like I mentioned, I really liked Google's NotebookLM and how they used AI as an assistant for answering questions within the notebook, but I wanted to find a way to integrate LLMs with this graph-based note architecture.
+
+You can use Anthropic, OpenAI, Ollama, or any OpenAI-compatible local endpoint. Set the provider, model, and key in Settings.
 
 #### General Chat, Notebook-Enclosed Context, and System Prompts
-Like with NotebookLM, this is the most basic feature of the AI layer. You are able to ask the LLM questions through the built-in chat feature in regards to context specific to this notebook itself. It also has access to said graph algorithms mentioned, which gives users a more curated response and analysis of the algorithm results.
+Like with NotebookLM, this is the most basic feature of the AI layer. You are able to ask the LLM questions through the built-in chat feature in regards to context specific to this notebook itself. It looks up note content by title, ID, or tag, and it can run all five Study Path algorithms using your measured confidence, which gives you a more curated response and analysis of the results. Each notegraph has its own editable system prompt.
 <img width="1894" height="932" alt="image" src="https://github.com/user-attachments/assets/f42d3019-22b4-4690-8ccd-d7fc411d6c76" />
 <img width="1361" height="944" alt="image" src="https://github.com/user-attachments/assets/c7c1a0fc-6276-4158-a977-7102e1148d9f" />
 <img width="495" height="822" alt="image" src="https://github.com/user-attachments/assets/297b03dc-d947-4d51-9045-6c809e038008" />
@@ -80,13 +109,16 @@ Like with NotebookLM, this is the most basic feature of the AI layer. You are ab
 The AI has the ability to read (but not write!) to your node content. However, they do have a scratchpad for reading and writing within their own dedicated LLM Metadata section. This section can be fully customizable... you can set schemas or just have the LLM write notes to this metadata section in regards to the note content itself. Use cases for regular LLM writes would be for critcisim or review on certain note nodes, and use cases for schemas could be providing structured statistics of different data types (numericals, text, etc.)
 <img width="1284" height="933" alt="image" src="https://github.com/user-attachments/assets/a2c046cc-cce0-4175-ab1d-bd6e42c4ab7e" />
 
-#### Agentic Access to LLM Metadata, Graph Algorithms, etc.
-The LLM Chatbot also has the ability to access to said services - algorithms, general read of node content, etc. - as tools. If you need a wide range of node metadata editted, this chatbot gives you the ability to do so. This essentially ties the "LM" portion with the "Graph" portion of notes, as it gives LLMs access to graph algorithm tools to make use and curate their answers for their users. This is great for non-CS or math-oriented users who have no idea how and why graphs work the way they do. The user asks questions related to graphs in natural language, and the LLM can then abstract the graph algorithm that applies to the question and give a curated answer.
+#### Agentic Access to Graph Algorithms
+The chat assistant has the graph algorithms and note lookups as tools. This ties the "LM" portion with the "Graph" portion of notes, as it lets the LLM pick the right algorithm and curate its answer for you. This is great for non-CS or math-oriented users who have no idea how and why graphs work the way they do. The user asks questions related to graphs in natural language, like "what should I study next?", and the LLM can then abstract the graph algorithm that applies to the question and give a curated answer. The assistant reads your notes but never changes them.
 <img width="1730" height="925" alt="image" src="https://github.com/user-attachments/assets/e45ccffc-f2d0-423a-9e81-591764fdd58a" />
 
 #### AI Extraction and Creation for NoteGraphs and Notes
 GraphNoteLM also have the ability to create whole notegraphs and notes from user content. Paste in any text or documents that you need, and it can be turned into a NoteGraph or NoteNode. The following image below was created entirely by pasting and processing this readme file into NoteGraphLM!
 <img width="1205" height="825" alt="image" src="https://github.com/user-attachments/assets/663af55b-eeb6-4cbd-8649-282f993bf6f3" />
+
+#### MCP Server
+Connect GraphNoteLM to MCP clients such as Claude Desktop, Claude Code, ChatGPT Desktop, or Codex. They can list your notegraphs, read notes and their connections, search note content, and create new notegraphs, for example from an LLM conversation. Notes they add are marked "[DRAFT]" for you to review, and they can only edit draft notes, so an external AI can never overwrite your own writing. See [Connecting to MCP](#connecting-to-mcp).
 
 ## 💻 Options to Run/Use NoteGraphLM
 ### Native Support to Run Entire Application Locally via Electron
@@ -99,6 +131,23 @@ The docker compose will spin up everything - from Frontend, to .NET Backend Serv
 We will have NoteGraphLM as a publicly hosted service. However, due to hosting costs and LLM API costs, and the fact that I am broke, there is a free vs. pro version of the service. The base free version gives you all the mentioned functionalities from basic note taking (notes, tags, relationships, notes as graphs, autosaving to cloud), and you cannot use the AI Insights unless you have your own claude API key. Furthermore, you are limited up to only 5 notegraphs per user. However, only the PRO would allow you to have access to AI Insights without the need for a claude API key, and you are allowed to have unlimited notegraphs.
 
 ## Recent Updates
+### v26.10.5
+Desktop versions now follow the build date (year.month.day).
+
+#### Study Path
+- New Study Path panel with five modes: Learning Order, Knowledge Frontier, Weakest Path, Bottlenecks, and Ready to Learn. Results are highlighted right on the graph, and no AI key is needed.
+- The graph algorithms were rewritten to respect each edge's direction and relationship type. Weakest Path now returns an actual path to a target, the Knowledge Frontier returns the notes just past what you know, and Learning Order is a true topological sort that reports prerequisite cycles.
+- The chat assistant can run all five algorithms.
+
+#### Flashcards and Spaced Repetition
+- Flashcards on every note, a Flashcards screen listing them all, and a Review screen with FSRS scheduling.
+- Confidence is now measured from your reviews and fades over time. Your self-rating is used until a note's first review.
+- JSON exports include flashcards and review progress.
+
+#### Interface
+- Reworked connections in the note editor: grouped by relationship type, with previews of linked notes.
+- The header now fits smaller windows by moving less-used actions into a ⋯ menu, then showing icons only.
+
 ### Patch v1.2.3
 Added create notegraph tool for MCP. You can now convert your LLM conversations into notegraphs automatically!
 
@@ -124,8 +173,8 @@ GraphNoteLM is available through your local workspace now through downloading it
 Previously, the backend architecture for NoteGraphLM is that everything is ACTUALLY stored within a single JSON document locally or on DynamoDB. The goal was to move these implementations to store nodes individually from the NoteGraph, allow saves to be more efficient in writing only to a specific document instead of the entire document itself. Now, when you write to within a note, you are only writing to that note document itself, and you do not have to preprocess the entire graph each time for a save on your notes. This also does not disrupt IMPORT/EXPORT capabilities. The application still takes in the same JSON schema and outputs the same JSON schema.
 
 ## 🔜 Features Coming Soon...
-### Autogenerateable Flashcards and Quizzes
-Allows you to autogenerate flashcards and quizzes with the help of AI. This allows you to skip the menial task of creating these things and go straight to studying. It also directly connects to your confidence score, so reviews that you get wrong directly decrease your confidence score, and reviews you get right directly increase your score.
+### AI-Generated Flashcards and Quizzes
+Have the AI draft flashcards and quizzes from your notes, so you can skip writing them and go straight to studying. Flashcards themselves are already here (see [Flashcards and Spaced Repetition](#-flashcards-and-spaced-repetition)), and reviewing them already updates your confidence.
 
 ### LLM Long Term Memory
 A more long lasting memory for the AI Assistant, allowing you to be more efficient with your AI usage and makes the AI more curated and scoped to the chat. In addition, have the ability to save chats.
@@ -138,13 +187,13 @@ For people that prefer a visually brighter tool. Can be toggleable and remembers
 
 <img width="1420" height="865" alt="image" src="https://github.com/user-attachments/assets/d1e84a9e-e3da-45b2-854d-fe6d774b99b5" />
 
-This was the main motivation for me to build this tool, as a way to find the best way to learn concepts and what order to learn them. For example, you can set nodes as concepts, write note and content within them, and then connect each node to other nodes as "prerequisite to" or "has prerequisite" relationships. With the built-in confidence rate within each node's metadata, you can gage how well you have the node's concept learned and whether or not you are ready to move onto the subsequent nodes.
+This was the main motivation for me to build this tool, as a way to find the best way to learn concepts and what order to learn them. For example, you can set nodes as concepts, write note and content within them, and then connect each node to other nodes as "prerequisite to" or "has prerequisite" relationships. The Study Path's Learning Order then gives you the sequence to learn them in, Ready to Learn tells you what you can start on now, and Bottlenecks shows which shaky concepts are holding back the most. Reviewing your notes with flashcards keeps each note's confidence measured, so you know whether you are ready to move onto the subsequent nodes.
 
 ### Worldbuilding and Storytelling for Large Book Projects and Tabletop RPGs
 You can use this NoteGraphs instead for learning, but keep an organized and visual representation of your story and in-story world as relationships and concepts. This can be especially useful for people that are into hobbies like Dungeons and Dragons, writing multi-series books that span over many in-story centuries, etc. You can have note nodes be for characters, events, items, and note relationships be connections like "allied with", "enemies with", "caused event", etc.
 
 ### Interactive Grid Game
-Aside from being a primarily note-taking application, there are ways to make NoteGraphLM an interactable game with the LLM. You can define nodes as tiles or rooms, and separate unconnected nodes as "Characters" which house character specific metadata. The LLM reads your context, identifies story events and can even call BFS to get a list of all exploreable rooms for your character. After each iteration with your chatbot, they update your character's metadata on what room you are on and such.
+Aside from being a primarily note-taking application, there are ways to make NoteGraphLM an interactable game with the LLM. You can define nodes as tiles or rooms, and separate unconnected nodes as "Characters" which house character specific details. The LLM reads your context, identifies story events and can even run a breadth-first search (the Knowledge Frontier) to list the rooms your character can explore. As you play, you keep track of which room your character is in within the character's note.
 
 ## My Process and What I Learned
 I learned that transforming a local application in which all your logic and storage happens within your personal computer to something that is usable across many users is fundamentally different in terms of architecture. My old personal local copy was a basic datastructure in which exports a structured JSON and can be imported again to parse the JSON to be editted again. Everything happened on your computer, from writing, editting, they make live changes to the JSON document by writing directly into it from your computer. However, there eventually came a time in which I wanted access to these notes anywhere I go without the need to download and import the JSON each time I move devices, and that led me to try and build this as an API server. This brought up so many different questions even beyond architectural decisions like setting up file structure, naming, and dependency injection, for example:
@@ -186,14 +235,23 @@ Version changes should not affect your files, as everything is stored within you
 1. All you need to do is download the latest executeable and run it.
 2. Windows may give you a warning that says that this app is not authorized and is not safe, but there are no purposely malicious code inside. Download at your own peril! (I guess)
 
+#### Building the Desktop App Yourself
+Clone this repository and [graphnotelm-fe](https://github.com/mikewng/graphnotelm-fe) side by side, close the desktop app if it's running, then from the graphnotelm-fe folder:
+- `node desktop.mjs` publishes this backend into the desktop app, stamps the version with today's date, builds the frontend, and starts the app.
+- `node desktop.mjs --build` does the same but packages the app instead of starting it; the output goes to desktop-executable/release.
+
 #### Connecting to MCP
-For the MCP, you are able to give any LLM agentic tool access to the graphnotes by connecting it to the GraphNoteLM MCP. Specifically for claude desktop: add the following to the claude_desktop_config.json:
-"mcpServers": {
-      "graphnotelm": {
-        "command": "npx",
-        "args": ["mcp-remote", "http://localhost:5240/mcp?key=[YOUR_MCP_KEY_HERE"]
-      }
+For the MCP, you are able to give any LLM agentic tool access to the graphnotes by connecting it to the GraphNoteLM MCP. In the app, open Settings → Claude Desktop / MCP and press Copy: it copies a configuration with your key and the right address, ready to paste into Claude Desktop's claude_desktop_config.json. It looks like this:
+```json
+{
+  "mcpServers": {
+    "graphnotelm": {
+      "command": "npx",
+      "args": ["mcp-remote", "http://localhost:5000/mcp?key=YOUR_MCP_KEY"]
+    }
+  }
 }
+```
 
 
 #### Docker
@@ -214,14 +272,14 @@ Caveats:
 
 
 ### Local Development API
-Clone the repository from master. Make sure you have the following installed (at the very minimum):
-- .NET Core
-- PostgreSQL
+Clone the repository from master. You need the .NET 9 SDK.
 
-1. Within .NET application, provide an appsettings based off of appsettings.Example.json, the main crediential being your local postgreSQL server. ("Host=localhost;Port=5432;Database=graphnotelm;Username=postgres;Password=[yourlocalpassword]")
+1. Create an appsettings.json based off of appsettings.Example.json, and add a local SQLite database under ConnectionStrings, e.g. `"LocalDB": "Data Source=%APPDATA%\\graphnotelm\\graphnotelm.db"`. The tables are created automatically on startup.
 2. CD into the folder that contains all the code within the repo.
-3. Apply migrations via Entity Framework: dotnet ef database update
-4. Run the application via http or https
+3. Run the API with `dotnet run`. It listens on http://localhost:5000, which is where the frontend's dev server (`npm run dev` in graphnotelm-fe, on localhost:5173) expects it.
+4. Run the tests with `dotnet test graphnotelm.Tests`.
+
+The PostgreSQL setup (PrimaryDB, applied with `dotnet ef database update`) is for the hosted version, which doesn't store notes yet.
 
 
 ### Publicly Deployed Service (TBI)
