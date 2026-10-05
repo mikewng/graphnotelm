@@ -59,7 +59,7 @@ namespace graphnotelm.Core.Services
 
                 Title: {node.Title}
                 Note: {node.Note}
-                User Confidence: {node.Metadata.UserConfidenceRate}
+                User Confidence: {graph.GetConfidence(targetNodeId)}
 
                 ## Relationships
                 {neighborContext}
@@ -215,7 +215,7 @@ namespace graphnotelm.Core.Services
                     : Truncate(node.Note, 100);
 
                 summaries.AppendLine(
-                    $"[{node.Title}] (confidence: {node.Metadata.UserConfidenceRate})" +
+                    $"[{node.Title}] (confidence: {graphView.GetConfidence(node.Id)})" +
                     $"\n  Summary: {summary}");
             }
             return new LLMPrompt();

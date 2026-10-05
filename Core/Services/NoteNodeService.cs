@@ -17,8 +17,11 @@ namespace graphnotelm.Core.Services
         private readonly INoteNodeRepository _noteNodeRepository;
         private readonly ILLMAnalysisService _llmAnalysisService;
         private readonly IImageRepository _imageRepository;
+        private readonly IFlashcardRepository _flashcardRepository;
+        private readonly IReviewLogRepository _reviewLogRepository;
+        private readonly TimeProvider _time;
 
-        public NoteNodeService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository, INoteNodeRepository noteNodeRepository, ILLMAnalysisService llmAnalysisService, IImageRepository imageRepository)
+        public NoteNodeService(IUnitOfWork unitOfWork, INoteGraphAccessService noteGraphAccessService, INoteGraphRepository noteGraphRepository, INoteNodeRepository noteNodeRepository, ILLMAnalysisService llmAnalysisService, IImageRepository imageRepository, IFlashcardRepository flashcardRepository, IReviewLogRepository reviewLogRepository, TimeProvider time)
         {
             _unitOfWork = unitOfWork;
             _noteGraphAccessService = noteGraphAccessService;
@@ -26,6 +29,16 @@ namespace graphnotelm.Core.Services
             _noteNodeRepository = noteNodeRepository;
             _llmAnalysisService = llmAnalysisService;
             _imageRepository = imageRepository;
+            _flashcardRepository = flashcardRepository;
+            _reviewLogRepository = reviewLogRepository;
+            _time = time;
+        }
+
+        private GetNodeResponse ToResponse(NoteNode node)
+        {
+            var response = node.ToGetNodeResponse();
+            response.Confidence = MemoryModel.Confidence(node.Metadata, _time.GetUtcNow().UtcDateTime);
+            return response;
         }
 
         public async Task<Result<GetNodeResponse>> GetNodeByIds(Guid noteGraphId, Guid noteNodeId, CancellationToken ct)
@@ -38,7 +51,7 @@ namespace graphnotelm.Core.Services
             if (node is null)
                 return Result<GetNodeResponse>.Fail("Node not found.");
 
-            return Result<GetNodeResponse>.Ok(node.ToGetNodeResponse());
+            return Result<GetNodeResponse>.Ok(ToResponse(node));
         }
 
         public async Task<Result<GetNodeBatchResponse>> GetNodeBatchByIds(Guid noteGraphId, List<Guid> nodeIds, CancellationToken ct)
@@ -52,7 +65,7 @@ namespace graphnotelm.Core.Services
             {
                 var node = await _noteNodeRepository.GetByIdAsync(noteGraphId, nodeId, ct);
                 if (node is not null)
-                    nodes[node.Id] = node.ToGetNodeResponse();
+                    nodes[node.Id] = ToResponse(node);
             }
 
             return Result<GetNodeBatchResponse>.Ok(new GetNodeBatchResponse { Nodes = nodes });
@@ -167,6 +180,15 @@ namespace graphnotelm.Core.Services
             try
             {
                 await _imageRepository.DeleteByNodeAsync(noteGraphId, noteNodeId, ct);
+            }
+            catch { }
+
+            // Same for flashcards and review history: leftovers are never shown, since every
+            // reader starts from the graph's nodes.
+            try
+            {
+                await _flashcardRepository.DeleteByNodeAsync(noteGraphId, noteNodeId, ct);
+                await _reviewLogRepository.DeleteByNodeAsync(noteGraphId, noteNodeId, ct);
             }
             catch { }
 
@@ -423,7 +445,9 @@ namespace graphnotelm.Core.Services
             try
             {
                 await _noteNodeRepository.SaveAsync(noteGraphId, existingNode);
-                return Result<EditNodeMetadataResponse>.Ok(existingNode.ToEditNodeMetadataResponse());
+                var response = existingNode.ToEditNodeMetadataResponse();
+                response.Confidence = MemoryModel.Confidence(existingNode.Metadata, _time.GetUtcNow().UtcDateTime);
+                return Result<EditNodeMetadataResponse>.Ok(response);
             }
             catch
             {

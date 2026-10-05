@@ -20,10 +20,12 @@ namespace graphnotelm.Core.Utils.Tools
     public class GraphContentTools
     {
         private readonly NoteGraphDocument _document;
+        private readonly GraphView _view;
 
-        public GraphContentTools(NoteGraphDocument document)
+        public GraphContentTools(NoteGraphDocument document, GraphView? view = null)
         {
             _document = document;
+            _view = view ?? new GraphView(document);
         }
 
         [Description("Gets a single node's full content by its title. Returns the ID, title, note content, confidence score, and all relationships.")]
@@ -48,7 +50,7 @@ namespace graphnotelm.Core.Utils.Tools
                 node.Id,
                 node.Title,
                 node.Note,
-                node.Metadata.UserConfidenceRate,
+                _view.GetConfidence(node.Id),
                 relationships
             );
         }
@@ -74,7 +76,7 @@ namespace graphnotelm.Core.Utils.Tools
                 node.Id,
                 node.Title,
                 node.Note,
-                node.Metadata.UserConfidenceRate,
+                _view.GetConfidence(node.Id),
                 relationships
             );
         }
@@ -108,7 +110,7 @@ namespace graphnotelm.Core.Utils.Tools
                     node.Key,
                     node.Value.Title,
                     node.Value.Note,
-                    node.Value.Metadata.UserConfidenceRate,
+                    _view.GetConfidence(node.Key),
                     new List<NodeRelationshipResult>()
                     ));
             }

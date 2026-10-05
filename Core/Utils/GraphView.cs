@@ -16,10 +16,13 @@ namespace graphnotelm.Core.Utils
         private readonly Dictionary<Guid, List<NodeRelationship>> _adjacency;
         private readonly Dictionary<Guid, List<NodeRelationship>> _reverseAdjacency;
         private readonly Dictionary<Guid, NoteNode> _nodes;
+        private readonly DateTime _asOf;
 
-        public GraphView(NoteGraphDocument graph)
+        // Confidence fades with time, so a view reads it as of one moment — now by default.
+        public GraphView(NoteGraphDocument graph, DateTime? asOf = null)
         {
             _document = graph;
+            _asOf = asOf ?? DateTime.UtcNow;
             _nodes = graph.Nodes;
             _adjacency = new();
             _reverseAdjacency = new();
@@ -44,7 +47,8 @@ namespace graphnotelm.Core.Utils
         public NoteNode GetNode(Guid id) => _document.Nodes[id];
         public bool HasNode(Guid id) => _document.Nodes.ContainsKey(id);
         public IReadOnlyDictionary<Guid, NoteNode> AllNodes => _document.Nodes;
-        public double GetConfidence(Guid id) => _document.Nodes[id].Metadata.UserConfidenceRate;
+        // Measured from reviews when the node has any, its self-rating otherwise.
+        public float GetConfidence(Guid id) => MemoryModel.Confidence(_document.Nodes[id].Metadata, _asOf);
 
         public List<NodeRelationship> GetOutgoing(Guid nodeId)
             => _adjacency.GetValueOrDefault(nodeId, new());

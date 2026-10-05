@@ -30,6 +30,8 @@ namespace graphnotelm.Infrastructure
                 services.AddSingleton<INoteGraphRepository, SQLiteNoteGraphRepository>();
                 services.AddSingleton<INoteNodeRepository, SQLiteNoteNodeRepository>();
                 services.AddSingleton<IImageRepository, LocalImageRepository>();
+                services.AddSingleton<IFlashcardRepository, SQLiteFlashcardRepository>();
+                services.AddSingleton<IReviewLogRepository, SQLiteReviewLogRepository>();
             }
             else
             {

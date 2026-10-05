@@ -17,20 +17,25 @@ namespace graphnotelm.API.Mcp
         private readonly INoteNodeRepository _nodeRepo;
         private readonly IUnitOfWork _unitOfWork;
         private readonly McpSettings _mcpSettings;
+        private readonly TimeProvider _time;
 
         public NoteGraphMcpTools(
             INoteGraphMetadataRepository metadataRepo,
             INoteGraphRepository graphRepo,
             INoteNodeRepository nodeRepo,
             IUnitOfWork unitOfWork,
-            McpSettings mcpSettings)
+            McpSettings mcpSettings,
+            TimeProvider time)
         {
             _metadataRepo = metadataRepo;
             _graphRepo = graphRepo;
             _nodeRepo = nodeRepo;
             _unitOfWork = unitOfWork;
             _mcpSettings = mcpSettings;
+            _time = time;
         }
+
+        private float ConfidenceOf(NoteNode node) => MemoryModel.Confidence(node.Metadata, _time.GetUtcNow().UtcDateTime);
 
         [McpServerTool(Name = "list_graphs")]
         [Description("List all available note graphs. Returns each graph's ID, name, and description. Call this first to discover what knowledge graphs exist before querying their content.")]
@@ -117,7 +122,7 @@ namespace graphnotelm.API.Mcp
                     targetNodeId   = r.TargetNodeId,
                     relationshipId = r.RelationshipId
                 }),
-                confidenceRate = node.Metadata.UserConfidenceRate
+                confidenceRate = ConfidenceOf(node)
             });
         }
 
@@ -157,7 +162,7 @@ namespace graphnotelm.API.Mcp
                             targetNodeId   = r.TargetNodeId,
                             relationshipId = r.RelationshipId
                         }),
-                        confidenceRate = x.node.Metadata.UserConfidenceRate
+                        confidenceRate = ConfidenceOf(x.node)
                     });
 
             return JsonSerializer.Serialize(nodes);

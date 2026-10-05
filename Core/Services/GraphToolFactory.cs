@@ -17,8 +17,8 @@ namespace graphnotelm.Core.Services
 
         public IReadOnlyList<AIFunction> Build(NoteGraphDocument document, GraphView graph)
         {
-            var content = new GraphContentTools(document);
-            var analysis = new GraphAnalysisTools(document, _graphAnalysis);
+            var content = new GraphContentTools(document, graph);
+            var analysis = new GraphAnalysisTools(document, _graphAnalysis, graph);
             var general = new GeneralContextTools();
 
             return

@@ -21,6 +21,9 @@ namespace graphnotelm.Tests
         private readonly Mock<INoteNodeRepository> _nodeRepoMock = new();
         private readonly Mock<ILLMAnalysisService> _llmAnalysisMock = new();
         private readonly Mock<IImageRepository> _imageRepoMock = new();
+        private readonly Mock<IFlashcardRepository> _flashcardRepoMock = new();
+        private readonly Mock<IReviewLogRepository> _reviewLogRepoMock = new();
+        private readonly FixedTimeProvider _time = new();
 
         private readonly NoteNodeService _service;
 
@@ -32,7 +35,10 @@ namespace graphnotelm.Tests
                 _graphRepoMock.Object,
                 _nodeRepoMock.Object,
                 _llmAnalysisMock.Object,
-                _imageRepoMock.Object);
+                _imageRepoMock.Object,
+                _flashcardRepoMock.Object,
+                _reviewLogRepoMock.Object,
+                _time);
         }
 
         private NoteGraphDocument AuthorizeFullDocument()
@@ -89,6 +95,24 @@ namespace graphnotelm.Tests
             Assert.Equal(node.Id, result.Value!.Id);
             Assert.Equal("My Node", result.Value.Title);
             Assert.Equal("body", result.Value.Note);
+        }
+
+        [Fact]
+        public async Task GetNode_ReportsMeasuredConfidenceOnceReviewed()
+        {
+            AuthorizeMetadata();
+            var node = TestData.NewNode("Reviewed");
+            node.Metadata.UserConfidenceRate = 2;
+            node.Metadata.Memory = MemoryModel.Review(null, ReviewGrade.Easy, _time.Now);
+            _nodeRepoMock.Setup(r => r.GetByIdAsync(_graphId, node.Id, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(node);
+
+            var result = await _service.GetNodeByIds(_graphId, node.Id, CancellationToken.None);
+
+            Assert.Equal(MemoryModel.Confidence(node.Metadata, _time.Now), result.Value!.Confidence);
+            Assert.True(result.Value.Confidence > 9);
+            Assert.Equal(2f, result.Value.Metadata.UserConfidenceRate);
+            Assert.Same(node.Metadata.Memory, result.Value.Metadata.Memory);
         }
 
         // ---------- GetNodeBatchByIds ----------
@@ -276,6 +300,34 @@ namespace graphnotelm.Tests
 
             Assert.True(result.Success);
             _imageRepoMock.Verify(r => r.DeleteByNodeAsync(_graphId, node.Id, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteNode_DeletesFlashcardsAndReviewHistory()
+        {
+            var document = AuthorizeFullDocument();
+            var node = TestData.NewNode();
+            document.Nodes[node.Id] = node;
+
+            var result = await _service.DeleteNodeByIds(_graphId, node.Id, CancellationToken.None);
+
+            Assert.True(result.Success);
+            _flashcardRepoMock.Verify(r => r.DeleteByNodeAsync(_graphId, node.Id, It.IsAny<CancellationToken>()), Times.Once);
+            _reviewLogRepoMock.Verify(r => r.DeleteByNodeAsync(_graphId, node.Id, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteNode_FlashcardCleanupFails_StillSucceeds()
+        {
+            var document = AuthorizeFullDocument();
+            var node = TestData.NewNode();
+            document.Nodes[node.Id] = node;
+            _flashcardRepoMock.Setup(r => r.DeleteByNodeAsync(_graphId, node.Id, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new IOException("locked"));
+
+            var result = await _service.DeleteNodeByIds(_graphId, node.Id, CancellationToken.None);
+
+            Assert.True(result.Success);
         }
 
         [Fact]

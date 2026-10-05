@@ -202,4 +202,41 @@ namespace graphnotelm.Core.Models.DTOs
         public EdgeDirection Direction { get; set; } = EdgeDirection.Outgoing;
         public List<Guid> RelationshipIds { get; set; } = new();
     }
+
+    public class CreateFlashcardRequest
+    {
+        [Required, MaxLength(FlashcardLimits.MaxSideLength)]
+        public string Front { get; set; } = string.Empty;
+        [Required, MaxLength(FlashcardLimits.MaxSideLength)]
+        public string Back { get; set; } = string.Empty;
+    }
+
+    public class EditFlashcardRequest
+    {
+        [Required, MaxLength(FlashcardLimits.MaxSideLength)]
+        public string Front { get; set; } = string.Empty;
+        [Required, MaxLength(FlashcardLimits.MaxSideLength)]
+        public string Back { get; set; } = string.Empty;
+    }
+
+    public static class FlashcardLimits
+    {
+        public const int MaxSideLength = 4000;
+        public const int DefaultNewPerSession = 10;
+        public const int MaxNewPerSession = 100;
+    }
+
+    // Binds from the query string.
+    public class ReviewQueueRequest
+    {
+        public int NewLimit { get; set; } = FlashcardLimits.DefaultNewPerSession;
+    }
+
+    public class SubmitReviewRequest
+    {
+        [Required]
+        public ReviewGrade Grade { get; set; }
+        // The card that was shown, if any — recorded in the review log.
+        public Guid? CardId { get; set; }
+    }
 }

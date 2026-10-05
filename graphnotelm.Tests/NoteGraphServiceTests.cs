@@ -3,6 +3,7 @@ using graphnotelm.Core.Models;
 using graphnotelm.Core.Models.DTOs;
 using graphnotelm.Core.Services;
 using graphnotelm.Core.Services.Contracts;
+using graphnotelm.Core.Utils;
 using graphnotelm.Infrastructure.Contracts;
 using graphnotelm.Infrastructure.Repository.Contracts;
 using graphnotelm.Utils;
@@ -23,6 +24,9 @@ namespace graphnotelm.Tests
         private readonly Mock<INoteNodeRepository> _nodeRepoMock = new();
         private readonly Mock<ILLMAnalysisService> _llmAnalysisMock = new();
         private readonly Mock<IImageRepository> _imageRepoMock = new();
+        private readonly Mock<IFlashcardRepository> _flashcardRepoMock = new();
+        private readonly Mock<IReviewLogRepository> _reviewLogRepoMock = new();
+        private readonly FixedTimeProvider _time = new();
 
         private readonly NoteGraphService _service;
 
@@ -38,7 +42,12 @@ namespace graphnotelm.Tests
                 _accessMock.Object,
                 _nodeRepoMock.Object,
                 _llmAnalysisMock.Object,
-                _imageRepoMock.Object);
+                _imageRepoMock.Object,
+                _flashcardRepoMock.Object,
+                _reviewLogRepoMock.Object,
+                _time);
+            _flashcardRepoMock.Setup(r => r.GetByGraphAsync(_graphId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<Flashcard>());
         }
 
         private NoteGraphDocument AuthorizeFullDocument()
@@ -90,6 +99,26 @@ namespace graphnotelm.Tests
             Assert.Equal("Title A", nodeSkeleton.Title);
             Assert.True(nodeSkeleton.Metadata.IsPinned);
             Assert.Equal(0.5f, nodeSkeleton.Metadata.UserConfidenceRate);
+            // Never reviewed, so confidence is the self-rating.
+            Assert.Equal(0.5f, nodeSkeleton.Confidence);
+        }
+
+        [Fact]
+        public async Task GetNoteGraphById_ConfidenceFadesAfterReview()
+        {
+            var document = AuthorizeFullDocument();
+            var node = TestData.NewNode("Reviewed");
+            node.Metadata.UserConfidenceRate = 1;
+            node.Metadata.Memory = MemoryModel.Review(null, ReviewGrade.Good, _time.Now);
+            document.Nodes[node.Id] = node;
+
+            var fresh = (await _service.GetNoteGraphById(_graphId, CancellationToken.None)).Value!.Nodes[node.Id].Confidence;
+            _time.Now = _time.Now.AddDays(60);
+            var later = (await _service.GetNoteGraphById(_graphId, CancellationToken.None)).Value!.Nodes[node.Id].Confidence;
+
+            Assert.Equal(8.3f, fresh);
+            Assert.True(later < fresh);
+            Assert.True(later > 1);
         }
 
         // ---------- GetNoteGraphList ----------
@@ -307,6 +336,8 @@ namespace graphnotelm.Tests
             _graphRepoMock.Verify(r => r.DeleteByIdAsync(_graphId), Times.Once);
             _metadataRepoMock.Verify(r => r.DeleteAsync(_graphId, It.IsAny<CancellationToken>()), Times.Once);
             _imageRepoMock.Verify(r => r.DeleteByGraphAsync(_graphId, It.IsAny<CancellationToken>()), Times.Once);
+            _flashcardRepoMock.Verify(r => r.DeleteByGraphAsync(_graphId, It.IsAny<CancellationToken>()), Times.Once);
+            _reviewLogRepoMock.Verify(r => r.DeleteByGraphAsync(_graphId, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -434,6 +465,43 @@ namespace graphnotelm.Tests
             Assert.Equal(_userId, savedDocument!.UserId);
             Assert.True(savedDocument.Tags.ContainsKey(tagId));
             _nodeRepoMock.Verify(r => r.SaveAsync(savedDocument.Id, node), Times.Once);
+            _flashcardRepoMock.Verify(r => r.SaveManyAsync(It.IsAny<IEnumerable<Flashcard>>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ImportNoteGraph_SavesFlashcardsUnderTheNewGraphWithFreshIds()
+        {
+            var node = TestData.NewNode("Imported");
+            var import = new NoteGraphDocumentREADONLY
+            {
+                Name = "Imported Graph",
+                Nodes = new Dictionary<Guid, NoteNode> { [node.Id] = node },
+                Flashcards =
+                {
+                    new FlashcardDefinition { NodeId = node.Id, Front = "Q", Back = "A" },
+                    new FlashcardDefinition { NodeId = Guid.NewGuid(), Front = "Orphan", Back = "A" },
+                    new FlashcardDefinition { NodeId = node.Id, Front = " ", Back = "Blank front" },
+                }
+            };
+
+            List<Flashcard>? savedCards = null;
+            _flashcardRepoMock.Setup(r => r.SaveManyAsync(It.IsAny<IEnumerable<Flashcard>>(), It.IsAny<CancellationToken>()))
+                .Callback<IEnumerable<Flashcard>, CancellationToken>((cards, _) => savedCards = cards.ToList())
+                .Returns(Task.CompletedTask);
+            NoteGraphDocument? savedDocument = null;
+            _graphRepoMock.Setup(r => r.SaveAsync(It.IsAny<NoteGraphDocument>()))
+                .Callback<NoteGraphDocument>(d => savedDocument = d)
+                .Returns(Task.CompletedTask);
+
+            var result = await _service.ImportNoteGraphFromJSON(import, CancellationToken.None);
+
+            Assert.True(result.Success);
+            var card = Assert.Single(savedCards!);
+            Assert.Equal(savedDocument!.Id, card.GraphId);
+            Assert.Equal(node.Id, card.NodeId);
+            Assert.Equal(("Q", "A"), (card.Front, card.Back));
+            Assert.NotEqual(Guid.Empty, card.Id);
+            Assert.Equal(_time.Now, card.CreatedAt);
         }
 
         // ---------- ExportNoteGraphAsJSON ----------
@@ -455,6 +523,30 @@ namespace graphnotelm.Tests
             Assert.True(result.Success);
             Assert.Equal("Export Me", result.Value!.Name);
             Assert.Same(node, result.Value.Nodes[node.Id]);
+            Assert.Empty(result.Value.Flashcards);
+        }
+
+        [Fact]
+        public async Task ExportNoteGraph_IncludesFlashcardsOfExistingNodes()
+        {
+            AuthorizeMetadata();
+            _accessMock.Setup(a => a.GetAuthorizedGraphDataAsync(_graphId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Result<NoteGraphDocument>.Ok(TestData.NewDocument(_userId, _graphId)));
+            var node = TestData.NewNode("Node 1");
+            _nodeRepoMock.Setup(r => r.GetAllByGraphIdAsync(_graphId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<NoteNode> { node });
+            _flashcardRepoMock.Setup(r => r.GetByGraphAsync(_graphId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<Flashcard>
+                {
+                    new() { Id = Guid.NewGuid(), GraphId = _graphId, NodeId = node.Id, Front = "Q", Back = "A" },
+                    // Left behind by a failed cleanup — its node is gone.
+                    new() { Id = Guid.NewGuid(), GraphId = _graphId, NodeId = Guid.NewGuid(), Front = "Stale", Back = "A" },
+                });
+
+            var result = await _service.ExportNoteGraphAsJSON(_graphId, CancellationToken.None);
+
+            var card = Assert.Single(result.Value!.Flashcards);
+            Assert.Equal((node.Id, "Q", "A"), (card.NodeId, card.Front, card.Back));
         }
     }
 }

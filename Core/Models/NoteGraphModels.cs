@@ -6,6 +6,8 @@
         public Dictionary<Guid, FolderDefinition> Folders { get; set; } = new();
         public Dictionary<Guid, RelationshipDefinition> Relationships { get; set; } = new();
         public Dictionary<Guid, NoteNode> Nodes { get; set; } = new();
+        // Flashcards live in their own table, so they travel alongside the nodes here.
+        public List<FlashcardDefinition> Flashcards { get; set; } = new();
     }
 
     public class NoteGraphDocument
@@ -40,9 +42,13 @@
 
     public class NoteNodeMetadata
     {
+        // The user's self-rating. Once the note has been reviewed, measured confidence
+        // (see MemoryModel.Confidence) takes over everywhere confidence is used.
         public float UserConfidenceRate { get; set; } = 0.0f;
         public string LLMMetadata { get; set; } = string.Empty;
         public bool IsPinned { get; set; } = false;
+        // Null until the note's first review.
+        public MemoryState? Memory { get; set; }
     }
 
     public class NodeRelationship

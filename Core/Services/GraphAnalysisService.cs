@@ -10,16 +10,22 @@ namespace graphnotelm.Core.Services
     public class GraphAnalysisService : IGraphAnalysisService
     {
         private readonly INoteGraphAccessService _noteGraphAccessService;
+        private readonly TimeProvider _time;
 
-        public GraphAnalysisService(INoteGraphAccessService noteGraphAccessService)
+        public GraphAnalysisService(INoteGraphAccessService noteGraphAccessService, TimeProvider time)
         {
             _noteGraphAccessService = noteGraphAccessService;
+            _time = time;
         }
 
         public GraphView BuildView(NoteGraphDocument document, Guid nodeId)
         {
-            return new GraphView(document);
+            return new GraphView(document, _time.GetUtcNow().UtcDateTime);
         }
+
+        // Results report confidence as of the same moment the algorithm used.
+        private static Func<NoteNode, AnalysisNodeResult> ToResult(GraphView view)
+            => node => node.ToAnalysisNodeResult(view.GetConfidence(node.Id));
 
         public async Task<Result<WeakestPathResponse>> FindWeakestPath(Guid noteGraphId, WeakestPathRequest request, CancellationToken ct)
         {
@@ -34,8 +40,9 @@ namespace graphnotelm.Core.Services
             if (error is not null)
                 return Result<WeakestPathResponse>.Fail(error);
 
-            var path = PathingAlgorithms.DijkstrasById(request.StartNodeId, request.TargetNodeId, new GraphView(document),
-                node => node.ToAnalysisNodeResult(), request.Direction, ToFilter(request.RelationshipIds));
+            var view = BuildView(document, request.StartNodeId);
+            var path = PathingAlgorithms.DijkstrasById(request.StartNodeId, request.TargetNodeId, view,
+                ToResult(view), request.Direction, ToFilter(request.RelationshipIds));
 
             return Result<WeakestPathResponse>.Ok(new WeakestPathResponse { Path = path });
         }
@@ -51,8 +58,9 @@ namespace graphnotelm.Core.Services
             if (error is not null)
                 return Result<KnowledgeFrontierResponse>.Fail(error);
 
-            var frontier = PathingAlgorithms.BreadthFirstSearchById(request.StartNodeId, request.MinConfidence, new GraphView(document),
-                node => node.ToAnalysisNodeResult(), request.Direction, ToFilter(request.RelationshipIds));
+            var view = BuildView(document, request.StartNodeId);
+            var frontier = PathingAlgorithms.BreadthFirstSearchById(request.StartNodeId, request.MinConfidence, view,
+                ToResult(view), request.Direction, ToFilter(request.RelationshipIds));
 
             return Result<KnowledgeFrontierResponse>.Ok(new KnowledgeFrontierResponse
             {
@@ -74,8 +82,9 @@ namespace graphnotelm.Core.Services
             if (error is not null)
                 return Result<LearningOrderResponse>.Fail(error);
 
-            var order = PathingAlgorithms.KahnTopologicalSortById(request.TargetNodeId, new GraphView(document),
-                node => node.ToAnalysisNodeResult(), ToFilter(request.RelationshipIds), request.Direction);
+            var view = BuildView(document, request.TargetNodeId);
+            var order = PathingAlgorithms.KahnTopologicalSortById(request.TargetNodeId, view,
+                ToResult(view), ToFilter(request.RelationshipIds), request.Direction);
 
             return Result<LearningOrderResponse>.Ok(new LearningOrderResponse
             {
