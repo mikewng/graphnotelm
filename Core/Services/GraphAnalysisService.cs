@@ -18,7 +18,9 @@ namespace graphnotelm.Core.Services
             _time = time;
         }
 
-        public GraphView BuildView(NoteGraphDocument document, Guid nodeId)
+        public GraphView BuildView(NoteGraphDocument document, Guid nodeId) => BuildView(document);
+
+        private GraphView BuildView(NoteGraphDocument document)
         {
             return new GraphView(document, _time.GetUtcNow().UtcDateTime);
         }
@@ -76,9 +78,8 @@ namespace graphnotelm.Core.Services
                 return Result<LearningOrderResponse>.Fail(documentResult.Error!);
 
             var document = documentResult.Value!;
-            var error = Validate(document, request.Direction, request.RelationshipIds, (request.TargetNodeId, "Target"));
-            if (error is null && request.Direction == EdgeDirection.Both)
-                error = "A learning order needs a direction: Outgoing when edges point from a prerequisite to the node that needs it, Incoming when they point the other way.";
+            var error = Validate(document, request.Direction, request.RelationshipIds, (request.TargetNodeId, "Target"))
+                ?? RequireOneWay(request.Direction, "A learning order");
             if (error is not null)
                 return Result<LearningOrderResponse>.Fail(error);
 
@@ -89,9 +90,55 @@ namespace graphnotelm.Core.Services
             return Result<LearningOrderResponse>.Ok(new LearningOrderResponse
             {
                 Order = order.Order,
-                Cyclic = order.Cyclic
+                Cycles = order.Cycles
             });
         }
+
+        public async Task<Result<ReadyToLearnResponse>> FindReadyToLearn(Guid noteGraphId, ReadyToLearnRequest request, CancellationToken ct)
+        {
+            var documentResult = await _noteGraphAccessService.GetAuthorizedSkeletonDocumentAsync(noteGraphId, ct);
+            if (!documentResult.Success)
+                return Result<ReadyToLearnResponse>.Fail(documentResult.Error!);
+
+            var document = documentResult.Value!;
+            var error = Validate(document, request.Direction, request.RelationshipIds)
+                ?? RequireOneWay(request.Direction, "Finding notes ready to learn");
+            if (error is not null)
+                return Result<ReadyToLearnResponse>.Fail(error);
+
+            var view = BuildView(document);
+            var ready = PathingAlgorithms.FindReadyToLearn(request.MinConfidence, view,
+                ToResult(view), ToFilter(request.RelationshipIds), request.Direction);
+
+            return Result<ReadyToLearnResponse>.Ok(new ReadyToLearnResponse { Ready = ready });
+        }
+
+        public async Task<Result<BottlenecksResponse>> FindBottlenecks(Guid noteGraphId, BottlenecksRequest request, CancellationToken ct)
+        {
+            var documentResult = await _noteGraphAccessService.GetAuthorizedSkeletonDocumentAsync(noteGraphId, ct);
+            if (!documentResult.Success)
+                return Result<BottlenecksResponse>.Fail(documentResult.Error!);
+
+            var document = documentResult.Value!;
+            var error = Validate(document, request.Direction, request.RelationshipIds)
+                ?? RequireOneWay(request.Direction, "Finding bottlenecks");
+            if (error is not null)
+                return Result<BottlenecksResponse>.Fail(error);
+
+            var view = BuildView(document);
+            var limit = Math.Clamp(request.Limit, 1, AnalysisLimits.MaxBottlenecks);
+            var bottlenecks = PathingAlgorithms.FindBottlenecks(view,
+                (node, dependents) => node.ToBottleneckNodeResult(view.GetConfidence(node.Id), dependents),
+                limit, ToFilter(request.RelationshipIds), request.Direction);
+
+            return Result<BottlenecksResponse>.Ok(new BottlenecksResponse { Bottlenecks = bottlenecks });
+        }
+
+        // Prerequisite analyses need edges read one way.
+        private static string? RequireOneWay(EdgeDirection direction, string analysis)
+            => direction == EdgeDirection.Both
+                ? $"{analysis} needs a direction: Outgoing when edges point from a prerequisite to the node that needs it, Incoming when they point the other way."
+                : null;
 
         // Returns why the request can't run against this graph, or null when it can.
         private static string? Validate(

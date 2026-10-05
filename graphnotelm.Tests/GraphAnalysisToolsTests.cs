@@ -17,9 +17,10 @@ namespace graphnotelm.Tests
             _document.Relationships[_relatedTo] = new RelationshipDefinition { Name = "related to", Inverse = "related to" };
         }
 
-        private NoteNode AddNode(string title)
+        private NoteNode AddNode(string title, float confidence = 0f)
         {
             var node = TestData.NewNode(title);
+            node.Metadata.UserConfidenceRate = confidence;
             _document.Nodes[node.Id] = node;
             return node;
         }
@@ -79,6 +80,60 @@ namespace graphnotelm.Tests
 
             Assert.Empty(result.Order);
             Assert.Equal("No node with that ID exists in this graph.", result.Error);
+        }
+
+        [Fact]
+        public void FindLearningOrder_Cycle_ListsItInCycles()
+        {
+            var a = AddNode("A");
+            var b = AddNode("B");
+            Link(a, b, _prerequisiteTo);
+            Link(b, a, _prerequisiteTo);
+
+            var result = Tools().FindLearningOrder(b.Id, "prerequisite to");
+
+            Assert.Equal(new[] { "A", "B" }, Assert.Single(result.Cycles).Select(n => n.Title));
+        }
+
+        [Fact]
+        public void FindReadyToLearn_ByInverseName_ReadsEdgesBackwards()
+        {
+            var basics = AddNode("Basics", 8);
+            var next = AddNode("Next", 1);
+            var later = AddNode("Later", 1);
+            Link(basics, next, _prerequisiteTo);
+            Link(next, later, _prerequisiteTo);
+
+            var result = Tools().FindReadyToLearn(5f, "has prerequisite", pointsToPrerequisite: true);
+
+            Assert.Null(result.Error);
+            Assert.Equal(new[] { "Next" }, result.Ready.Select(n => n.Title));
+        }
+
+        [Fact]
+        public void FindReadyToLearn_UnknownRelationship_ListsAvailableTypes()
+        {
+            var result = Tools().FindReadyToLearn(relationshipType: "requires");
+
+            Assert.Empty(result.Ready);
+            Assert.Equal("No relationship type named 'requires'. Available: prerequisite to, related to.", result.Error);
+        }
+
+        [Fact]
+        public void FindBottlenecks_ByRelationshipName_FollowsOnlyThatType()
+        {
+            var basics = AddNode("Basics");
+            var aside = AddNode("Aside");
+            var target = AddNode("Target", 10);
+            Link(basics, target, _prerequisiteTo);
+            Link(aside, target, _relatedTo);
+
+            var result = Tools().FindBottlenecks(relationshipType: "prerequisite to");
+
+            Assert.Null(result.Error);
+            var bottleneck = Assert.Single(result.Bottlenecks);
+            Assert.Equal("Basics", bottleneck.Title);
+            Assert.Equal(1, bottleneck.Dependents);
         }
     }
 }

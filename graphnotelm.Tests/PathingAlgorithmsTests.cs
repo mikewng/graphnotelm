@@ -210,7 +210,7 @@ namespace graphnotelm.Tests
 
             // A and D are both ready first; ties go alphabetically.
             Assert.Equal(new[] { "A", "B", "D", "C" }, result.Order);
-            Assert.Empty(result.Cyclic);
+            Assert.Empty(result.Cycles);
         }
 
         [Fact]
@@ -280,7 +280,7 @@ namespace graphnotelm.Tests
         }
 
         [Fact]
-        public void KahnTopologicalSortById_Cycle_ReportsNodesThatCannotBeOrdered()
+        public void KahnTopologicalSortById_Cycle_OrdersTheCycleAsOneGroup()
         {
             var a = AddNode("A");
             var b = AddNode("B");
@@ -293,9 +293,41 @@ namespace graphnotelm.Tests
 
             var result = PathingAlgorithms.KahnTopologicalSortById(target.Id, View(), Title);
 
-            Assert.Equal(new[] { "Free" }, result.Order);
-            // The target waits on B, so it is stuck behind the cycle too.
-            Assert.Equal(new[] { "A", "B", "Target" }, result.Cyclic);
+            // The target waits on the cycle, but no longer gets stuck behind it.
+            Assert.Equal(new[] { "A", "B", "Free", "Target" }, result.Order);
+            Assert.Equal(new[] { "A", "B" }, Assert.Single(result.Cycles));
+        }
+
+        [Fact]
+        public void KahnTopologicalSortById_Cycle_WaitsForPrerequisitesOutsideIt()
+        {
+            var zed = AddNode("Zed");
+            var a = AddNode("A");
+            var b = AddNode("B");
+            var target = AddNode("Target");
+            Link(zed, b);
+            Link(a, b);
+            Link(b, a);
+            Link(a, target);
+
+            var result = PathingAlgorithms.KahnTopologicalSortById(target.Id, View(), Title);
+
+            // Only B needs Zed, but A can't be learned without B, so the whole cycle waits.
+            Assert.Equal(new[] { "Zed", "A", "B", "Target" }, result.Order);
+        }
+
+        [Fact]
+        public void KahnTopologicalSortById_SelfPrerequisite_IsReportedAsACycle()
+        {
+            var loop = AddNode("Loop");
+            var target = AddNode("Target");
+            Link(loop, loop);
+            Link(loop, target);
+
+            var result = PathingAlgorithms.KahnTopologicalSortById(target.Id, View(), Title);
+
+            Assert.Equal(new[] { "Loop", "Target" }, result.Order);
+            Assert.Equal(new[] { "Loop" }, Assert.Single(result.Cycles));
         }
 
         [Fact]
@@ -306,7 +338,7 @@ namespace graphnotelm.Tests
             var result = PathingAlgorithms.KahnTopologicalSortById(target.Id, View(), Title);
 
             Assert.Equal(new[] { "Target" }, result.Order);
-            Assert.Empty(result.Cyclic);
+            Assert.Empty(result.Cycles);
         }
 
         [Fact]
@@ -317,7 +349,7 @@ namespace graphnotelm.Tests
             var result = PathingAlgorithms.KahnTopologicalSortById(Guid.NewGuid(), View(), Title);
 
             Assert.Empty(result.Order);
-            Assert.Empty(result.Cyclic);
+            Assert.Empty(result.Cycles);
         }
 
         [Fact]
@@ -327,6 +359,245 @@ namespace graphnotelm.Tests
 
             Assert.Throws<ArgumentException>(() =>
                 PathingAlgorithms.KahnTopologicalSortById(target.Id, View(), Title, direction: EdgeDirection.Both));
+        }
+
+        // ── Ready to learn (outer fringe) ────────────────────────────────────
+
+        [Fact]
+        public void FindReadyToLearn_NeedsEveryPrerequisiteKnown()
+        {
+            var basics = AddNode("Basics", 8);
+            var algebra = AddNode("Algebra", 1);
+            var calculus = AddNode("Calculus", 1);
+            Link(basics, algebra);
+            Link(basics, calculus);
+            Link(algebra, calculus);
+
+            var ready = PathingAlgorithms.FindReadyToLearn(5f, View(), Title);
+
+            // Calculus sits next to the known Basics, but still waits on Algebra.
+            Assert.Equal(new[] { "Algebra" }, ready);
+        }
+
+        [Fact]
+        public void FindReadyToLearn_UnknownNodeWithoutPrerequisites_IsReady()
+        {
+            var foundations = AddNode("Foundations", 1);
+            var next = AddNode("Next", 1);
+            Link(foundations, next);
+
+            Assert.Equal(new[] { "Foundations" }, PathingAlgorithms.FindReadyToLearn(5f, View(), Title));
+        }
+
+        [Fact]
+        public void FindReadyToLearn_Cycle_IsReadyOnceOutsidePrerequisitesAreKnown()
+        {
+            var outside = AddNode("Outside", 1);
+            var a = AddNode("A", 1);
+            var b = AddNode("B", 1);
+            Link(outside, a);
+            Link(a, b);
+            Link(b, a);
+            var view = View();
+
+            Assert.Equal(new[] { "Outside" }, PathingAlgorithms.FindReadyToLearn(5f, view, Title));
+
+            // B's only prerequisite is A, but the two are learned together, so B waits on Outside too.
+            outside.Metadata.UserConfidenceRate = 8;
+            Assert.Equal(new[] { "A", "B" }, PathingAlgorithms.FindReadyToLearn(5f, view, Title));
+        }
+
+        [Fact]
+        public void FindReadyToLearn_LeavesOutNodesOffEveryPrerequisiteChain()
+        {
+            var known = AddNode("Known", 8);
+            var next = AddNode("Next", 1);
+            var aside = AddNode("Aside", 1);
+            AddNode("Island", 1);
+            Link(known, next);
+            Link(aside, next, _relatedTo);
+
+            var ready = PathingAlgorithms.FindReadyToLearn(5f, View(), Title,
+                new HashSet<Guid> { _prerequisiteTo });
+
+            // Aside's only edge isn't a prerequisite link, so it neither blocks Next nor shows up.
+            Assert.Equal(new[] { "Next" }, ready);
+        }
+
+        [Fact]
+        public void FindReadyToLearn_Incoming_ReadsEdgesAsDependsOn()
+        {
+            var basics = AddNode("Basics", 8);
+            var advanced = AddNode("Advanced", 1);
+            // Advanced depends on Basics.
+            Link(advanced, basics);
+
+            Assert.Equal(new[] { "Advanced" },
+                PathingAlgorithms.FindReadyToLearn(5f, View(), Title, direction: EdgeDirection.Incoming));
+        }
+
+        [Fact]
+        public void FindReadyToLearn_EverythingKnown_ReturnsEmpty()
+        {
+            var a = AddNode("A", 8);
+            var b = AddNode("B", 9);
+            Link(a, b);
+
+            Assert.Empty(PathingAlgorithms.FindReadyToLearn(5f, View(), Title));
+        }
+
+        [Fact]
+        public void FindReadyToLearn_BothDirections_Throws()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                PathingAlgorithms.FindReadyToLearn(5f, View(), Title, direction: EdgeDirection.Both));
+        }
+
+        // ── Bottlenecks ──────────────────────────────────────────────────────
+
+        private static (string Title, int Dependents) Bottleneck(NoteNode node, int dependents) => (node.Title, dependents);
+
+        [Fact]
+        public void FindBottlenecks_RanksByDependentsTimesWeakness()
+        {
+            var foundation = AddNode("Foundation", 6);
+            var weak = AddNode("Weak", 1);
+            var lone = AddNode("Lone", 0);
+            var steps = Enumerable.Range(1, 5).Select(i => AddNode($"Step{i}", 10)).ToList();
+            Link(foundation, steps[0]);
+            for (int i = 1; i < steps.Count; i++)
+                Link(steps[i - 1], steps[i]);
+            Link(weak, steps[4]);
+            var view = View();
+
+            var bottlenecks = PathingAlgorithms.FindBottlenecks(view, Bottleneck, 10);
+
+            // Foundation: 5 dependents × 4 = 20 beats Weak: 1 × 9 = 9. Fully known steps and Lone,
+            // which nothing depends on, aren't bottlenecks.
+            Assert.Equal(new[] { ("Foundation", 5), ("Weak", 1) }, bottlenecks);
+        }
+
+        [Fact]
+        public void FindBottlenecks_SharedDependent_CountsOnce()
+        {
+            var basics = AddNode("Basics");
+            var left = AddNode("Left", 10);
+            var right = AddNode("Right", 10);
+            var goal = AddNode("Goal", 10);
+            Link(basics, left);
+            Link(basics, right);
+            Link(left, goal);
+            Link(right, goal);
+
+            var bottleneck = Assert.Single(PathingAlgorithms.FindBottlenecks(View(), Bottleneck, 10));
+
+            Assert.Equal(("Basics", 3), bottleneck);
+        }
+
+        [Fact]
+        public void FindBottlenecks_Cycle_DoesNotCountTheNodeAsItsOwnDependent()
+        {
+            var a = AddNode("A");
+            var b = AddNode("B");
+            Link(a, b);
+            Link(b, a);
+
+            Assert.Equal(new[] { ("A", 1), ("B", 1) }, PathingAlgorithms.FindBottlenecks(View(), Bottleneck, 10));
+        }
+
+        [Fact]
+        public void FindBottlenecks_Limit_KeepsTheTopResults()
+        {
+            var top = AddNode("Top");
+            var middle = AddNode("Middle");
+            var bottom = AddNode("Bottom");
+            Link(top, middle);
+            Link(middle, bottom);
+
+            Assert.Equal(new[] { ("Top", 2) }, PathingAlgorithms.FindBottlenecks(View(), Bottleneck, 1));
+        }
+
+        [Fact]
+        public void FindBottlenecks_Incoming_CountsNodesThatDependOnIt()
+        {
+            var basics = AddNode("Basics");
+            var advanced = AddNode("Advanced", 10);
+            // Advanced depends on Basics.
+            Link(advanced, basics);
+
+            Assert.Equal(new[] { ("Basics", 1) },
+                PathingAlgorithms.FindBottlenecks(View(), Bottleneck, 10, direction: EdgeDirection.Incoming));
+        }
+
+        [Fact]
+        public void FindBottlenecks_RelationshipFilter_IgnoresOtherEdgeTypes()
+        {
+            var basics = AddNode("Basics");
+            var aside = AddNode("Aside", 10);
+            Link(basics, aside, _relatedTo);
+
+            Assert.Empty(PathingAlgorithms.FindBottlenecks(View(), Bottleneck, 10,
+                new HashSet<Guid> { _prerequisiteTo }));
+        }
+
+        [Fact]
+        public void FindBottlenecks_BothDirections_Throws()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                PathingAlgorithms.FindBottlenecks(View(), Bottleneck, 10, direction: EdgeDirection.Both));
+        }
+
+        // ── Strongly connected components (Tarjan) ───────────────────────────
+
+        [Fact]
+        public void StronglyConnectedComponents_GroupsEachCycle()
+        {
+            var a = Guid.NewGuid();
+            var b = Guid.NewGuid();
+            var c = Guid.NewGuid();
+            var d = Guid.NewGuid();
+            var e = Guid.NewGuid();
+            // a ⇄ b → c → d → e → c
+            var next = new Dictionary<Guid, List<Guid>>
+            {
+                [a] = new() { b },
+                [b] = new() { a, c },
+                [c] = new() { d },
+                [d] = new() { e },
+                [e] = new() { c },
+            };
+
+            var components = PathingAlgorithms.StronglyConnectedComponents(next.Keys, id => next[id]);
+
+            Assert.Equal(2, components.Count);
+            // A group comes after every group it reaches.
+            Assert.Equal(new[] { c, d, e }.Order(), components[0].Order());
+            Assert.Equal(new[] { a, b }.Order(), components[1].Order());
+        }
+
+        [Fact]
+        public void StronglyConnectedComponents_NodeOnNoCycle_IsAGroupOfItsOwn()
+        {
+            var a = Guid.NewGuid();
+            var b = Guid.NewGuid();
+            var next = new Dictionary<Guid, List<Guid>> { [a] = new() { b }, [b] = new() };
+
+            var components = PathingAlgorithms.StronglyConnectedComponents(next.Keys, id => next[id]);
+
+            Assert.Equal(new[] { new[] { b }, new[] { a } }, components.Select(g => g.ToArray()));
+        }
+
+        [Fact]
+        public void StronglyConnectedComponents_LongChain_DoesNotOverflowTheStack()
+        {
+            var chain = Enumerable.Range(0, 200_000).Select(_ => Guid.NewGuid()).ToList();
+            var next = new Dictionary<Guid, List<Guid>>();
+            for (int i = 0; i < chain.Count; i++)
+                next[chain[i]] = i + 1 < chain.Count ? new() { chain[i + 1] } : new();
+
+            var components = PathingAlgorithms.StronglyConnectedComponents(next.Keys, id => next[id]);
+
+            Assert.Equal(chain.Count, components.Count);
         }
     }
 }

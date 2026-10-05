@@ -51,5 +51,25 @@ namespace graphnotelm.API
 
             return Result<LearningOrderResponse>.Ok(response.Value);
         }
+
+        [HttpGet("id/{noteGraphId:guid}/analysis/readytolearn")]
+        public async Task<ActionResult<Result<ReadyToLearnResponse>>> GetReadyToLearn(Guid noteGraphId, [FromQuery] ReadyToLearnRequest request, CancellationToken ct)
+        {
+            var response = await _graphAnalysisService.FindReadyToLearn(noteGraphId, request, ct);
+            if (!response.Success || response.Value == null)
+                return BadRequest(Result<ReadyToLearnResponse>.Fail(response.Error ?? "Failed to find notes ready to learn."));
+
+            return Result<ReadyToLearnResponse>.Ok(response.Value);
+        }
+
+        [HttpGet("id/{noteGraphId:guid}/analysis/bottlenecks")]
+        public async Task<ActionResult<Result<BottlenecksResponse>>> GetBottlenecks(Guid noteGraphId, [FromQuery] BottlenecksRequest request, CancellationToken ct)
+        {
+            var response = await _graphAnalysisService.FindBottlenecks(noteGraphId, request, ct);
+            if (!response.Success || response.Value == null)
+                return BadRequest(Result<BottlenecksResponse>.Fail(response.Error ?? "Failed to find bottlenecks."));
+
+            return Result<BottlenecksResponse>.Ok(response.Value);
+        }
     }
 }

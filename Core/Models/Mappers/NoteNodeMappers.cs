@@ -70,6 +70,13 @@ namespace graphnotelm.Core.Models.Mappers
         [MapperIgnoreSource(nameof(NoteNode.FolderId))]
         public static partial AnalysisNodeResult ToAnalysisNodeResult(this NoteNode node, float confidence);
 
+        [MapperIgnoreSource(nameof(NoteNode.Note))]
+        [MapperIgnoreSource(nameof(NoteNode.Metadata))]
+        [MapperIgnoreSource(nameof(NoteNode.Relationships))]
+        [MapperIgnoreSource(nameof(NoteNode.Tags))]
+        [MapperIgnoreSource(nameof(NoteNode.FolderId))]
+        public static partial BottleneckNodeResult ToBottleneckNodeResult(this NoteNode node, float confidence, int dependents);
+
         [MapProperty(nameof(NoteNode.Id), nameof(EditNodeMetadataResponse.NodeId))]
         [MapperIgnoreTarget(nameof(EditNodeMetadataResponse.Confidence))]
         [MapperIgnoreSource(nameof(NoteNode.Title))]

@@ -160,7 +160,102 @@ namespace graphnotelm.Tests
 
             Assert.True(result.Success);
             Assert.Equal(new[] { "Basics", "Target" }, result.Value!.Order.Select(n => n.Title));
-            Assert.Empty(result.Value.Cyclic);
+            Assert.Empty(result.Value.Cycles);
+        }
+
+        [Fact]
+        public async Task FindLearningOrder_Cycle_ReturnsItsNodes()
+        {
+            var a = AddNode("A");
+            var b = AddNode("B");
+            Link(a, b);
+            Link(b, a);
+
+            var result = await _service.FindLearningOrder(_document.Id,
+                new LearningOrderRequest { TargetNodeId = b.Id }, CancellationToken.None);
+
+            Assert.True(result.Success);
+            Assert.Equal(new[] { "A", "B" }, result.Value!.Order.Select(n => n.Title));
+            Assert.Equal(new[] { a.Id, b.Id }, Assert.Single(result.Value.Cycles).Select(n => n.Id));
+        }
+
+        [Fact]
+        public async Task FindReadyToLearn_ReturnsNotesWhosePrerequisitesAreKnown()
+        {
+            var basics = AddNode("Basics", 8);
+            var next = AddNode("Next", 1);
+            var later = AddNode("Later", 1);
+            Link(basics, next);
+            Link(next, later);
+
+            var result = await _service.FindReadyToLearn(_document.Id,
+                new ReadyToLearnRequest { MinConfidence = 5f }, CancellationToken.None);
+
+            Assert.True(result.Success);
+            var ready = Assert.Single(result.Value!.Ready);
+            Assert.Equal(next.Id, ready.Id);
+            Assert.Equal(1f, ready.Confidence);
+        }
+
+        [Fact]
+        public async Task FindReadyToLearn_BothDirections_FailsInsteadOfThrowing()
+        {
+            var result = await _service.FindReadyToLearn(_document.Id,
+                new ReadyToLearnRequest { Direction = EdgeDirection.Both }, CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.StartsWith("Finding notes ready to learn needs a direction", result.Error);
+        }
+
+        [Fact]
+        public async Task FindBottlenecks_ReturnsDependentsAndConfidence()
+        {
+            var basics = AddNode("Basics", 4);
+            var next = AddNode("Next", 10);
+            var later = AddNode("Later", 10);
+            Link(basics, next);
+            Link(next, later);
+
+            var result = await _service.FindBottlenecks(_document.Id, new BottlenecksRequest(), CancellationToken.None);
+
+            Assert.True(result.Success);
+            var bottleneck = Assert.Single(result.Value!.Bottlenecks);
+            Assert.Equal(basics.Id, bottleneck.Id);
+            Assert.Equal("Basics", bottleneck.Title);
+            Assert.Equal(4f, bottleneck.Confidence);
+            Assert.Equal(2, bottleneck.Dependents);
+        }
+
+        [Fact]
+        public async Task FindBottlenecks_LimitBelowOne_StillReturnsTheTopResult()
+        {
+            var top = AddNode("Top");
+            var bottom = AddNode("Bottom");
+            Link(top, bottom);
+
+            var result = await _service.FindBottlenecks(_document.Id, new BottlenecksRequest { Limit = 0 }, CancellationToken.None);
+
+            Assert.Equal(top.Id, Assert.Single(result.Value!.Bottlenecks).Id);
+        }
+
+        [Fact]
+        public async Task FindBottlenecks_UnknownRelationshipType_Fails()
+        {
+            var result = await _service.FindBottlenecks(_document.Id,
+                new BottlenecksRequest { RelationshipIds = { Guid.NewGuid() } }, CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.Equal("Relationship type not found in this graph.", result.Error);
+        }
+
+        [Fact]
+        public async Task FindBottlenecks_BothDirections_FailsInsteadOfThrowing()
+        {
+            var result = await _service.FindBottlenecks(_document.Id,
+                new BottlenecksRequest { Direction = EdgeDirection.Both }, CancellationToken.None);
+
+            Assert.False(result.Success);
+            Assert.StartsWith("Finding bottlenecks needs a direction", result.Error);
         }
 
         [Fact]

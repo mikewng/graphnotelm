@@ -12,12 +12,32 @@ namespace graphnotelm.Core.Utils.Tools
 
     public record LearningOrderSummary(
         List<NodeSummary> Order,
-        List<NodeSummary> Cyclic,
+        List<List<NodeSummary>> Cycles,
+        string? Error = null
+    );
+
+    public record ReadyToLearnSummary(
+        List<NodeSummary> Ready,
+        string? Error = null
+    );
+
+    public record BottleneckSummary(
+        Guid Id,
+        string Title,
+        float ConfidenceScore,
+        int Dependents
+    );
+
+    public record BottlenecksSummary(
+        List<BottleneckSummary> Bottlenecks,
         string? Error = null
     );
 
     public class GraphAnalysisTools
     {
+        private const string RelationshipTypeDescription = "The relationship type that links nodes to their prerequisites, by its name or its inverse name (e.g. 'prerequisite to' or 'has prerequisite'). Omit to treat every relationship as a prerequisite link.";
+        private const string PointsToPrerequisiteDescription = "Read using the name you gave: false when the relationship goes from the prerequisite to the node that needs it ('A prerequisite to B'), true when it goes from a node to its prerequisite ('B has prerequisite A').";
+
         private readonly NoteGraphDocument _document;
         private readonly GraphView _view;
         private readonly IGraphAnalysisService _graphAnalysisService;
@@ -51,18 +71,66 @@ namespace graphnotelm.Core.Utils.Tools
             return PathingAlgorithms.BreadthFirstSearchById(noteNodeId, minConfidence, _view, Summarize);
         }
 
-        [Description("Orders a target node and every node it depends on so each comes after its prerequisites, using Kahn's topological sort — the order to study in to understand the target. Nodes caught in a prerequisite cycle can't be ordered and are returned in Cyclic. If the request can't be run, Error says why.")]
+        [Description("Orders a target node and every node it depends on so each comes after its prerequisites, using Kahn's topological sort — the order to study in to understand the target. Nodes in a prerequisite cycle depend on one another, so each cycle is kept together in Order and also listed in Cycles; suggest removing an edge to break it. If the request can't be run, Error says why.")]
         public LearningOrderSummary FindLearningOrder(
             [Description("The ID of the node the user wants to understand.")]
             Guid targetNodeId,
-            [Description("The relationship type that links nodes to their prerequisites, by its name or its inverse name (e.g. 'prerequisite to' or 'has prerequisite'). Omit to treat every relationship as a prerequisite link.")]
+            [Description(RelationshipTypeDescription)]
             string? relationshipType = null,
-            [Description("Read using the name you gave: false when the relationship goes from the prerequisite to the node that needs it ('A prerequisite to B'), true when it goes from a node to its prerequisite ('B has prerequisite A').")]
+            [Description(PointsToPrerequisiteDescription)]
             bool pointsToPrerequisite = false)
         {
             if (!_view.HasNode(targetNodeId))
                 return new LearningOrderSummary(new(), new(), "No node with that ID exists in this graph.");
 
+            var (relationshipIds, direction, error) = ResolvePrerequisites(relationshipType, pointsToPrerequisite);
+            if (error is not null)
+                return new LearningOrderSummary(new(), new(), error);
+
+            var result = PathingAlgorithms.KahnTopologicalSortById(targetNodeId, _view, Summarize, relationshipIds, direction);
+            return new LearningOrderSummary(result.Order, result.Cycles);
+        }
+
+        [Description("Finds the notes the user can start learning now, across the whole graph: notes below the confidence threshold whose prerequisites are all at or above it. Notes in a prerequisite cycle count as ready once every prerequisite outside the cycle is known. Unlike FindKnowledgeFrontier, it needs no start node and only follows prerequisite links. If the request can't be run, Error says why.")]
+        public ReadyToLearnSummary FindReadyToLearn(
+            [Description("Minimum confidence score (0–10) a node needs to count as understood. Defaults to 3.")]
+            float minConfidence = 3.0f,
+            [Description(RelationshipTypeDescription)]
+            string? relationshipType = null,
+            [Description(PointsToPrerequisiteDescription)]
+            bool pointsToPrerequisite = false)
+        {
+            var (relationshipIds, direction, error) = ResolvePrerequisites(relationshipType, pointsToPrerequisite);
+            if (error is not null)
+                return new ReadyToLearnSummary(new(), error);
+
+            return new ReadyToLearnSummary(
+                PathingAlgorithms.FindReadyToLearn(minConfidence, _view, Summarize, relationshipIds, direction));
+        }
+
+        [Description("Finds the weak notes that hold back the most of the graph — what to study first to unblock the rest. Each is ranked by how many notes depend on it, directly or through others (Dependents), times how far its confidence is below 10. Needs no start or target node. If the request can't be run, Error says why.")]
+        public BottlenecksSummary FindBottlenecks(
+            [Description("How many notes to return, most holding-back first. Defaults to 10.")]
+            int limit = 10,
+            [Description(RelationshipTypeDescription)]
+            string? relationshipType = null,
+            [Description(PointsToPrerequisiteDescription)]
+            bool pointsToPrerequisite = false)
+        {
+            var (relationshipIds, direction, error) = ResolvePrerequisites(relationshipType, pointsToPrerequisite);
+            if (error is not null)
+                return new BottlenecksSummary(new(), error);
+
+            return new BottlenecksSummary(PathingAlgorithms.FindBottlenecks(_view,
+                (node, dependents) => new BottleneckSummary(node.Id, node.Title, _view.GetConfidence(node.Id), dependents),
+                Math.Max(1, limit), relationshipIds, direction));
+        }
+
+        // Turns the prerequisite relationship the LLM named into the edge types and direction to
+        // follow, or an error listing the names it could have used.
+        private (HashSet<Guid>? RelationshipIds, EdgeDirection Direction, string? Error) ResolvePrerequisites(
+            string? relationshipType, bool pointsToPrerequisite)
+        {
             HashSet<Guid>? relationshipIds = null;
             if (!string.IsNullOrWhiteSpace(relationshipType))
             {
@@ -77,15 +145,11 @@ namespace graphnotelm.Core.Utils.Tools
                 if (relationshipIds.Count == 0)
                 {
                     var available = string.Join(", ", _document.Relationships.Values.Select(rel => rel.Name));
-                    return new LearningOrderSummary(new(), new(), $"No relationship type named '{name}'. Available: {available}.");
+                    return (null, default, $"No relationship type named '{name}'. Available: {available}.");
                 }
             }
 
-            var result = PathingAlgorithms.KahnTopologicalSortById(targetNodeId, _view, Summarize,
-                relationshipIds,
-                pointsToPrerequisite ? EdgeDirection.Incoming : EdgeDirection.Outgoing);
-
-            return new LearningOrderSummary(result.Order, result.Cyclic);
+            return (relationshipIds, pointsToPrerequisite ? EdgeDirection.Incoming : EdgeDirection.Outgoing, null);
         }
 
         private HashSet<Guid> RelationshipsNamed(Func<RelationshipDefinition, string> nameOf, string name)

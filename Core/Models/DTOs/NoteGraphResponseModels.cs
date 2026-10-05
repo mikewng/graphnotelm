@@ -210,8 +210,25 @@ namespace graphnotelm.Core.Models.DTOs
     public class LearningOrderResponse
     {
         public List<AnalysisNodeResult> Order { get; set; } = new();
-        // Nodes in, or waiting on, a prerequisite cycle.
-        public List<AnalysisNodeResult> Cyclic { get; set; } = new();
+        // Each prerequisite cycle, its nodes sorted by title. They also appear in Order, side by side.
+        public List<List<AnalysisNodeResult>> Cycles { get; set; } = new();
+    }
+
+    public class ReadyToLearnResponse
+    {
+        public List<AnalysisNodeResult> Ready { get; set; } = new();
+    }
+
+    public class BottleneckNodeResult : AnalysisNodeResult
+    {
+        // How many nodes depend on this one, directly or through others.
+        public int Dependents { get; set; }
+    }
+
+    public class BottlenecksResponse
+    {
+        // Most holding-back first.
+        public List<BottleneckNodeResult> Bottlenecks { get; set; } = new();
     }
 
     public class SaveNodeContentResponse

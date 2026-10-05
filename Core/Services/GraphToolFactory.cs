@@ -35,6 +35,8 @@ namespace graphnotelm.Core.Services
                 AIFunctionFactory.Create(analysis.FindWeakestPath),
                 AIFunctionFactory.Create(analysis.FindKnowledgeFrontier),
                 AIFunctionFactory.Create(analysis.FindLearningOrder),
+                AIFunctionFactory.Create(analysis.FindReadyToLearn),
+                AIFunctionFactory.Create(analysis.FindBottlenecks),
 
 
                 // General Help Functions

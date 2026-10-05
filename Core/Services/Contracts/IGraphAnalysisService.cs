@@ -13,5 +13,7 @@ namespace graphnotelm.Core.Services.Contracts
         public Task<Result<WeakestPathResponse>> FindWeakestPath(Guid noteGraphId, WeakestPathRequest request, CancellationToken ct);
         public Task<Result<KnowledgeFrontierResponse>> FindKnowledgeFrontier(Guid noteGraphId, KnowledgeFrontierRequest request, CancellationToken ct);
         public Task<Result<LearningOrderResponse>> FindLearningOrder(Guid noteGraphId, LearningOrderRequest request, CancellationToken ct);
+        public Task<Result<ReadyToLearnResponse>> FindReadyToLearn(Guid noteGraphId, ReadyToLearnRequest request, CancellationToken ct);
+        public Task<Result<BottlenecksResponse>> FindBottlenecks(Guid noteGraphId, BottlenecksRequest request, CancellationToken ct);
     }
 }

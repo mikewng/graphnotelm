@@ -203,6 +203,28 @@ namespace graphnotelm.Core.Models.DTOs
         public List<Guid> RelationshipIds { get; set; } = new();
     }
 
+    public class ReadyToLearnRequest
+    {
+        public float MinConfidence { get; set; } = 3.0f;
+        // Outgoing when edges point from a prerequisite to the node that needs it; Incoming for the reverse.
+        public EdgeDirection Direction { get; set; } = EdgeDirection.Outgoing;
+        public List<Guid> RelationshipIds { get; set; } = new();
+    }
+
+    public class BottlenecksRequest
+    {
+        public int Limit { get; set; } = AnalysisLimits.DefaultBottlenecks;
+        // Outgoing when edges point from a prerequisite to the node that needs it; Incoming for the reverse.
+        public EdgeDirection Direction { get; set; } = EdgeDirection.Outgoing;
+        public List<Guid> RelationshipIds { get; set; } = new();
+    }
+
+    public static class AnalysisLimits
+    {
+        public const int DefaultBottlenecks = 10;
+        public const int MaxBottlenecks = 100;
+    }
+
     public class CreateFlashcardRequest
     {
         [Required, MaxLength(FlashcardLimits.MaxSideLength)]
