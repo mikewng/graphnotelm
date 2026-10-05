@@ -82,16 +82,7 @@ namespace graphnotelm.API
         private McpSettingsResponse BuildResponse()
         {
             var url = $"http://localhost:{_mcpSettings.Port}/mcp?key={_mcpSettings.SecretKey}";
-            var claudeConfig = $$"""
-                {
-                  "mcpServers": {
-                    "graphnotelm": {
-                      "command": "npx",
-                      "args": ["mcp-remote", "{{url}}"]
-                    }
-                  }
-                }
-                """;
+            var clients = BuildClientConfigs(url);
 
             return new McpSettingsResponse
             {
@@ -99,9 +90,88 @@ namespace graphnotelm.API
                 IsUserConfigured = _mcpSettings.LocalUserId.HasValue,
                 IsEnabled        = _mcpSettings.IsEnabled,
                 Url              = url,
-                ClaudeDesktopConfig = claudeConfig
+                ClaudeDesktopConfig = clients[0].Config,
+                Clients          = clients
             };
         }
+
+        // Clients that only speak stdio go through mcp-remote; the rest connect to the URL directly.
+        // Backticks in Instructions mark inline code for the frontend.
+        private static List<McpClientConfig> BuildClientConfigs(string url) =>
+        [
+            new()
+            {
+                Id = "claude-desktop",
+                Name = "Claude Desktop",
+                Instructions = @"Paste into `%APPDATA%\Claude\claude_desktop_config.json`, then fully restart Claude Desktop (quit from the system tray). Requires Node.js for `npx`.",
+                Config = $$"""
+                    {
+                      "mcpServers": {
+                        "graphnotelm": {
+                          "command": "npx",
+                          "args": ["mcp-remote", "{{url}}"]
+                        }
+                      }
+                    }
+                    """
+            },
+            new()
+            {
+                Id = "claude-code",
+                Name = "Claude Code",
+                Instructions = "Run in a terminal. Add `--scope user` before the name to make it available in every project.",
+                Config = $"claude mcp add --transport http graphnotelm \"{url}\""
+            },
+            new()
+            {
+                Id = "codex",
+                Name = "Codex",
+                Instructions = @"Add to `~/.codex/config.toml` (Windows: `%USERPROFILE%\.codex\config.toml`). Requires Node.js for `npx`.",
+                Config = $$"""
+                    [mcp_servers.graphnotelm]
+                    command = "npx"
+                    args = ["mcp-remote", "{{url}}"]
+                    """
+            },
+            new()
+            {
+                Id = "cursor",
+                Name = "Cursor",
+                Instructions = "Paste into `~/.cursor/mcp.json` for all projects, or `.cursor/mcp.json` in a project folder.",
+                Config = $$"""
+                    {
+                      "mcpServers": {
+                        "graphnotelm": {
+                          "url": "{{url}}"
+                        }
+                      }
+                    }
+                    """
+            },
+            new()
+            {
+                Id = "vscode",
+                Name = "VS Code (Copilot)",
+                Instructions = "Paste into `.vscode/mcp.json` in your workspace, or run MCP: Open User Configuration to add it for every workspace.",
+                Config = $$"""
+                    {
+                      "servers": {
+                        "graphnotelm": {
+                          "type": "http",
+                          "url": "{{url}}"
+                        }
+                      }
+                    }
+                    """
+            },
+            new()
+            {
+                Id = "other",
+                Name = "Other MCP client",
+                Instructions = "Clients that support Streamable HTTP can use this URL directly. For clients that only support stdio, run it through `npx mcp-remote <url>`. The server only accepts connections from this machine.",
+                Config = url
+            }
+        ];
     }
 
     public class McpSettingsResponse
@@ -111,6 +181,15 @@ namespace graphnotelm.API
         public bool IsEnabled { get; set; }
         public string Url { get; set; } = string.Empty;
         public string ClaudeDesktopConfig { get; set; } = string.Empty;
+        public List<McpClientConfig> Clients { get; set; } = [];
+    }
+
+    public class McpClientConfig
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Instructions { get; set; } = string.Empty;
+        public string Config { get; set; } = string.Empty;
     }
 
     public class McpToggleRequest

@@ -241,7 +241,7 @@ Clone this repository and [graphnotelm-fe](https://github.com/mikewng/graphnotel
 - `node desktop.mjs --build` does the same but packages the app instead of starting it; the output goes to desktop-executable/release.
 
 #### Connecting to MCP
-For the MCP, you are able to give any LLM agentic tool access to the graphnotes by connecting it to the GraphNoteLM MCP. In the app, open Settings → Claude Desktop / MCP and press Copy: it copies a configuration with your key and the right address, ready to paste into Claude Desktop's claude_desktop_config.json. It looks like this:
+For the MCP, you are able to give any LLM agentic tool access to the graphnotes by connecting it to the GraphNoteLM MCP. In the app, open Settings → LLMs & MCP → MCP Server, pick your client (Claude Desktop, Claude Code, Codex, Cursor, VS Code, or Other) and press Copy: it copies that client's configuration with your key and the right address, along with where to paste it. Clients that support Streamable HTTP can connect to `http://localhost:5000/mcp?key=YOUR_MCP_KEY` directly; clients that only support stdio go through `mcp-remote`. For Claude Desktop it looks like this:
 ```json
 {
   "mcpServers": {
