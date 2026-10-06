@@ -1,7 +1,7 @@
 # <img width="64" height="64" alt="favicon-g-knot-64" src="https://github.com/user-attachments/assets/444c81a5-45f2-44c0-84fb-7f359907e742" /> GraphNoteLM
 A graph based note-taking application for students, researchers, and creatives for relational learning, study, and discovery, powered with AI insights using notebook-enclosed context.
 
-<img width="1444" height="864" alt="image" src="https://github.com/user-attachments/assets/4bad7e72-d02d-4ec8-bc3a-c395b2fb9510" />
+<img width="1497" height="1219" alt="image" src="https://github.com/user-attachments/assets/8e952537-a620-4d69-97e3-3ff9eea6aba3" />
 
 <img width="1916" height="937" alt="image" src="https://github.com/user-attachments/assets/f77cd55e-5e16-44c7-838a-884f81873837" />
 
@@ -55,7 +55,7 @@ Every notegraph opens as an interactive graph. You can lay it out hierarchically
 
 ### Split-screen for Graph-View and NoteNode Editors
 In case you need to see the graph and edit your notes simultaneously.
-<img width="1907" height="988" alt="image" src="https://github.com/user-attachments/assets/b0c2291c-4c49-4364-9572-ffec7bbc7142" />
+<img width="2469" height="1350" alt="image" src="https://github.com/user-attachments/assets/b93ec5c2-bfc8-4a2d-b05a-a79d20d8a5fb" />
 
 ### In-Graph View Quick-edit Functionality
 Edit relationships, tags, and note data within the graph view itself.
