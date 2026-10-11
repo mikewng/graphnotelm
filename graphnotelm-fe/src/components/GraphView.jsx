@@ -3,80 +3,28 @@ import * as d3 from 'd3'
 import GraphViewContextMenu from './GraphViewToolBar'
 import { edgeKey } from '../utils/studyPath'
 import { displayConfidence } from '../utils/review'
+import { computeStressSeed, settleUntangledInFrames, forceComponentCenter, componentRadius, packCircles } from '../utils/graphLayout'
 
 const NODE_R = 8
 const NODE_R_MAX = 26
 const NODE_R_GROWTH = 3      // px added per √(edges beyond NODE_R_FREE_EDGES)
 const NODE_R_FREE_EDGES = 2  // nodes with this many edges or fewer keep the base size
-const LINK_DISTANCE = 240
-const RADIAL_RING_SPACING = 180
+const LINK_DISTANCE = 130
+const RADIAL_RING_SPACING = 150
 const COMPACT_R = 5
 const COMPACT_R_MAX = 14
 const COMPACT_R_GROWTH = 1.8
-const COMPACT_LINK_DISTANCE = 90
-
-// Distance-based seed layout (stress majorization): places nodes so on-screen
-// distance ≈ shortest-path distance × linkDistance. Started from this, the
-// force simulation only has to polish spacing instead of unfolding a random
-// tangle, which is what produced heavy edge crossings. Returns positions
-// indexed like nodeData (components are laid out independently around 0,0),
-// or null when the graph is too large for the O(n²) passes.
-function computeStressSeed(nodeData, linkData, linkDistance) {
-  const n = nodeData.length
-  if (n < 3 || n > 400) return null
-  const idToIdx = new Map(nodeData.map((d, i) => [d.id, i]))
-  const adj = Array.from({ length: n }, () => [])
-  linkData.forEach(l => {
-    const s = idToIdx.get(l.source?.id ?? l.source)
-    const t = idToIdx.get(l.target?.id ?? l.target)
-    if (s == null || t == null || s === t) return
-    adj[s].push(t)
-    adj[t].push(s)
-  })
-
-  // All-pairs shortest paths via BFS from every node (-1 = unreachable)
-  const dist = []
-  for (let s = 0; s < n; s++) {
-    const d = new Int32Array(n).fill(-1)
-    d[s] = 0
-    const q = [s]
-    for (let qi = 0; qi < q.length; qi++) {
-      const cur = q[qi]
-      for (const nb of adj[cur]) {
-        if (d[nb] === -1) { d[nb] = d[cur] + 1; q.push(nb) }
-      }
-    }
-    dist.push(d)
-  }
-
-  // Deterministic non-degenerate start: phyllotaxis spiral
-  const golden = 2.399963229728653
-  const pos = nodeData.map((_, i) => ({
-    x: Math.cos(i * golden) * linkDistance * 0.5 * Math.sqrt(i + 1),
-    y: Math.sin(i * golden) * linkDistance * 0.5 * Math.sqrt(i + 1),
-  }))
-
-  const ITERATIONS = 150
-  for (let it = 0; it < ITERATIONS; it++) {
-    for (let i = 0; i < n; i++) {
-      const di = dist[i]
-      let wx = 0, wy = 0, wsum = 0
-      for (let j = 0; j < n; j++) {
-        if (j === i || di[j] <= 0) continue
-        const target = di[j] * linkDistance
-        const w = 1 / (target * target)
-        const dx = pos[i].x - pos[j].x
-        const dy = pos[i].y - pos[j].y
-        const len = Math.hypot(dx, dy) || 1e-6
-        wx += w * (pos[j].x + (dx / len) * target)
-        wy += w * (pos[j].y + (dy / len) * target)
-        wsum += w
-      }
-      if (wsum > 0) { pos[i].x = wx / wsum; pos[i].y = wy / wsum }
-    }
-  }
-  return pos
-}
+const COMPACT_LINK_DISTANCE = 80
+// Default layout forces. With clusters no longer squeezed toward a point (see
+// forceComponentCenter), stiffer links and a gentler push keep edges near the
+// link distance. The push scales with the link distance squared, so changing a
+// link distance rescales the layout without changing its shape. The other view
+// styles keep the original -700 / -130 and 0.3.
+const DEFAULT_LINK_STRENGTH = 0.8
+const DEFAULT_CHARGE_PER_PX2 = 0.0036          // -210 at 240px
+const COMPACT_DEFAULT_CHARGE_PER_PX2 = 0.0049  // -40 at 90px
+// How long nodes take to glide from the first-drawn layout to the untangled one.
+const GLIDE_MS = 450
 
 // Three stops joined by a winding route — used by the Study Path toggles.
 export function StudyPathIcon() {
@@ -120,6 +68,8 @@ const GraphView = forwardRef(function GraphView({
   const contextMenuRef = useRef(null)
   const nodePositionsRef = useRef({})                     // persists node positions across reloads
   const zoomTransformRef = useRef(null)                    // persists pan/zoom across re-renders
+  const zoomBehaviorRef = useRef(null)                     // the current d3.zoom, for resizes
+  const layoutSizeRef = useRef(null)                       // canvas size graph space is laid out in
 
   useImperativeHandle(ref, () => ({
     seedPosition: (nodeId, x, y) => { nodePositionsRef.current[nodeId] = { x, y } },
@@ -235,8 +185,11 @@ const GraphView = forwardRef(function GraphView({
 
     svg.selectAll('*').remove()
 
-    const width = svgEl.clientWidth
-    const height = svgEl.clientHeight
+    // Graph space is sized by the canvas the view first opened with. Later
+    // resizes (split view, the window) shift the view instead (see the resize
+    // effect below), so a rebuild never slides the graph across the canvas.
+    const { width, height } = (layoutSizeRef.current ??= { width: svgEl.clientWidth, height: svgEl.clientHeight })
+    const linkDistance = compactMode ? COMPACT_LINK_DISTANCE : LINK_DISTANCE
 
     const cssVars = getComputedStyle(document.documentElement)
     const accent = cssVars.getPropertyValue('--accent').trim()
@@ -358,11 +311,12 @@ const GraphView = forwardRef(function GraphView({
     }
 
     // Default view: keep disconnected subgraphs as distinct clusters that stay
-    // packed close together instead of overlapping in one blob. Find connected
-    // components (edges treated as undirected), estimate each one's size, then
-    // place their centers with a sunflower (phyllotaxis) spiral so they fill the
-    // disc from the center outward — biggest cluster in the middle.
+    // packed close together without running into each other. Find connected
+    // components (edges treated as undirected), estimate the room each one
+    // settles into, and pack those footprints around the middle, biggest first.
     const componentCenters = {}
+    const componentOf = {}
+    let seeded = false
     if (layoutMode == null) {
       const adj = {}
       nodeData.forEach(n => { adj[n.id] = [] })
@@ -370,7 +324,6 @@ const GraphView = forwardRef(function GraphView({
         const s = l.source?.id ?? l.source, t = l.target?.id ?? l.target
         adj[s]?.push(t); adj[t]?.push(s)
       })
-      const componentOf = {}
       let comp = 0
       nodeData.forEach(n => {
         if (componentOf[n.id] != null) return
@@ -384,35 +337,18 @@ const GraphView = forwardRef(function GraphView({
         }
         comp++
       })
-      const nComp = comp
-      const counts = {}
-      nodeData.forEach(n => { const c = componentOf[n.id]; counts[c] = (counts[c] || 0) + 1 })
-      // Rough on-screen radius of each component (packing estimate)
-      const base = compactMode ? 32 : 55
-      const scale = compactMode ? 20 : 40
-      const compRadius = {}
-      for (let c = 0; c < nComp; c++) compRadius[c] = base + Math.sqrt(counts[c] || 1) * scale
-      const centerByComp = {}
-      // Largest clusters first so they anchor the center; smaller ones fill in around them.
-      const order = [...Array(nComp).keys()].sort((a, b) => compRadius[b] - compRadius[a])
-      const golden = Math.PI * (3 - Math.sqrt(5)) // ~137.5° — even sunflower spread
-      const packK = compactMode ? 1.4 : 1.15     // spacing so clusters nestle without heavy overlap
-      let cumArea = 0
-      order.forEach((c, i) => {
-        // Distance = radius of a disc that would hold every cluster placed so far
-        const dist = Math.sqrt(cumArea / Math.PI) * packK
-        const a = i * golden
-        centerByComp[c] = { x: width / 2 + dist * Math.cos(a), y: height / 2 + dist * Math.sin(a) }
-        cumArea += Math.PI * compRadius[c] * compRadius[c]
-      })
+      const counts = new Array(comp).fill(0)
+      nodeData.forEach(n => { counts[componentOf[n.id]]++ })
+      const centerByComp = packCircles(
+        counts.map(count => componentRadius(count, linkDistance, compactMode ? COMPACT_R : NODE_R)),
+        width / 2, height / 2, linkDistance * 0.3
+      )
       nodeData.forEach(n => { componentCenters[n.id] = centerByComp[componentOf[n.id]] })
 
       // Fresh open (no remembered positions yet): seed from graph distances so
       // the layout starts untangled with as few edge crossings as possible.
       if (!nodeData.some(n => n.x != null)) {
-        const seed = computeStressSeed(
-          nodeData, linkData, compactMode ? COMPACT_LINK_DISTANCE : LINK_DISTANCE
-        )
+        const seed = computeStressSeed(nodeData, linkData, linkDistance)
         if (seed) {
           // Translate each component's seeded cloud onto its packed center
           const sums = {}
@@ -426,11 +362,10 @@ const GraphView = forwardRef(function GraphView({
             n.x = centerByComp[c].x + seed[i].x - sums[c].x / sums[c].n
             n.y = centerByComp[c].y + seed[i].y - sums[c].y / sums[c].n
           })
+          seeded = true
         }
       }
     }
-    const getComponentX = d => componentCenters[d.id]?.x ?? width / 2
-    const getComponentY = d => componentCenters[d.id]?.y ?? height / 2
 
     const defs = svg.append('defs')
     defs.append('marker')
@@ -447,6 +382,7 @@ const GraphView = forwardRef(function GraphView({
 
     const g = svg.append('g')
     const zoomBehavior = d3.zoom().scaleExtent([0.2, 3]).on('zoom', e => g.attr('transform', e.transform))
+    zoomBehaviorRef.current = zoomBehavior
     svg.call(zoomBehavior)
 
     if (zoomTransformRef.current) {
@@ -461,12 +397,15 @@ const GraphView = forwardRef(function GraphView({
     const simulation = d3.forceSimulation(nodeData)
       .alphaMin(0.01)
       .alpha(hasPositions ? 0.3 : 1)
-      .force('link', d3.forceLink(linkData).id(d => d.id).distance(compactMode ? COMPACT_LINK_DISTANCE : LINK_DISTANCE).strength(0.3))
-      .force('charge', d3.forceManyBody().strength(compactMode ? -130 : -700))
+      .force('link', d3.forceLink(linkData).id(d => d.id).distance(linkDistance)
+        .strength(layoutMode == null ? DEFAULT_LINK_STRENGTH : 0.3))
+      .force('charge', d3.forceManyBody().strength(layoutMode == null
+        ? -(compactMode ? COMPACT_DEFAULT_CHARGE_PER_PX2 : DEFAULT_CHARGE_PER_PX2) * linkDistance ** 2
+        : (compactMode ? -130 : -700)))
       .force('x', layoutMode === 'tagClusters'
         ? d3.forceX(getClusterX).strength(0.5)
         : layoutMode == null
-          ? d3.forceX(getComponentX).strength(0.2)
+          ? null
           : d3.forceX(width / 2).strength(0.05)
       )
       .force('y', (layoutMode === 'hierarchical' || layoutMode === 'pinnedTop')
@@ -474,8 +413,12 @@ const GraphView = forwardRef(function GraphView({
         : layoutMode === 'tagClusters'
           ? d3.forceY(getClusterY).strength(0.5)
           : layoutMode == null
-            ? d3.forceY(getComponentY).strength(0.2)
+            ? null
             : d3.forceY(height / 2).strength(0.05)
+      )
+      .force('component', layoutMode == null
+        ? forceComponentCenter(d => componentOf[d.id], d => componentCenters[d.id], 0.2)
+        : null
       )
       .force('radial', layoutMode === 'radial' && selectedNodeId
         ? d3.forceRadial(d => (radialDist[d.id] || 0) * RADIAL_RING_SPACING, width / 2, height / 2).strength(0.8)
@@ -486,6 +429,28 @@ const GraphView = forwardRef(function GraphView({
     if (layoutMode === 'radial' && selectedNodeId) {
       const center = nodeData.find(n => n.id === selectedNodeId)
       if (center) { center.fx = width / 2; center.fy = height / 2 }
+    }
+
+    // A fresh default layout is refined in the background after the first paint
+    // (see the end of this effect). Until that's done, `refine` holds the
+    // positions on screen and a way to abandon the work; then `glide` holds the
+    // timer easing nodes to the result and where they end up.
+    let refine = null
+    let glide = null
+    // Ends any refinement or glide at once, leaving nodes where they appear:
+    // unfinished refinement is dropped, a glide jumps to its end.
+    function settleNow() {
+      if (refine) {
+        refine.cancel()
+        nodeData.forEach((d, i) => { [d.x, d.y] = refine.shown[i]; d.vx = 0; d.vy = 0 })
+        refine = null
+      }
+      if (glide) {
+        glide.timer.stop()
+        nodeData.forEach((d, i) => { [d.x, d.y] = glide.target[i] })
+        glide = null
+        drawPositions()
+      }
     }
 
     const tooltip = d3.select(svgEl.parentElement)
@@ -544,7 +509,7 @@ const GraphView = forwardRef(function GraphView({
       .attr('class', d => 'graph-node' + (d.id === selectedNodeId ? ' selected' : ''))
       .call(
         d3.drag()
-          .on('start', (event, d) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y })
+          .on('start', (event, d) => { settleNow(); if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y })
           .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y })
           .on('end', (event, d) => { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null })
       )
@@ -662,7 +627,7 @@ const GraphView = forwardRef(function GraphView({
         })
     }
 
-    simulation.on('tick', () => {
+    const drawPositions = () => {
       const EDGE_FAN = compactMode ? 10 : 22   // px separation between edges sharing a pair
       const pathD = d => {
         const sx = d.source.x, sy = d.source.y, tx = d.target.x, ty = d.target.y
@@ -685,20 +650,109 @@ const GraphView = forwardRef(function GraphView({
       link.attr('d', pathD)
       linkHit.attr('d', pathD)
       node.attr('transform', d => `translate(${d.x},${d.y})`)
-    })
+    }
+    simulation.on('tick', drawPositions)
+
+    // Zoom out (never in) and centre so the whole layout is in view.
+    const fitTransform = () => {
+      const labelWidth = compactMode ? 0 : 130   // titles sit to the right of nodes
+      const x0 = d3.min(nodeData, d => d.x - d._r), x1 = d3.max(nodeData, d => d.x + d._r + labelWidth)
+      const y0 = d3.min(nodeData, d => d.y - d._r), y1 = d3.max(nodeData, d => d.y + d._r)
+      const pad = 40
+      const viewW = svgEl.clientWidth, viewH = svgEl.clientHeight
+      const k = Math.max(0.2, Math.min(1, (viewW - pad * 2) / (x1 - x0), (viewH - pad * 2) / (y1 - y0)))
+      return d3.zoomIdentity
+        .translate(viewW / 2 - k * (x0 + x1) / 2, viewH / 2 - k * (y0 + y1) / 2)
+        .scale(k)
+    }
+    const sameTransform = (a, b) => a.k === b.k && a.x === b.x && a.y === b.y
+
+    // Fresh default layout: paint the seed straight away so the view opens at
+    // once, then settle and untangle it a slice per frame and glide the nodes to
+    // the result. Unless the view has been zoomed or panned, the zoom fits the
+    // seed now and follows the layout to its final fit.
+    if (seeded) {
+      drawPositions()
+      const t = zoomTransformRef.current
+      let fitted = null
+      if (!t || sameTransform(t, d3.zoomIdentity)) {
+        fitted = fitTransform()
+        svg.call(zoomBehavior.transform, fitted)
+        zoomTransformRef.current = fitted
+      }
+      const shown = nodeData.map(d => [d.x, d.y])
+      refine = {
+        shown,
+        cancel: settleUntangledInFrames(simulation, nodeData, linkData, {
+          onDone: () => {
+            refine = null
+            const target = nodeData.map(d => [d.x, d.y])
+            if (fitted && sameTransform(d3.zoomTransform(svgEl), fitted))
+              svg.transition().duration(GLIDE_MS).call(zoomBehavior.transform, fitTransform())
+            glide = {
+              target,
+              timer: d3.timer(elapsed => {
+                const p = d3.easeCubicInOut(Math.min(1, elapsed / GLIDE_MS))
+                nodeData.forEach((d, i) => {
+                  d.x = shown[i][0] + (target[i][0] - shown[i][0]) * p
+                  d.y = shown[i][1] + (target[i][1] - shown[i][1]) * p
+                })
+                drawPositions()
+                if (p === 1) { glide.timer.stop(); glide = null }
+              }),
+            }
+          },
+        }),
+      }
+    }
 
     svg.on('contextmenu', (event) => {
       event.preventDefault()
-      const t = zoomTransformRef.current || d3.zoomIdentity
+      // The live transform: zoomTransformRef is only refreshed on rebuilds, so it
+      // goes stale as soon as the view is panned or zoomed.
+      const t = d3.zoomTransform(svgEl)
       const rect = svgEl.getBoundingClientRect()
       const graphX = (event.clientX - rect.left - t.x) / t.k
       const graphY = (event.clientY - rect.top  - t.y) / t.k
       setContextMenu({ x: event.clientX, y: event.clientY, nodeId: null, graphX, graphY })
     })
 
-    return () => simulation.stop()
+    return () => {
+      simulation.stop()
+      svg.interrupt()
+      if (refine) {
+        // Interrupted before the layout was refined (a rebuild, or React's
+        // development double-run): forget the half-done positions so the next
+        // build lays the graph out afresh instead of keeping the raw seed.
+        refine.cancel()
+        refine = null
+        nodeData.forEach(d => { d.x = d.y = undefined })
+      }
+      settleNow()
+    }
   }, [structureKey, tagFilter, layoutMode,
-    layoutMode === 'radial' ? selectedNodeId : null, splitMode, compactMode])
+    layoutMode === 'radial' ? selectedNodeId : null, compactMode])
+
+  // Keep the graph centred when the canvas changes size (split view, its
+  // divider, the window) by shifting the view rather than laying the graph out
+  // again, which would throw away the untangled layout.
+  useEffect(() => {
+    const svgEl = svgRef.current
+    if (!svgEl) return
+    let last = { w: svgEl.clientWidth, h: svgEl.clientHeight }
+    const observer = new ResizeObserver(() => {
+      const w = svgEl.clientWidth, h = svgEl.clientHeight
+      const zoom = zoomBehaviorRef.current
+      if (zoom && (w !== last.w || h !== last.h)) {
+        const t = d3.zoomTransform(svgEl)
+        d3.select(svgEl).interrupt().call(zoom.transform,
+          d3.zoomIdentity.translate(t.x + (w - last.w) / 2, t.y + (h - last.h) / 2).scale(t.k))
+      }
+      last = { w, h }
+    })
+    observer.observe(svgEl)
+    return () => observer.disconnect()
+  }, [])
 
   // Lightweight content sync — refreshes titles/confidence text and the bound
   // datum in place when node content changes without a structural change,
@@ -827,7 +881,7 @@ const GraphView = forwardRef(function GraphView({
             .attr('text-anchor', 'middle')
         })
     }
-  }, [studyHighlight, structureKey, tagFilter, layoutMode, splitMode, compactMode])
+  }, [studyHighlight, structureKey, tagFilter, layoutMode, compactMode])
 
   return (
     <div className={`graph-overlay${pendingRel ? ' graph-overlay--pending' : ''}`} ref={splitOverlayRef}>

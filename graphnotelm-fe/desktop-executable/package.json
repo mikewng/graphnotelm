@@ -1,6 +1,6 @@
 {
   "name": "graphnotelm-desktop",
-  "version": "26.10.11i",
+  "version": "26.10.11o",
   "description": "GraphNoteLM Desktop Application",
   "main": "index.js",
   "scripts": {
