@@ -1593,11 +1593,15 @@
 }
 .graph-node.dimmed { opacity: 0.18; }
 
+/* Edges rest faded and come to full color when hovered, or when a hovered node reaches them.
+   opacity rather than stroke-opacity so the arrowhead fades with the line. The ego/search/study
+   dimmed rules further down share this specificity and come later, so they still win. */
 .graph-link {
-  stroke-opacity: 0.55;
+  opacity: 0.2;
   fill: none;
-  transition: stroke-opacity var(--t-med), opacity var(--t-med);
+  transition: opacity var(--t-med);
 }
+.graph-link.highlighted { opacity: 1; }
 .graph-link.dimmed { opacity: 0.08; }
 
 .level-line {
@@ -2083,7 +2087,7 @@
 /* Study path highlight — node stroke and fill colors are inline, so roles use width, glow and dashes */
 .graph-node.study-dimmed { opacity: 0.15; }
 .graph-link.study-dimmed { opacity: 0.06; }
-.graph-link.study-link { stroke-opacity: 1; }
+.graph-link.study-link { opacity: 1; }
 .graph-node.study-secondary { opacity: 0.7; }
 
 .graph-node.study-primary circle {

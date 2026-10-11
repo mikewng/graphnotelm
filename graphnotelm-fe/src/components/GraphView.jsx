@@ -513,6 +513,7 @@ const GraphView = forwardRef(function GraphView({
       .style('pointer-events', 'stroke')
       .style('cursor', 'pointer')
       .on('mouseover', (event, d) => {
+        link.classed('highlighted', l => l === d)
         const label = relDefs[d.relationshipId]?.name || ''
         if (label) {
           tooltip.text(label)
@@ -525,6 +526,7 @@ const GraphView = forwardRef(function GraphView({
         tooltip.style('left', (event.offsetX + 12) + 'px').style('top', (event.offsetY - 8) + 'px')
       })
       .on('mouseout', () => {
+        link.classed('highlighted', false)
         tooltip.style('opacity', '0')
       })
       .on('contextmenu', (event, d) => {
@@ -590,11 +592,12 @@ const GraphView = forwardRef(function GraphView({
           }
           node.classed('dimmed', n => !connected.has(n.id) && n.id !== selectedNodeId)
             .classed('focused', n => n.id === d.id)
-          link.classed('dimmed', l => {
+          const reached = l => {
             const src = typeof l.source === 'object' ? l.source.id : l.source
             const tgt = typeof l.target === 'object' ? l.target.id : l.target
-            return !connected.has(src) || !connected.has(tgt)
-          })
+            return connected.has(src) && connected.has(tgt)
+          }
+          link.classed('dimmed', l => !reached(l)).classed('highlighted', reached)
         }, 100)
       })
       .on('mousemove', event => {
@@ -606,7 +609,7 @@ const GraphView = forwardRef(function GraphView({
         clearTimeout(d._hoverTimer)
         if (compactMode) tooltip.style('opacity', '0')
         node.classed('dimmed', false).classed('focused', false)
-        link.classed('dimmed', false)
+        link.classed('dimmed', false).classed('highlighted', false)
       })
 
     node.append('circle')
