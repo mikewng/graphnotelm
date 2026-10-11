@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>graphnotes — home</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;450;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ── Tokens (mirrors Graph Notes.html) ────────────────────────────── */
+    :root {
+      --bg:        oklch(0.18 0.005 60);
+      --bg-2:      oklch(0.21 0.006 60);
+      --bg-3:      oklch(0.24 0.006 60);
+      --hover:     oklch(0.27 0.008 60);
+      --border:    oklch(0.30 0.008 60);
+      --border-strong: oklch(0.38 0.010 60);
+      --text:      oklch(0.92 0.008 75);
+      --text-2:    oklch(0.70 0.010 70);
+      --text-3:    oklch(0.50 0.010 65);
+      --accent:    oklch(0.78 0.14 70);
+      --accent-2:  oklch(0.78 0.14 70 / 0.12);
+      --green:     oklch(0.78 0.13 145);
+      --blue:      oklch(0.78 0.11 240);
+      --red:       oklch(0.72 0.16 25);
+      --radius: 4px;
+      --radius-lg: 6px;
+      --font-ui: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --font-body: 'Inter', system-ui, sans-serif;
+      --header-h: 44px;
+      --t-fast: 120ms cubic-bezier(.4,0,.2,1);
+      --t-med:  220ms cubic-bezier(.4,0,.2,1);
+    }
+    html[data-theme="light"] {
+      --bg:        oklch(0.985 0.004 75);
+      --bg-2:      oklch(0.965 0.005 75);
+      --bg-3:      oklch(0.945 0.006 75);
+      --hover:     oklch(0.92 0.008 75);
+      --border:    oklch(0.89 0.008 75);
+      --border-strong: oklch(0.80 0.010 75);
+      --text:      oklch(0.22 0.008 70);
+      --text-2:    oklch(0.45 0.010 70);
+      --text-3:    oklch(0.62 0.010 70);
+      --accent:    oklch(0.55 0.16 55);
+      --accent-2:  oklch(0.55 0.16 55 / 0.12);
+      --green:     oklch(0.55 0.14 145);
+      --blue:      oklch(0.55 0.13 240);
+      --red:       oklch(0.55 0.18 25);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: var(--font-ui);
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      transition: background var(--t-med), color var(--t-med);
+    }
+    body::before {
+      content: "";
+      position: fixed; inset: 0;
+      background-image: radial-gradient(var(--border) 0.5px, transparent 0.5px);
+      background-size: 22px 22px;
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+    }
+    html[data-theme="light"] body::before {
+      opacity: 0.5;
+      background-image: radial-gradient(oklch(0.85 0.008 75) 0.5px, transparent 0.5px);
+    }
+
+    button, input { font-family: inherit; font-size: inherit; color: inherit; }
+    button { cursor: pointer; background: none; border: none; }
+
+    /* ── Header ─────────────────────────────────────────────────────── */
+    header {
+      height: var(--header-h);
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 14px; gap: 14px;
+      position: sticky; top: 0; z-index: 5;
+      backdrop-filter: blur(8px);
+    }
+    .brand {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 600; font-size: 12px;
+      letter-spacing: 0.02em;
+      color: inherit; text-decoration: none;
+    }
+    .brand-mark { width: 14px; height: 14px; }
+    .brand-mark svg { width: 100%; height: 100%; display: block; }
+    .brand-mark .dot { fill: var(--accent); }
+    .brand-mark .ln { stroke: var(--text-2); stroke-width: 1; }
+
+    .header-spacer { flex: 1; }
+
+    .icon-btn {
+      width: 28px; height: 28px;
+      display: grid; place-items: center;
+      border-radius: var(--radius);
+      color: var(--text-2);
+      transition: background var(--t-fast), color var(--t-fast);
+    }
+    .icon-btn:hover { background: var(--hover); color: var(--text); }
+    .icon-btn svg { width: 15px; height: 15px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px;
+      font-size: 11.5px;
+      border-radius: var(--radius);
+      color: var(--text);
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast);
+      text-decoration: none;
+    }
+    .btn:hover { background: var(--hover); border-color: var(--border-strong); }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn svg { width: 12px; height: 12px; }
+
+    /* ── Page ────────────────────────────────────────────────────────── */
+    .page {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 56px 32px 80px;
+      position: relative; z-index: 1;
+    }
+
+    .hero {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 8px;
+    }
+    .hero h1 {
+      font-family: var(--font-ui);
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+    }
+    .hero .sub {
+      color: var(--text-3);
+      font-size: 12px;
+      margin-top: 8px;
+      letter-spacing: 0.02em;
+      max-width: 540px;
+      line-height: 1.6;
+    }
+    .hero-actions {
+      display: flex; align-items: center; gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .stats {
+      display: flex; gap: 0;
+      margin: 32px 0 24px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .stat {
+      flex: 1;
+      padding: 14px 16px;
+      border-right: 1px solid var(--border);
+    }
+    .stat:last-child { border-right: none; }
+    .stat .num {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+    .stat .lbl {
+      font-size: 9.5px;
+      color: var(--text-3);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+    .toolbar-left {
+      display: flex; align-items: center; gap: 14px;
+      flex: 1; min-width: 0;
+    }
+    .label {
+      font-size: 9.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      font-weight: 500;
+    }
+    .search-wrap {
+      position: relative;
+      width: 240px;
+    }
+    .search-wrap svg {
+      position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+      width: 12px; height: 12px; color: var(--text-3);
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6px 10px 6px 26px;
+      font-size: 12px;
+      color: var(--text);
+      transition: border-color var(--t-fast);
+    }
+    .search-input:focus { outline: none; border-color: var(--accent); }
+    .search-input::placeholder { color: var(--text-3); }
+
+    .view-toggle {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .view-toggle button {
+      padding: 5px 8px;
+      color: var(--text-3);
+      transition: background var(--t-fast), color var(--t-fast);
+      display: grid; place-items: center;
+    }
+    .view-toggle button.active { background: var(--bg-3); color: var(--text); }
+    .view-toggle button:hover { color: var(--text); }
+    .view-toggle button + button { border-left: 1px solid var(--border); }
+    .view-toggle svg { width: 14px; height: 14px; }
+
+    /* ── Grid view ──────────────────────────────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 0;
+      cursor: pointer;
+      transition: border-color var(--t-fast), transform var(--t-fast), background var(--t-fast);
+      display: flex; flex-direction: column;
+      text-decoration: none;
+      color: inherit;
+      overflow: hidden;
+      position: relative;
+    }
+    .card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+      background: var(--bg-3);
+    }
+    .card:hover .preview { background: var(--bg-2); }
+    .card .preview {
+      height: 130px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      transition: background var(--t-fast);
+      overflow: hidden;
+    }
+    .card .preview svg {
+      width: 100%; height: 100%; display: block;
+    }
+    .card .preview .empty-mark {
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      color: var(--text-3);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+    }
+    .card .body {
+      padding: 14px 16px 16px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .card-row1 {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px;
+    }
+    .card-name {
+      font-size: 14px; font-weight: 600;
+      letter-spacing: -0.005em;
+      color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .card-menu {
+      width: 22px; height: 22px;
+      display: grid; place-items: center;
+      border-radius: var(--radius);
+      color: var(--text-3);
+      opacity: 0;
+      transition: opacity var(--t-fast), background var(--t-fast), color var(--t-fast);
+    }
+    .card:hover .card-menu { opacity: 1; }
+    .card-menu:hover { background: var(--hover); color: var(--text); }
+    .card-menu svg { width: 14px; height: 14px; }
+
+    .card-meta {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 10.5px;
+      color: var(--text-3);
+      letter-spacing: 0.02em;
+    }
+    .card-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-3); opacity: 0.6; }
+
+    .card-tags {
+      display: flex; flex-wrap: wrap; gap: 4px;
+      min-height: 18px;
+    }
+    .tag-pill {
+      display: inline-flex; align-items: center;
+      padding: 1px 6px;
+      font-size: 9.5px;
+      border-radius: 9px;
+      border: 1px solid;
+      letter-spacing: 0.01em;
+    }
+
+    /* New collection card */
+    .card.new-card {
+      border-style: dashed;
+      align-items: stretch; justify-content: center;
+      min-height: 220px;
+      cursor: pointer;
+    }
+    .card.new-card:hover {
+      border-color: var(--accent);
+      background: var(--accent-2);
+    }
+    .card.new-card .new-inner {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px;
+      color: var(--text-3);
+      transition: color var(--t-fast);
+    }
+    .card.new-card:hover .new-inner { color: var(--accent); }
+    .card.new-card svg { width: 22px; height: 22px; }
+    .card.new-card .new-label {
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── List view ──────────────────────────────────────────────────── */
+    .list {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--bg-2);
+    }
+    .list-header {
+      display: grid;
+      grid-template-columns: 1fr 80px 80px 160px 30px;
+      gap: 16px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-2);
+    }
+    .list-header span {
+      font-size: 9.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      font-weight: 500;
+    }
+    .list-row {
+      display: grid;
+      grid-template-columns: 1fr 80px 80px 160px 30px;
+      gap: 16px;
+      padding: 12px 16px;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background var(--t-fast);
+      text-decoration: none;
+      color: inherit;
+    }
+    .list-row:last-child { border-bottom: none; }
+    .list-row:hover { background: var(--bg-3); }
+    .list-row .lr-name {
+      font-size: 13px; font-weight: 500;
+      color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .list-row .lr-num {
+      font-size: 12px;
+      color: var(--text-2);
+      font-variant-numeric: tabular-nums;
+    }
+    .list-row .lr-time {
+      font-size: 11px;
+      color: var(--text-3);
+      letter-spacing: 0.02em;
+    }
+    .list-row .lr-menu {
+      display: grid; place-items: center;
+      color: var(--text-3);
+      opacity: 0;
+      transition: opacity var(--t-fast);
+    }
+    .list-row:hover .lr-menu { opacity: 1; }
+    .list-row .lr-menu svg { width: 14px; height: 14px; }
+
+    /* ── Empty state ────────────────────────────────────────────────── */
+    .empty {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-3);
+    }
+    .empty .glyph {
+      width: 56px; height: 56px;
+      margin: 0 auto 20px;
+      opacity: 0.4;
+    }
+    .empty h2 {
+      font-size: 14px; font-weight: 500;
+      color: var(--text-2);
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+    }
+    .empty p {
+      font-size: 11.5px;
+      max-width: 340px;
+      margin: 0 auto 20px;
+      line-height: 1.6;
+    }
+
+    /* ── Modal ──────────────────────────────────────────────────────── */
+    .modal-bg {
+      position: fixed; inset: 0;
+      background: oklch(0 0 0 / 0.5);
+      display: none;
+      align-items: center; justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(2px);
+      animation: fadeIn 180ms ease;
+    }
+    .modal-bg.show { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      background: var(--bg-2);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      width: 360px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .modal h3 {
+      font-size: 13px; font-weight: 600;
+      letter-spacing: 0.02em;
+      margin-bottom: 12px;
+    }
+    .modal input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 14px;
+    }
+    .modal input:focus { outline: none; border-color: var(--accent); }
+    .modal-actions {
+      display: flex; justify-content: flex-end; gap: 6px;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 16px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--bg-3);
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: var(--radius-lg);
+      font-size: 11.5px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+      opacity: 0; pointer-events: none;
+      transition: opacity var(--t-med), transform var(--t-med);
+      z-index: 200;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 640px) {
+      .page { padding: 32px 18px 60px; }
+      .hero { flex-direction: column; align-items: flex-start; }
+      .stats { display: none; }
+      .list-header, .list-row { grid-template-columns: 1fr 60px 100px 30px; }
+      .list-header > :nth-child(3), .list-row > :nth-child(3) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="brand" href="index.html">
+    <div class="brand-mark">
+      <svg viewBox="0 0 14 14">
+        <line class="ln" x1="3" y1="3" x2="11" y2="7"/>
+        <line class="ln" x1="3" y1="3" x2="7" y2="11"/>
+        <line class="ln" x1="11" y1="7" x2="7" y2="11"/>
+        <circle class="dot" cx="3" cy="3" r="2"/>
+        <circle class="dot" cx="11" cy="7" r="1.5"/>
+        <circle class="dot" cx="7" cy="11" r="1.5"/>
+      </svg>
+    </div>
+    <span>graphnotes</span>
+  </a>
+  <div class="header-spacer"></div>
+  <button class="icon-btn" id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+    <svg id="theme-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></svg>
+  </button>
+  <button class="btn primary" onclick="openNewModal()">
+    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg>
+    <span>new collection</span>
+  </button>
+</header>
+
+<div class="page">
+  <div class="hero">
+    <div>
+      <h1>your knowledge graphs</h1>
+      <p class="sub">each collection is its own self-contained graph of notes — pick one to dive in, or start a new one.</p>
+    </div>
+    <div class="hero-actions">
+      <span class="label" id="count-label">0 collections</span>
+    </div>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="stat"><div class="num" id="stat-collections">0</div><div class="lbl">collections</div></div>
+    <div class="stat"><div class="num" id="stat-notes">0</div><div class="lbl">total notes</div></div>
+    <div class="stat"><div class="num" id="stat-links">0</div><div class="lbl">connections</div></div>
+    <div class="stat"><div class="num" id="stat-tags">0</div><div class="lbl">unique tags</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-wrap">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><line x1="10.3" y1="10.3" x2="13.5" y2="13.5"/></svg>
+        <input class="search-input" id="search" placeholder="search collections..." oninput="render()" />
+      </div>
+    </div>
+    <div class="view-toggle">
+      <button id="view-grid" class="active" onclick="setView('grid')" title="Grid view">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="2" width="4" height="4"/><rect x="8" y="2" width="4" height="4"/><rect x="2" y="8" width="4" height="4"/><rect x="8" y="8" width="4" height="4"/></svg>
+      </button>
+      <button id="view-list" onclick="setView('list')" title="List view">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><line x1="3" y1="4" x2="11" y2="4"/><line x1="3" y1="7" x2="11" y2="7"/><line x1="3" y1="10" x2="11" y2="10"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="content"></div>
+</div>
+
+<!-- New collection modal -->
+<div class="modal-bg" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3>new collection</h3>
+    <input id="new-name" type="text" placeholder="collection name..." onkeydown="if(event.key==='Enter')createCollection();if(event.key==='Escape')closeModal()" />
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">cancel</button>
+      <button class="btn primary" onclick="createCollection()">create</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── Tweaks (shared with main app) ──────────────────────────────────────
+  const TWEAKS_KEY = 'graph-notes-tweaks';
+  let TWEAKS = { theme: 'dark', accentHue: 70 };
+  try {
+    const t = localStorage.getItem(TWEAKS_KEY);
+    if (t) Object.assign(TWEAKS, JSON.parse(t));
+  } catch {}
+
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    TWEAKS.theme = t;
+    const icon = document.getElementById('theme-icon');
+    if (t === 'light') {
+      icon.innerHTML = '<path d="M13 9.5 A5 5 0 1 1 6.5 3 A4 4 0 0 0 13 9.5 Z"/>';
+    } else {
+      icon.innerHTML = '<circle cx="8" cy="8" r="3"/><line x1="8" y1="1.5" x2="8" y2="3"/><line x1="8" y1="13" x2="8" y2="14.5"/><line x1="1.5" y1="8" x2="3" y2="8"/><line x1="13" y1="8" x2="14.5" y2="8"/><line x1="3.3" y1="3.3" x2="4.4" y2="4.4"/><line x1="11.6" y1="11.6" x2="12.7" y2="12.7"/><line x1="3.3" y1="12.7" x2="4.4" y2="11.6"/><line x1="11.6" y1="4.4" x2="12.7" y2="3.3"/>';
+    }
+  }
+  function applyAccent(hue) {
+    document.documentElement.style.setProperty('--accent', `oklch(0.78 0.14 ${hue})`);
+    document.documentElement.style.setProperty('--accent-2', `oklch(0.78 0.14 ${hue} / 0.12)`);
+    if (TWEAKS.theme === 'light') {
+      document.documentElement.style.setProperty('--accent', `oklch(0.55 0.16 ${hue})`);
+      document.documentElement.style.setProperty('--accent-2', `oklch(0.55 0.16 ${hue} / 0.12)`);
+    }
+  }
+  function toggleTheme() {
+    const next = TWEAKS.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    applyAccent(TWEAKS.accentHue || 70);
+    localStorage.setItem(TWEAKS_KEY, JSON.stringify(TWEAKS));
+    render();
+  }
+  applyTheme(TWEAKS.theme);
+  applyAccent(TWEAKS.accentHue || 70);
+
+  // ── Index / collection management ──────────────────────────────────────
+  const INDEX_KEY = 'graph-notes:index';
+  function readIndex() {
+    try { return JSON.parse(localStorage.getItem(INDEX_KEY) || '[]'); } catch { return []; }
+  }
+  function writeIndex(idx) { localStorage.setItem(INDEX_KEY, JSON.stringify(idx)); }
+  function notesKey(id) { return `graph-notes:${id}`; }
+  function readNotes(id) {
+    try { return JSON.parse(localStorage.getItem(notesKey(id)) || '{}'); } catch { return {}; }
+  }
+  function writeNotes(id, n) { localStorage.setItem(notesKey(id), JSON.stringify(n)); }
+
+  // Bootstrap: ensure default collection exists with sample data
+  function bootstrap() {
+    let idx = readIndex();
+
+    // migrate old single-collection key if present
+    const legacy = localStorage.getItem('graph-notes');
+    if (legacy && !localStorage.getItem(notesKey('default'))) {
+      localStorage.setItem(notesKey('default'), legacy);
+    }
+
+    if (!idx.find(e => e.id === 'default')) {
+      const defaultNotes = readNotes('default');
+      let notes = defaultNotes;
+      if (Object.keys(defaultNotes).length === 0) {
+        notes = sampleNotes();
+        writeNotes('default', notes);
+      }
+      idx.unshift({
+        id: 'default',
+        name: 'my notes',
+        created: Date.now(),
+        updated: Date.now(),
+      });
+      writeIndex(idx);
+    }
+
+    // refresh stats for every entry
+    idx = readIndex();
+    idx.forEach(entry => {
+      const n = readNotes(entry.id);
+      entry.count = Object.keys(n).length;
+      entry.linkCount = Object.values(n).reduce((a, x) => a + (x.subtopics || []).length, 0);
+      entry.tags = [...new Set(Object.values(n).flatMap(x => x.tags || []))].slice(0, 8);
+    });
+    writeIndex(idx);
+  }
+
+  function sampleNotes() {
+    return {
+      "calculus": { note: "", subtopics: ["algebra", "limits"], tags: ["math", "foundational"] },
+      "linear algebra": { note: "", subtopics: ["algebra"], tags: ["math"] },
+      "algebra": { note: "", subtopics: ["arithmetic"], tags: ["math", "foundational"] },
+      "arithmetic": { note: "", subtopics: [], tags: ["math", "foundational"] },
+      "limits": { note: "", subtopics: ["algebra"], tags: ["math"] },
+      "neural networks": { note: "", subtopics: ["linear algebra", "calculus", "probability"], tags: ["ml"] },
+      "backpropagation": { note: "", subtopics: ["neural networks", "calculus"], tags: ["ml"] },
+      "transformers": { note: "", subtopics: ["neural networks", "attention"], tags: ["ml"] },
+      "attention": { note: "", subtopics: ["linear algebra"], tags: ["ml"] },
+      "probability": { note: "", subtopics: ["arithmetic"], tags: ["math"] },
+    };
+  }
+
+  function tagColor(tag) {
+    let h = 0;
+    for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+    const hue = h % 360;
+    return TWEAKS.theme === 'light'
+      ? `oklch(0.50 0.13 ${hue})`
+      : `oklch(0.78 0.11 ${hue})`;
+  }
+  function tagBg(tag) {
+    let h = 0;
+    for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+    const hue = h % 360;
+    return TWEAKS.theme === 'light'
+      ? `oklch(0.50 0.13 ${hue} / 0.10)`
+      : `oklch(0.78 0.11 ${hue} / 0.12)`;
+  }
+
+  function timeAgo(ts) {
+    if (!ts) return '—';
+    const sec = Math.floor((Date.now() - ts) / 1000);
+    if (sec < 60) return 'just now';
+    if (sec < 3600) return `${Math.floor(sec/60)}m ago`;
+    if (sec < 86400) return `${Math.floor(sec/3600)}h ago`;
+    if (sec < 86400*30) return `${Math.floor(sec/86400)}d ago`;
+    return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  function slug(s) {
+    return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled';
+  }
+
+  // ── Preview SVG: tiny graph layout snapshot ────────────────────────────
+  function buildPreview(notes) {
+    const ids = Object.keys(notes);
+    if (ids.length === 0) {
+      return `<div class="empty-mark">empty</div>`;
+    }
+
+    // simple deterministic layout — golden-angle spiral for stable seeds
+    const W = 280, H = 130, cx = W/2, cy = H/2;
+    const nodes = ids.map((id, i) => {
+      const angle = i * 2.3999632;
+      const r = 6 * Math.sqrt(i + 1);
+      return { id, x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+    });
+    const idx = Object.fromEntries(nodes.map(n => [n.id, n]));
+
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    const text2 = getComputedStyle(document.documentElement).getPropertyValue('--text-2').trim();
+
+    // edges
+    let edgesHtml = '';
+    ids.forEach(s => {
+      (notes[s].subtopics || []).forEach(t => {
+        if (idx[t]) {
+          edgesHtml += `<line x1="${idx[s].x}" y1="${idx[s].y}" x2="${idx[t].x}" y2="${idx[t].y}" stroke="${text2}" stroke-width="0.6" stroke-opacity="0.55"/>`;
+        }
+      });
+    });
+
+    let nodesHtml = '';
+    nodes.forEach(n => {
+      const primary = (notes[n.id].tags || [])[0];
+      const color = primary ? tagColor(primary) : accent;
+      nodesHtml += `<circle cx="${n.x}" cy="${n.y}" r="2.2" fill="var(--bg-3)" stroke="${color}" stroke-width="1"/>`;
+    });
+
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${edgesHtml}${nodesHtml}</svg>`;
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────
+  let view = localStorage.getItem('graph-notes:home-view') || 'grid';
+  function setView(v) {
+    view = v;
+    localStorage.setItem('graph-notes:home-view', v);
+    document.getElementById('view-grid').classList.toggle('active', v === 'grid');
+    document.getElementById('view-list').classList.toggle('active', v === 'list');
+    render();
+  }
+
+  function render() {
+    const idx = readIndex();
+    document.getElementById('view-grid').classList.toggle('active', view === 'grid');
+    document.getElementById('view-list').classList.toggle('active', view === 'list');
+
+    // Stats
+    const totalNotes = idx.reduce((a, e) => a + (e.count || 0), 0);
+    const totalLinks = idx.reduce((a, e) => a + (e.linkCount || 0), 0);
+    const totalTags = new Set(idx.flatMap(e => e.tags || [])).size;
+    document.getElementById('stat-collections').textContent = idx.length;
+    document.getElementById('stat-notes').textContent = totalNotes;
+    document.getElementById('stat-links').textContent = totalLinks;
+    document.getElementById('stat-tags').textContent = totalTags;
+    document.getElementById('count-label').textContent = `${idx.length} collection${idx.length === 1 ? '' : 's'}`;
+
+    const query = document.getElementById('search').value.trim().toLowerCase();
+    const filtered = idx
+      .filter(e => !query || e.name.toLowerCase().includes(query) || (e.tags || []).some(t => t.toLowerCase().includes(query)))
+      .sort((a, b) => (b.updated || 0) - (a.updated || 0));
+
+    const content = document.getElementById('content');
+
+    if (idx.length === 0) {
+      content.innerHTML = `
+        <div class="empty">
+          <svg class="glyph" viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="14" cy="14" r="3"/><circle cx="42" cy="14" r="3"/><circle cx="14" cy="42" r="3"/><circle cx="42" cy="42" r="3"/><circle cx="28" cy="28" r="3"/>
+            <line x1="16.5" y1="15.5" x2="25.5" y2="26.5"/><line x1="39.5" y1="15.5" x2="30.5" y2="26.5"/>
+            <line x1="16.5" y1="40.5" x2="25.5" y2="29.5"/><line x1="39.5" y1="40.5" x2="30.5" y2="29.5"/>
+          </svg>
+          <h2>no collections yet</h2>
+          <p>start your first knowledge graph — each collection is its own connected web of notes.</p>
+          <button class="btn primary" onclick="openNewModal()">+ new collection</button>
+        </div>`;
+      return;
+    }
+
+    if (view === 'grid') {
+      let html = '<div class="grid">';
+      filtered.forEach(entry => {
+        const notes = readNotes(entry.id);
+        const tagsHtml = (entry.tags || []).slice(0, 5).map(t =>
+          `<span class="tag-pill" style="color:${tagColor(t)};border-color:${tagColor(t)};background:${tagBg(t)}">${escapeHtml(t)}</span>`
+        ).join('');
+        html += `
+          <a class="card" href="Graph%20Notes.html?id=${encodeURIComponent(entry.id)}">
+            <div class="preview">${buildPreview(notes)}</div>
+            <div class="body">
+              <div class="card-row1">
+                <div class="card-name">${escapeHtml(entry.name)}</div>
+                <button class="card-menu" onclick="event.preventDefault();event.stopPropagation();openMenu('${entry.id}', event)" title="More">
+                  <svg viewBox="0 0 14 14" fill="currentColor"><circle cx="3" cy="7" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="11" cy="7" r="1.2"/></svg>
+                </button>
+              </div>
+              <div class="card-meta">
+                <span>${entry.count || 0} note${entry.count === 1 ? '' : 's'}</span>
+                <span class="dot"></span>
+                <span>${entry.linkCount || 0} link${entry.linkCount === 1 ? '' : 's'}</span>
+                <span class="dot"></span>
+                <span>${timeAgo(entry.updated)}</span>
+              </div>
+              <div class="card-tags">${tagsHtml}</div>
+            </div>
+          </a>
+        `;
+      });
+      // New card
+      html += `
+        <button class="card new-card" onclick="openNewModal()">
+          <div class="new-inner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>
+            <div class="new-label">new collection</div>
+          </div>
+        </button>
+      `;
+      html += '</div>';
+      content.innerHTML = html;
+    } else {
+      let html = `
+        <div class="list">
+          <div class="list-header">
+            <span>name</span>
+            <span style="text-align:right">notes</span>
+            <span style="text-align:right">links</span>
+            <span>last updated</span>
+            <span></span>
+          </div>
+      `;
+      filtered.forEach(entry => {
+        html += `
+          <a class="list-row" href="Graph%20Notes.html?id=${encodeURIComponent(entry.id)}">
+            <div class="lr-name">${escapeHtml(entry.name)}</div>
+            <div class="lr-num" style="text-align:right">${entry.count || 0}</div>
+            <div class="lr-num" style="text-align:right">${entry.linkCount || 0}</div>
+            <div class="lr-time">${timeAgo(entry.updated)}</div>
+            <div class="lr-menu">
+              <button class="card-menu" style="opacity:1" onclick="event.preventDefault();event.stopPropagation();openMenu('${entry.id}', event)">
+                <svg viewBox="0 0 14 14" fill="currentColor"><circle cx="3" cy="7" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="11" cy="7" r="1.2"/></svg>
+              </button>
+            </div>
+          </a>
+        `;
+      });
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    if (filtered.length === 0 && idx.length > 0) {
+      content.innerHTML += `<div class="empty" style="padding:40px"><p>no collections match "${escapeHtml(query)}"</p></div>`;
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ── Modal: new collection ──────────────────────────────────────────────
+  function openNewModal() {
+    document.getElementById('modal').classList.add('show');
+    setTimeout(() => document.getElementById('new-name').focus(), 50);
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('show');
+    document.getElementById('new-name').value = '';
+  }
+  function createCollection() {
+    const input = document.getElementById('new-name');
+    const name = input.value.trim();
+    if (!name) return;
+    let id = slug(name);
+    const idx = readIndex();
+    let baseId = id, n = 2;
+    while (idx.find(e => e.id === id)) { id = `${baseId}-${n++}`; }
+    idx.unshift({
+      id, name,
+      created: Date.now(),
+      updated: Date.now(),
+      count: 0, linkCount: 0, tags: []
+    });
+    writeIndex(idx);
+    writeNotes(id, {});
+    closeModal();
+    location.href = `Graph Notes.html?id=${encodeURIComponent(id)}`;
+  }
+
+  // ── Context menu ───────────────────────────────────────────────────────
+  let menuEl = null;
+  function openMenu(id, ev) {
+    closeMenu();
+    const entry = readIndex().find(e => e.id === id);
+    if (!entry) return;
+    const m = document.createElement('div');
+    m.style.cssText = `
+      position: fixed;
+      background: var(--bg-2);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+      padding: 4px;
+      z-index: 150;
+      min-width: 160px;
+      font-size: 12px;
+    `;
+    const items = [
+      { label: 'rename', action: () => renameCollection(id) },
+      { label: 'duplicate', action: () => duplicateCollection(id) },
+      { label: 'export json', action: () => exportCollection(id) },
+      { label: 'delete', danger: true, action: () => deleteCollection(id) },
+    ];
+    items.forEach(it => {
+      const b = document.createElement('button');
+      b.textContent = it.label;
+      b.style.cssText = `
+        display: block; width: 100%; text-align: left;
+        padding: 6px 10px; border-radius: var(--radius);
+        color: ${it.danger ? 'var(--red)' : 'var(--text)'};
+        font-size: 11.5px;
+        transition: background var(--t-fast);
+      `;
+      b.onmouseenter = () => b.style.background = 'var(--hover)';
+      b.onmouseleave = () => b.style.background = 'transparent';
+      b.onclick = (e) => { e.stopPropagation(); closeMenu(); it.action(); };
+      m.appendChild(b);
+    });
+    document.body.appendChild(m);
+    const rect = ev.target.getBoundingClientRect();
+    m.style.top = `${rect.bottom + 4}px`;
+    m.style.left = `${rect.right - 160}px`;
+    menuEl = m;
+    setTimeout(() => document.addEventListener('click', closeMenu, { once: true }), 0);
+  }
+  function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+
+  function renameCollection(id) {
+    const idx = readIndex();
+    const entry = idx.find(e => e.id === id);
+    if (!entry) return;
+    const newName = prompt('rename collection:', entry.name);
+    if (!newName || !newName.trim()) return;
+    entry.name = newName.trim();
+    entry.updated = Date.now();
+    writeIndex(idx);
+    render();
+    toast('renamed');
+  }
+
+  function duplicateCollection(id) {
+    const idx = readIndex();
+    const entry = idx.find(e => e.id === id);
+    if (!entry) return;
+    const notes = readNotes(id);
+    let newId = `${id}-copy`, n = 2;
+    while (idx.find(e => e.id === newId)) { newId = `${id}-copy-${n++}`; }
+    const newEntry = { ...entry, id: newId, name: `${entry.name} (copy)`, created: Date.now(), updated: Date.now() };
+    idx.unshift(newEntry);
+    writeIndex(idx);
+    writeNotes(newId, JSON.parse(JSON.stringify(notes)));
+    render();
+    toast('duplicated');
+  }
+
+  function deleteCollection(id) {
+    const idx = readIndex();
+    const entry = idx.find(e => e.id === id);
+    if (!entry) return;
+    if (!confirm(`delete '${entry.name}'? this cannot be undone.`)) return;
+    writeIndex(idx.filter(e => e.id !== id));
+    localStorage.removeItem(notesKey(id));
+    render();
+    toast('deleted');
+  }
+
+  function exportCollection(id) {
+    const entry = readIndex().find(e => e.id === id);
+    if (!entry) return;
+    const notes = readNotes(id);
+    const blob = new Blob([JSON.stringify(notes, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${slug(entry.name)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('exported');
+  }
+
+  // Toast
+  let toastTimer;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────
+  bootstrap();
+  setView(view);
+  render();
+
+  // Re-render when returning to this tab (collection might have been updated)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      bootstrap();
+      render();
+    }
+  });
+</script>
+</body>
+</html>

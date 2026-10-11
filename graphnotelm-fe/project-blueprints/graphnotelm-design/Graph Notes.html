@@ -1,0 +1,2449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Graph Notes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;450;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+
+  <!-- React + Babel for the Tweaks panel only -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <style>
+    /* ── Tokens ─────────────────────────────────────────────────────────── */
+    :root {
+      /* warm neutral dark palette (default) */
+      --bg:        oklch(0.18 0.005 60);
+      --bg-2:      oklch(0.21 0.006 60);
+      --bg-3:      oklch(0.24 0.006 60);
+      --hover:     oklch(0.27 0.008 60);
+      --border:    oklch(0.30 0.008 60);
+      --border-strong: oklch(0.38 0.010 60);
+      --text:      oklch(0.92 0.008 75);
+      --text-2:    oklch(0.70 0.010 70);
+      --text-3:    oklch(0.50 0.010 65);
+      --accent:    oklch(0.78 0.14 70);    /* amber */
+      --accent-2:  oklch(0.78 0.14 70 / 0.12);
+      --green:     oklch(0.78 0.13 145);
+      --blue:      oklch(0.78 0.11 240);
+      --red:       oklch(0.72 0.16 25);
+
+      --radius: 4px;
+      --radius-lg: 6px;
+      --font-ui: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      --font-body: 'Inter', system-ui, sans-serif;
+
+      --sidebar-w: 260px;
+      --chat-w: 360px;
+      --header-h: 44px;
+
+      --t-fast: 120ms cubic-bezier(.4,0,.2,1);
+      --t-med:  220ms cubic-bezier(.4,0,.2,1);
+      --t-slow: 380ms cubic-bezier(.4,0,.2,1);
+    }
+    html[data-theme="light"] {
+      --bg:        oklch(0.985 0.004 75);
+      --bg-2:      oklch(0.965 0.005 75);
+      --bg-3:      oklch(0.945 0.006 75);
+      --hover:     oklch(0.92 0.008 75);
+      --border:    oklch(0.89 0.008 75);
+      --border-strong: oklch(0.80 0.010 75);
+      --text:      oklch(0.22 0.008 70);
+      --text-2:    oklch(0.45 0.010 70);
+      --text-3:    oklch(0.62 0.010 70);
+      --accent:    oklch(0.55 0.16 55);
+      --accent-2:  oklch(0.55 0.16 55 / 0.12);
+      --green:     oklch(0.55 0.14 145);
+      --blue:      oklch(0.55 0.13 240);
+      --red:       oklch(0.55 0.18 25);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font-ui);
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background var(--t-med), color var(--t-med);
+    }
+
+    /* subtle dotted bg in dark mode for spatial feel */
+    body::before {
+      content: "";
+      position: fixed; inset: 0;
+      background-image: radial-gradient(var(--border) 0.5px, transparent 0.5px);
+      background-size: 22px 22px;
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+    }
+    html[data-theme="light"] body::before { opacity: 0.5; }
+
+    button, input, textarea, select {
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+    }
+    button { cursor: pointer; background: none; border: none; }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    header {
+      height: var(--header-h);
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 14px;
+      gap: 14px;
+      position: relative; z-index: 5;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 600; font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+    .brand-mark {
+      width: 14px; height: 14px;
+      position: relative;
+    }
+    .brand-mark svg { width: 100%; height: 100%; display: block; }
+    .brand-mark .dot { fill: var(--accent); }
+    .brand-mark .ln { stroke: var(--text-2); stroke-width: 1; }
+
+    .breadcrumb {
+      display: flex; align-items: center; gap: 6px;
+      color: var(--text-3); font-size: 11px;
+      flex: 1; min-width: 0; overflow: hidden;
+    }
+    .breadcrumb .crumb {
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: var(--radius);
+      transition: background var(--t-fast), color var(--t-fast);
+      white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; max-width: 220px;
+    }
+    .breadcrumb .crumb:hover { background: var(--hover); color: var(--text); }
+    .breadcrumb .crumb.current { color: var(--text); cursor: default; }
+    .breadcrumb .crumb.current:hover { background: transparent; }
+    .breadcrumb .sep { color: var(--text-3); opacity: 0.5; user-select: none; }
+
+    .nav-btns {
+      display: flex; align-items: center; gap: 2px;
+    }
+    .nav-btn {
+      width: 24px; height: 24px;
+      display: grid; place-items: center;
+      border-radius: var(--radius);
+      color: var(--text-2);
+      transition: background var(--t-fast), color var(--t-fast), opacity var(--t-fast);
+    }
+    .nav-btn:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+    .nav-btn:disabled { opacity: 0.3; cursor: default; }
+    .nav-btn svg { width: 14px; height: 14px; }
+
+    .header-right {
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .save-status {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10.5px; color: var(--text-3);
+      letter-spacing: 0.04em; text-transform: uppercase;
+      padding: 0 8px;
+      transition: color var(--t-med);
+    }
+    .save-status .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--text-3);
+      transition: background var(--t-med), box-shadow var(--t-med);
+    }
+    .save-status.saving .dot { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+    .save-status.saved .dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    .icon-btn {
+      width: 28px; height: 28px;
+      display: grid; place-items: center;
+      border-radius: var(--radius);
+      color: var(--text-2);
+      transition: background var(--t-fast), color var(--t-fast);
+    }
+    .icon-btn:hover { background: var(--hover); color: var(--text); }
+    .icon-btn svg { width: 15px; height: 15px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px;
+      font-size: 11.5px;
+      border-radius: var(--radius);
+      color: var(--text);
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast);
+    }
+    .btn:hover { background: var(--hover); border-color: var(--border-strong); }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn svg { width: 12px; height: 12px; }
+
+    /* ── Chat panel ─────────────────────────────────────────────────────── */
+    .chat-panel {
+      position: fixed; top: var(--header-h); right: 0; bottom: 0;
+      width: var(--chat-w); max-width: 92vw;
+      background: var(--bg-2);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform var(--t-med);
+      z-index: 40;
+      box-shadow: -16px 0 40px -20px rgba(0,0,0,0.5);
+    }
+    .chat-panel.open { transform: translateX(0); }
+    .chat-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .chat-head .title {
+      font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .chat-head .title svg { width: 13px; height: 13px; color: var(--accent); }
+    .chat-head .ctx {
+      font-size: 10px; color: var(--text-3); letter-spacing: 0.04em;
+      flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .chat-head .ctx b { color: var(--accent); font-weight: 500; font-family: var(--font-ui); }
+    .chat-head .icon-btn { width: 24px; height: 24px; }
+    .chat-head .icon-btn svg { width: 13px; height: 13px; }
+    .chat-body {
+      flex: 1; overflow-y: auto;
+      padding: 16px 14px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .chat-body::-webkit-scrollbar { width: 6px; }
+    .chat-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .chat-msg { display: flex; gap: 8px; align-items: flex-start; animation: chatIn 220ms ease both; }
+    @keyframes chatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .chat-avatar {
+      width: 22px; height: 22px; border-radius: 5px;
+      background: var(--bg-3); border: 1px solid var(--border);
+      display: grid; place-items: center; flex-shrink: 0;
+      font-size: 10px; font-weight: 600; color: var(--text-2);
+      font-family: var(--font-ui);
+    }
+    .chat-msg.ai .chat-avatar { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+    .chat-bubble {
+      padding: 8px 11px; border-radius: 8px;
+      font-size: 12.5px; line-height: 1.55;
+      font-family: var(--font-body); color: var(--text);
+      max-width: 100%; word-wrap: break-word; white-space: pre-wrap;
+    }
+    .chat-msg.user .chat-bubble { background: var(--bg-3); border: 1px solid var(--border); }
+    .chat-msg.ai .chat-bubble { background: var(--accent-2); border: 1px solid color-mix(in oklch, var(--accent) 30%, transparent); }
+    .chat-ref {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-family: var(--font-ui);
+      padding: 1px 6px; border-radius: 8px;
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--accent); font-size: 10.5px;
+      cursor: pointer; text-decoration: none; margin: 0 1px;
+    }
+    .chat-ref::before { content: "#"; opacity: 0.6; }
+    .chat-ref:hover { background: var(--accent-2); }
+    .chat-typing { display: inline-flex; align-items: center; gap: 3px; }
+    .chat-typing span {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: currentColor; opacity: 0.5;
+      animation: typingDot 1.1s ease infinite;
+    }
+    .chat-typing span:nth-child(2) { animation-delay: 0.15s; }
+    .chat-typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes typingDot { 0%,60%,100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-3px); opacity: 1; } }
+    .chat-suggestions { display: flex; flex-direction: column; gap: 6px; padding: 0 4px; }
+    .chat-suggestions .label {
+      font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-3); margin-bottom: 4px;
+    }
+    .chat-sug {
+      text-align: left;
+      padding: 8px 10px; font-size: 11.5px;
+      font-family: var(--font-body); color: var(--text-2);
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+      cursor: pointer; line-height: 1.45;
+    }
+    .chat-sug:hover { background: var(--bg-3); color: var(--text); border-color: var(--border-strong); }
+    .chat-sug::before { content: "→ "; color: var(--accent); }
+    .chat-input-wrap { flex-shrink: 0; padding: 10px 12px 12px; border-top: 1px solid var(--border); }
+    .chat-input-row {
+      display: flex; align-items: flex-end; gap: 6px;
+      padding: 8px 8px 8px 12px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      transition: border-color var(--t-fast);
+    }
+    .chat-input-row:focus-within { border-color: var(--accent); }
+    .chat-input-row textarea {
+      flex: 1; background: transparent; border: none;
+      color: var(--text); font-family: var(--font-body);
+      font-size: 13px; line-height: 1.5;
+      resize: none; outline: none;
+      min-height: 20px; max-height: 120px; padding: 2px 0;
+    }
+    .chat-input-row textarea::placeholder { color: var(--text-3); }
+    .chat-send {
+      width: 26px; height: 26px;
+      display: grid; place-items: center;
+      border-radius: 4px;
+      background: var(--accent); color: var(--bg);
+      flex-shrink: 0;
+    }
+    .chat-send:hover { filter: brightness(1.08); }
+    .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
+    .chat-send svg { width: 12px; height: 12px; }
+    .chat-foot {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 6px; font-size: 9.5px;
+      color: var(--text-3); letter-spacing: 0.06em;
+    }
+    .chat-foot kbd {
+      font-family: var(--font-ui); font-size: 9px;
+      padding: 1px 4px; border-radius: 3px;
+      background: var(--bg); border: 1px solid var(--border);
+    }
+    @media (min-width: 1100px) {
+      body.chat-open .layout { padding-right: var(--chat-w); transition: padding var(--t-med); }
+    }
+    .icon-btn.chat-toggle.active { background: var(--accent-2); color: var(--accent); }
+
+    /* ── Layout ─────────────────────────────────────────────────────────── */
+    .layout {
+      display: flex;
+      height: calc(100vh - var(--header-h));
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Sidebar ───────────────────────────────────────────────────────── */
+    aside {
+      width: var(--sidebar-w);
+      background: var(--bg-2);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar-section {
+      border-bottom: 1px solid var(--border);
+      padding: 10px 12px;
+    }
+    .sidebar-section.tight { padding: 8px 12px; }
+    .label {
+      font-size: 9.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      font-weight: 500;
+    }
+    .sidebar-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .count-pill {
+      font-size: 10px;
+      color: var(--text-3);
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+    }
+
+    .search-wrap {
+      position: relative;
+    }
+    .search-wrap svg {
+      position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+      width: 12px; height: 12px; color: var(--text-3);
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6px 10px 6px 26px;
+      font-size: 12px;
+      color: var(--text);
+      transition: border-color var(--t-fast), background var(--t-fast);
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--bg);
+    }
+    .search-input::placeholder { color: var(--text-3); }
+
+    .tag-bar {
+      display: flex; flex-wrap: wrap; gap: 4px;
+    }
+    .tag-bar:empty { display: none; }
+
+    .tag-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 7px;
+      font-size: 10.5px;
+      border-radius: 10px;
+      border: 1px solid;
+      cursor: pointer;
+      transition: opacity var(--t-fast), transform var(--t-fast);
+      letter-spacing: 0.01em;
+      user-select: none;
+    }
+    .tag-pill:hover { opacity: 0.78; }
+    .tag-pill.muted { opacity: 0.55; }
+    .tag-pill.active {
+      box-shadow: inset 0 0 0 1px currentColor;
+    }
+    .tag-pill .x {
+      opacity: 0.55; font-size: 12px; line-height: 1;
+      cursor: pointer;
+    }
+    .tag-pill .x:hover { opacity: 1; }
+    .tag-pill.all {
+      background: var(--bg-3);
+      border-color: var(--border);
+      color: var(--text-2);
+    }
+    .tag-pill.all.active { color: var(--text); }
+
+    .note-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 6px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .note-list::-webkit-scrollbar { width: 8px; }
+    .note-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .note-list::-webkit-scrollbar-track { background: transparent; }
+
+    .note-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--text-2);
+      transition: background var(--t-fast), color var(--t-fast);
+      position: relative;
+    }
+    .note-item:hover { background: var(--hover); color: var(--text); }
+    .note-item.active {
+      background: var(--bg-3);
+      color: var(--text);
+    }
+    .note-item.active::before {
+      content: "";
+      position: absolute; left: 0; top: 6px; bottom: 6px;
+      width: 2px; background: var(--accent);
+      border-radius: 1px;
+    }
+    .note-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--border-strong);
+    }
+    .note-name {
+      flex: 1;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .note-meta {
+      font-size: 9.5px;
+      color: var(--text-3);
+      flex-shrink: 0;
+    }
+
+    .empty-list {
+      padding: 24px 12px;
+      text-align: center;
+      color: var(--text-3);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    /* ── Editor ────────────────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      position: relative;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    main::-webkit-scrollbar { width: 10px; }
+    main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+
+    .empty-state {
+      height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 16px;
+      color: var(--text-3);
+      text-align: center;
+    }
+    .empty-state .glyph {
+      width: 48px; height: 48px;
+      opacity: 0.4;
+    }
+    .empty-state h2 {
+      font-size: 14px; font-weight: 500;
+      color: var(--text-2);
+      letter-spacing: 0.02em;
+    }
+    .empty-state p {
+      font-size: 11.5px;
+      max-width: 320px;
+      line-height: 1.6;
+    }
+    .empty-state kbd {
+      font-family: var(--font-ui);
+      font-size: 10.5px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      color: var(--text-2);
+    }
+
+    .editor {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 32px 40px 80px;
+      display: flex; flex-direction: column; gap: 24px;
+      animation: fadeIn var(--t-med) ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .topic-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      font-family: var(--font-ui);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      padding: 0;
+      letter-spacing: -0.01em;
+    }
+    .topic-input:focus {
+      outline: none;
+    }
+    .topic-input::placeholder { color: var(--text-3); }
+
+    .topic-row {
+      display: flex; align-items: center; gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .field {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .field-label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 9.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      font-weight: 500;
+    }
+    .field-label .hint {
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 10.5px;
+      color: var(--text-3);
+      opacity: 0.7;
+    }
+
+    /* Rich-text editor — borderless, blends into page */
+    .note-editor {
+      width: 100%;
+      background: transparent;
+      border: none;
+      padding: 4px 2px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--text);
+      min-height: 240px;
+      outline: none;
+      caret-color: var(--accent);
+      letter-spacing: 0.005em;
+    }
+    .note-editor:empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-3);
+      font-style: italic;
+      pointer-events: none;
+    }
+    /* Live-rendered markdown elements inside the editable */
+    .note-editor h1,
+    .note-editor h2,
+    .note-editor h3 {
+      font-family: var(--font-ui);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      margin: 18px 0 6px;
+      line-height: 1.25;
+    }
+    .note-editor h1 { font-size: 22px; }
+    .note-editor h2 { font-size: 18px; }
+    .note-editor h3 { font-size: 15.5px; color: var(--text-2); }
+    .note-editor p { margin: 0 0 10px; min-height: 1.75em; }
+    .note-editor ul,
+    .note-editor ol { margin: 4px 0 12px; padding-left: 22px; }
+    .note-editor li { margin: 2px 0; }
+    .note-editor strong { color: var(--text); font-weight: 600; }
+    .note-editor em { color: var(--text); font-style: italic; }
+    .note-editor code {
+      font-family: var(--font-ui);
+      font-size: 0.88em;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+    .note-editor blockquote {
+      margin: 8px 0 12px;
+      padding: 2px 0 2px 14px;
+      border-left: 2px solid var(--accent);
+      color: var(--text-2);
+      font-style: italic;
+    }
+    .note-editor a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+    .note-editor hr {
+      border: none;
+      border-top: 1px dashed var(--border);
+      margin: 18px 0;
+    }
+    /* Floating selection toolbar */
+    .rt-toolbar {
+      position: fixed;
+      display: none;
+      gap: 2px;
+      padding: 4px;
+      background: var(--bg-3);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 8px 24px -8px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 200;
+      transform: translate(-50%, calc(-100% - 8px));
+      animation: rtFade 140ms ease both;
+    }
+    .rt-toolbar.show { display: flex; }
+    @keyframes rtFade {
+      from { opacity: 0; transform: translate(-50%, calc(-100% - 4px)); }
+      to   { opacity: 1; transform: translate(-50%, calc(-100% - 8px)); }
+    }
+    .rt-toolbar button {
+      width: 26px; height: 26px;
+      display: grid; place-items: center;
+      border-radius: 4px;
+      color: var(--text-2);
+      font-family: var(--font-ui);
+      font-size: 12px;
+      transition: background var(--t-fast), color var(--t-fast);
+    }
+    .rt-toolbar button:hover { background: var(--hover); color: var(--text); }
+    .rt-toolbar button.active { color: var(--accent); background: var(--accent-2); }
+    .rt-toolbar .sep {
+      width: 1px;
+      background: var(--border);
+      margin: 3px 2px;
+    }
+
+    .tags-area {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      align-items: center;
+    }
+    .tag-pill .star {
+      font-size: 9px;
+      opacity: 0.85;
+    }
+    .tag-pill .up {
+      opacity: 0.55; font-size: 11px; line-height: 1;
+      cursor: pointer;
+    }
+    .tag-pill .up:hover { opacity: 1; }
+
+    .tag-input-wrap {
+      display: inline-flex; align-items: center;
+      background: transparent;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 1px 4px 1px 8px;
+      transition: border-color var(--t-fast);
+    }
+    .tag-input-wrap:focus-within { border-color: var(--accent); border-style: solid; }
+    .tag-input-wrap input {
+      background: transparent;
+      border: none;
+      font-size: 10.5px;
+      color: var(--text);
+      padding: 3px 0;
+      width: 80px;
+    }
+    .tag-input-wrap input:focus { outline: none; }
+    .tag-input-wrap input::placeholder { color: var(--text-3); }
+    .tag-input-wrap button {
+      color: var(--text-3);
+      padding: 0 4px;
+      font-size: 14px;
+      transition: color var(--t-fast);
+    }
+    .tag-input-wrap button:hover { color: var(--accent); }
+
+    .relations-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 720px) {
+      .relations-grid { grid-template-columns: 1fr; }
+    }
+
+    .relation-col {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .arrow-glyph {
+      display: inline-block;
+      font-family: var(--font-ui);
+      width: 14px;
+    }
+    .relation-col .field-label .arrow-out { color: var(--green); }
+    .relation-col .field-label .arrow-in { color: var(--blue); }
+
+    .relation-list {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      min-height: 28px;
+    }
+    .relation-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      border-radius: 14px;
+      border: 1px solid;
+      cursor: pointer;
+      transition: background var(--t-fast), transform var(--t-fast);
+      background: transparent;
+    }
+    .relation-tag:hover { transform: translateY(-1px); }
+    .relation-tag.outgoing { color: var(--green); border-color: var(--green); }
+    .relation-tag.outgoing:hover { background: color-mix(in oklch, var(--green) 10%, transparent); }
+    .relation-tag.incoming { color: var(--blue); border-color: var(--blue); cursor: pointer; }
+    .relation-tag.incoming:hover { background: color-mix(in oklch, var(--blue) 10%, transparent); }
+    .relation-tag .x {
+      opacity: 0.55; cursor: pointer; font-size: 13px; line-height: 1;
+    }
+    .relation-tag .x:hover { opacity: 1; }
+    .relation-empty {
+      font-size: 11px; color: var(--text-3); font-style: italic;
+      padding: 4px 0;
+    }
+
+    .link-row {
+      display: flex; gap: 6px;
+      margin-top: 6px;
+    }
+    .link-select {
+      flex: 1;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 5px 8px;
+      font-size: 11.5px;
+      color: var(--text);
+    }
+    .link-select:focus { outline: none; border-color: var(--accent); }
+
+    .delete-row {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--border);
+      display: flex; justify-content: flex-end;
+    }
+    .danger-btn {
+      font-size: 11px;
+      color: var(--text-3);
+      padding: 4px 8px;
+      border-radius: var(--radius);
+      transition: color var(--t-fast), background var(--t-fast);
+    }
+    .danger-btn:hover { color: var(--red); background: color-mix(in oklch, var(--red) 10%, transparent); }
+
+    /* ── Graph view ────────────────────────────────────────────────────── */
+    #graph-view {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: none;
+      flex-direction: column;
+      z-index: 50;
+      animation: graphIn 320ms cubic-bezier(.2, .8, .2, 1);
+    }
+    @keyframes graphIn {
+      from { opacity: 0; transform: scale(0.985); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    #graph-header {
+      height: var(--header-h);
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 14px;
+      gap: 14px;
+    }
+    #graph-header .title-block {
+      display: flex; align-items: baseline; gap: 12px;
+      flex: 1; min-width: 0;
+    }
+    #graph-header .title {
+      font-weight: 600; font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+    #graph-header .hint {
+      font-size: 10.5px;
+      color: var(--text-3);
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+
+    #graph-svg {
+      flex: 1;
+      width: 100%;
+      background:
+        radial-gradient(var(--border) 0.5px, transparent 0.5px) center / 22px 22px;
+      cursor: grab;
+    }
+    #graph-svg:active { cursor: grabbing; }
+
+    .graph-node circle {
+      fill: var(--bg-3);
+      stroke: var(--accent);
+      stroke-width: 1.25px;
+      cursor: pointer;
+      transition: fill var(--t-fast), stroke-width var(--t-fast), r var(--t-fast);
+    }
+    .graph-node:hover circle { fill: var(--hover); }
+    .graph-node.selected circle {
+      fill: var(--accent-2);
+      stroke-width: 2px;
+    }
+    .graph-node.focused circle {
+      stroke-width: 2px;
+      filter: drop-shadow(0 0 8px currentColor);
+    }
+    .graph-node text {
+      fill: var(--text);
+      font-family: var(--font-ui);
+      font-size: 11px;
+      pointer-events: none;
+      dominant-baseline: middle;
+      paint-order: stroke;
+      stroke: var(--bg);
+      stroke-width: 3px;
+      stroke-linejoin: round;
+    }
+    .graph-node.dimmed { opacity: 0.18; }
+    .graph-link {
+      stroke-opacity: 0.55;
+      transition: stroke-opacity var(--t-med), opacity var(--t-med);
+      fill: none;
+    }
+    .graph-link.dimmed { opacity: 0.08; }
+    .level-line {
+      stroke: var(--border);
+      stroke-dasharray: 1 5;
+      stroke-width: 1;
+    }
+    .level-label {
+      font-family: var(--font-ui);
+      font-size: 9.5px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      fill: var(--text-3);
+    }
+
+    /* ── Toast ─────────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 16px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--bg-3);
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: var(--radius-lg);
+      font-size: 11.5px;
+      letter-spacing: 0.02em;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--t-med), transform var(--t-med);
+      z-index: 100;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Scrollbar in light mode adjustments */
+    html[data-theme="light"] body::before {
+      background-image: radial-gradient(oklch(0.85 0.008 75) 0.5px, transparent 0.5px);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header ──────────────────────────────────────────────────────── -->
+<header>
+  <a class="brand" href="index.html" title="Back to home" style="text-decoration:none;color:inherit;">
+    <div class="brand-mark">
+      <svg viewBox="0 0 14 14">
+        <line class="ln" x1="3" y1="3" x2="11" y2="7"/>
+        <line class="ln" x1="3" y1="3" x2="7" y2="11"/>
+        <line class="ln" x1="11" y1="7" x2="7" y2="11"/>
+        <circle class="dot" cx="3" cy="3" r="2"/>
+        <circle class="dot" cx="11" cy="7" r="1.5"/>
+        <circle class="dot" cx="7" cy="11" r="1.5"/>
+      </svg>
+    </div>
+    <span id="brand-name">graphnotes</span>
+  </a>
+
+  <div class="nav-btns">
+    <button class="nav-btn" id="nav-back" title="Back" onclick="navBack()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12 L6 8 L10 4"/></svg>
+    </button>
+    <button class="nav-btn" id="nav-fwd" title="Forward" onclick="navForward()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4 L10 8 L6 12"/></svg>
+    </button>
+  </div>
+
+  <div class="breadcrumb" id="breadcrumb"></div>
+
+  <div class="save-status" id="save-status">
+    <span class="dot"></span>
+    <span class="txt">saved</span>
+  </div>
+
+  <div class="header-right">
+    <button class="btn" onclick="showGraph()" title="Open graph view (G)">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+        <circle cx="3" cy="3" r="1.6"/><circle cx="11" cy="3" r="1.6"/>
+        <circle cx="7" cy="11" r="1.6"/>
+        <line x1="3.8" y1="3.8" x2="6.2" y2="10.2"/>
+        <line x1="10.2" y1="3.8" x2="7.8" y2="10.2"/>
+      </svg>
+      <span>graph</span>
+    </button>
+    <button class="icon-btn chat-toggle" id="chat-toggle-btn" onclick="toggleChat()" title="Ask the assistant (⌘/)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2.5 4 L13.5 4 A1 1 0 0 1 14.5 5 L14.5 11 A1 1 0 0 1 13.5 12 L6 12 L3.5 14 L3.5 12 A1 1 0 0 1 2.5 11 Z"/>
+        <line x1="5.5" y1="7" x2="5.5" y2="7.01"/>
+        <line x1="8" y1="7" x2="8" y2="7.01"/>
+        <line x1="10.5" y1="7" x2="10.5" y2="7.01"/>
+      </svg>
+    </button>
+    <button class="icon-btn" id="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+      <svg id="theme-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></svg>
+    </button>
+    <button class="icon-btn" onclick="cmdOpen()" title="Open file">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5 L2 12 A1 1 0 0 0 3 13 L13 13 A1 1 0 0 0 14 12 L14 6 A1 1 0 0 0 13 5 L8 5 L6.5 3.5 L3 3.5 A1 1 0 0 0 2 4.5 Z"/></svg>
+    </button>
+    <button class="btn primary" onclick="newNote()" title="New note (N)">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg>
+      <span>new</span>
+    </button>
+  </div>
+</header>
+
+<!-- Graph view ──────────────────────────────────────────────────── -->
+<div id="graph-view">
+  <div id="graph-header">
+    <div class="title-block">
+      <span class="title">graph</span>
+      <span class="hint">click to open · scroll to zoom · drag to pan</span>
+    </div>
+    <div class="tag-bar" id="graph-tag-filter"></div>
+    <button class="icon-btn" onclick="hideGraph()" title="Close (Esc)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+    </button>
+  </div>
+  <svg id="graph-svg"></svg>
+</div>
+
+<!-- Chat panel ──────────────────────────────────────────────────── -->
+<aside class="chat-panel" id="chat-panel" aria-hidden="true">
+  <div class="chat-head">
+    <span class="title">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="3" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="7" cy="11" r="1.5"/><line x1="3.7" y1="3.7" x2="6.3" y2="10.3"/><line x1="10.3" y1="3.7" x2="7.7" y2="10.3"/></svg>
+      <span>assistant</span>
+    </span>
+    <span class="ctx" id="chat-ctx">grounded in <b id="chat-ctx-name">your graph</b></span>
+    <button class="icon-btn" onclick="clearChat()" title="Clear conversation">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5 L13 5"/><path d="M5 5 L5 13 A1 1 0 0 0 6 14 L10 14 A1 1 0 0 0 11 13 L11 5"/><path d="M6 5 L6 3 A1 1 0 0 1 7 2 L9 2 A1 1 0 0 1 10 3 L10 5"/></svg>
+    </button>
+    <button class="icon-btn" onclick="toggleChat()" title="Close (⌘/)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+    </button>
+  </div>
+  <div class="chat-body" id="chat-body"></div>
+  <div class="chat-input-wrap">
+    <div class="chat-input-row">
+      <textarea id="chat-input" placeholder="ask anything about your notes..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
+        oninput="autoGrowChat(this)"></textarea>
+      <button class="chat-send" id="chat-send-btn" onclick="sendChat()" title="Send (Enter)">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="7" x2="12" y2="7"/><path d="M8 3 L12 7 L8 11"/></svg>
+      </button>
+    </div>
+    <div class="chat-foot">
+      <span><kbd>↵</kbd> send · <kbd>⇧↵</kbd> newline</span>
+      <span id="chat-status">ready</span>
+    </div>
+  </div>
+</aside>
+
+<!-- Main layout ─────────────────────────────────────────────────── -->
+<div class="layout">
+  <aside>
+    <div class="sidebar-section tight">
+      <div class="search-wrap">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><line x1="10.3" y1="10.3" x2="13.5" y2="13.5"/></svg>
+        <input class="search-input" id="search-input" type="text" placeholder="search..." oninput="renderSidebar()" />
+      </div>
+    </div>
+
+    <div class="sidebar-section tight" id="tag-filter-section" style="display:none">
+      <div class="sidebar-head">
+        <span class="label">tags</span>
+      </div>
+      <div class="tag-bar" id="tag-filter-bar"></div>
+    </div>
+
+    <div class="sidebar-section tight" style="display:flex; align-items:center; justify-content: space-between; padding-top: 12px; padding-bottom: 6px; border-bottom: none;">
+      <span class="label">notes</span>
+      <span class="count-pill" id="note-count">0</span>
+    </div>
+
+    <div class="note-list" id="note-list"></div>
+  </aside>
+
+  <main id="main">
+    <div class="empty-state" id="empty-state">
+      <svg class="glyph" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <circle cx="36" cy="12" r="3"/>
+        <circle cx="12" cy="36" r="3"/>
+        <circle cx="36" cy="36" r="3"/>
+        <circle cx="24" cy="24" r="3"/>
+        <line x1="14.5" y1="13.5" x2="21.5" y2="22.5"/>
+        <line x1="33.5" y1="13.5" x2="26.5" y2="22.5"/>
+        <line x1="14.5" y1="34.5" x2="21.5" y2="25.5"/>
+        <line x1="33.5" y1="34.5" x2="26.5" y2="25.5"/>
+      </svg>
+      <h2>no note selected</h2>
+      <p>pick a note from the sidebar, press <kbd>N</kbd> for a new one, or <kbd>G</kbd> to see the graph.</p>
+    </div>
+
+    <div class="editor" id="editor" style="display:none">
+      <div class="topic-row">
+        <input id="input-topic" class="topic-input" type="text" placeholder="untitled topic" />
+      </div>
+
+      <div class="field">
+        <div id="input-note" class="note-editor" contenteditable="true" data-placeholder="start writing... try # heading, **bold**, *italic*, - list, > quote, `code`"></div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">tags <span class="hint">first is primary</span></div>
+        <div class="tags-area" id="tags-container"></div>
+      </div>
+
+      <div class="relations-grid">
+        <div class="relation-col">
+          <div class="field-label"><span class="arrow-out arrow-glyph">→</span> prerequisites</div>
+          <div class="relation-list" id="outgoing-list"></div>
+          <div class="link-row">
+            <select class="link-select" id="link-select"><option value="">add prerequisite...</option></select>
+          </div>
+        </div>
+        <div class="relation-col">
+          <div class="field-label"><span class="arrow-in arrow-glyph">←</span> prerequisite to</div>
+          <div class="relation-list" id="incoming-list"></div>
+        </div>
+      </div>
+
+      <div class="delete-row">
+        <button class="danger-btn" onclick="deleteNote()">delete note</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<!-- Tweaks panel mount -->
+<div id="tweaks-mount"></div>
+
+<script>
+  // ── Config / Tweakables ─────────────────────────────────────────────────
+  const TWEAKS = /*EDITMODE-BEGIN*/{
+    "theme": "dark",
+    "accentHue": 70,
+    "density": "comfy",
+    "showDots": true,
+    "graphLevels": true,
+    "graphCurved": true,
+    "graphNodeSize": 18,
+    "linkDistance": 200
+  }/*EDITMODE-END*/;
+
+  // ── Data ────────────────────────────────────────────────────────────────
+  let notes = {};
+  let selectedTopic = null;
+  let tagFilter = null;
+  let fileHandle = null;
+
+  // navigation history
+  let history = [];
+  let historyIdx = -1;
+  let suppressHistory = false;
+
+  // autosave state
+  let saveTimer = null;
+  let savedTimer = null;
+
+  // ── Theme ───────────────────────────────────────────────────────────────
+  function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    TWEAKS.theme = t;
+    const icon = document.getElementById('theme-icon');
+    if (t === 'light') {
+      // moon
+      icon.innerHTML = '<path d="M13 9.5 A5 5 0 1 1 6.5 3 A4 4 0 0 0 13 9.5 Z"/>';
+    } else {
+      // sun
+      icon.innerHTML = '<circle cx="8" cy="8" r="3"/><line x1="8" y1="1.5" x2="8" y2="3"/><line x1="8" y1="13" x2="8" y2="14.5"/><line x1="1.5" y1="8" x2="3" y2="8"/><line x1="13" y1="8" x2="14.5" y2="8"/><line x1="3.3" y1="3.3" x2="4.4" y2="4.4"/><line x1="11.6" y1="11.6" x2="12.7" y2="12.7"/><line x1="3.3" y1="12.7" x2="4.4" y2="11.6"/><line x1="11.6" y1="4.4" x2="12.7" y2="3.3"/>';
+    }
+  }
+  function toggleTheme() {
+    const next = TWEAKS.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    persistTweaks();
+  }
+  function persistTweaks() {
+    window.parent && window.parent.postMessage({type: '__edit_mode_set_keys', edits: TWEAKS}, '*');
+    localStorage.setItem('graph-notes-tweaks', JSON.stringify(TWEAKS));
+  }
+  function applyAccent(hue) {
+    document.documentElement.style.setProperty('--accent', `oklch(0.78 0.14 ${hue})`);
+    document.documentElement.style.setProperty('--accent-2', `oklch(0.78 0.14 ${hue} / 0.12)`);
+    if (document.documentElement.getAttribute('data-theme') === 'light') {
+      document.documentElement.style.setProperty('--accent', `oklch(0.55 0.16 ${hue})`);
+      document.documentElement.style.setProperty('--accent-2', `oklch(0.55 0.16 ${hue} / 0.12)`);
+    }
+    TWEAKS.accentHue = hue;
+  }
+  function applyDensity(d) {
+    TWEAKS.density = d;
+    if (d === 'compact') {
+      document.documentElement.style.setProperty('--header-h', '38px');
+      document.documentElement.style.setProperty('--sidebar-w', '230px');
+    } else if (d === 'spacious') {
+      document.documentElement.style.setProperty('--header-h', '52px');
+      document.documentElement.style.setProperty('--sidebar-w', '290px');
+    } else {
+      document.documentElement.style.removeProperty('--header-h');
+      document.documentElement.style.removeProperty('--sidebar-w');
+    }
+  }
+  function applyDots(on) {
+    TWEAKS.showDots = on;
+    document.body.style.setProperty('--dots-display', on ? 'block' : 'none');
+    document.body.style.setProperty('background-image', on ? '' : 'none');
+    // Toggle the ::before via class
+    document.body.classList.toggle('no-dots', !on);
+  }
+  // CSS for no-dots
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `body.no-dots::before { display: none !important; }`;
+  document.head.appendChild(styleEl);
+
+  // ── Tag color (deterministic from string) ───────────────────────────────
+  function tagColor(tag) {
+    let h = 0;
+    for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+    const hue = h % 360;
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    return isLight
+      ? `oklch(0.50 0.13 ${hue})`
+      : `oklch(0.78 0.11 ${hue})`;
+  }
+  function tagBg(tag) {
+    let h = 0;
+    for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+    const hue = h % 360;
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    return isLight
+      ? `oklch(0.50 0.13 ${hue} / 0.10)`
+      : `oklch(0.78 0.11 ${hue} / 0.12)`;
+  }
+  function allTags() {
+    const s = new Set();
+    Object.values(notes).forEach(n => (n.tags || []).forEach(t => s.add(t)));
+    return [...s].sort();
+  }
+
+  // ── Collection identity ─────────────────────────────────────────────────
+  const params = new URLSearchParams(location.search);
+  const COLLECTION_ID = params.get('id') || 'default';
+  const NOTES_KEY = `graph-notes:${COLLECTION_ID}`;
+  const INDEX_KEY = 'graph-notes:index';
+
+  function readIndex() {
+    try { return JSON.parse(localStorage.getItem(INDEX_KEY) || '[]'); } catch { return []; }
+  }
+  function writeIndex(idx) { localStorage.setItem(INDEX_KEY, JSON.stringify(idx)); }
+  function touchIndex() {
+    const idx = readIndex();
+    let entry = idx.find(e => e.id === COLLECTION_ID);
+    const meta = collectionMeta();
+    if (!entry) {
+      entry = { id: COLLECTION_ID, name: meta.name, created: Date.now() };
+      idx.push(entry);
+    }
+    entry.updated = Date.now();
+    entry.count = Object.keys(notes).length;
+    entry.linkCount = Object.values(notes).reduce((a, n) => a + (n.subtopics || []).length, 0);
+    entry.tags = [...new Set(Object.values(notes).flatMap(n => n.tags || []))].slice(0, 8);
+    writeIndex(idx);
+  }
+  function collectionMeta() {
+    const idx = readIndex();
+    return idx.find(e => e.id === COLLECTION_ID) || { name: COLLECTION_ID === 'default' ? 'my notes' : COLLECTION_ID };
+  }
+
+  // ── Persistence ─────────────────────────────────────────────────────────
+  function persist() {
+    localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+    touchIndex();
+    showSaving();
+  }
+
+  function showSaving() {
+    const status = document.getElementById('save-status');
+    status.classList.remove('saved');
+    status.classList.add('saving');
+    status.querySelector('.txt').textContent = 'saving';
+    clearTimeout(savedTimer);
+    savedTimer = setTimeout(() => {
+      status.classList.remove('saving');
+      status.classList.add('saved');
+      status.querySelector('.txt').textContent = 'saved';
+      setTimeout(() => {
+        status.classList.remove('saved');
+        status.querySelector('.txt').textContent = 'saved';
+      }, 1800);
+    }, 350);
+  }
+
+  function load() {
+    const stored = localStorage.getItem(NOTES_KEY);
+    if (stored) {
+      try { notes = JSON.parse(stored); } catch (e) {}
+    }
+    if (!stored || Object.keys(notes).length === 0) {
+      // Only seed sample notes for the default collection
+      if (COLLECTION_ID === 'default') {
+        notes = sampleNotes();
+        localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+      } else {
+        notes = {};
+      }
+    }
+    touchIndex();
+
+    const t = localStorage.getItem('graph-notes-tweaks');
+    if (t) {
+      try { Object.assign(TWEAKS, JSON.parse(t)); } catch (e) {}
+    }
+    applyTheme(TWEAKS.theme);
+    applyAccent(TWEAKS.accentHue);
+    applyDensity(TWEAKS.density);
+    applyDots(TWEAKS.showDots);
+
+    render();
+  }
+
+  // ── Sample data ─────────────────────────────────────────────────────────
+  function sampleNotes() {
+    return {
+      "calculus": {
+        note: "The mathematical study of continuous change. Splits into differential calculus (rates of change) and integral calculus (accumulation of quantities).",
+        subtopics: ["algebra", "limits"],
+        tags: ["math", "foundational"]
+      },
+      "linear algebra": {
+        note: "Study of vectors, matrices, and linear transformations. The language of high-dimensional spaces.",
+        subtopics: ["algebra"],
+        tags: ["math"]
+      },
+      "algebra": {
+        note: "Manipulation of symbols representing numbers. The grammar of mathematics.",
+        subtopics: ["arithmetic"],
+        tags: ["math", "foundational"]
+      },
+      "arithmetic": {
+        note: "Basic operations on numbers: addition, subtraction, multiplication, division.",
+        subtopics: [],
+        tags: ["math", "foundational"]
+      },
+      "limits": {
+        note: "The value a function approaches as the input approaches some value. The conceptual bedrock of calculus.",
+        subtopics: ["algebra"],
+        tags: ["math"]
+      },
+      "neural networks": {
+        note: "Computational systems loosely inspired by biological neurons. Layers of weighted connections that learn from data.",
+        subtopics: ["linear algebra", "calculus", "probability"],
+        tags: ["ml"]
+      },
+      "backpropagation": {
+        note: "The algorithm that makes neural networks trainable. Computes gradients of the loss with respect to weights via the chain rule, propagating errors backward layer by layer.",
+        subtopics: ["neural networks", "calculus"],
+        tags: ["ml"]
+      },
+      "transformers": {
+        note: "Attention-based architecture that replaced recurrence for sequence modeling. The substrate of modern LLMs.",
+        subtopics: ["neural networks", "attention"],
+        tags: ["ml"]
+      },
+      "attention": {
+        note: "Mechanism for weighting the importance of different inputs. Lets a model focus on relevant context.",
+        subtopics: ["linear algebra"],
+        tags: ["ml"]
+      },
+      "probability": {
+        note: "The mathematics of uncertainty. Quantifies how likely events are.",
+        subtopics: ["arithmetic"],
+        tags: ["math"]
+      },
+    };
+  }
+
+  // ── History (back/forward) ──────────────────────────────────────────────
+  function pushHistory(topic) {
+    if (suppressHistory) return;
+    if (history[historyIdx] === topic) return;
+    history = history.slice(0, historyIdx + 1);
+    history.push(topic);
+    historyIdx = history.length - 1;
+    updateNavBtns();
+  }
+  function navBack() {
+    if (historyIdx <= 0) return;
+    historyIdx--;
+    suppressHistory = true;
+    selectNote(history[historyIdx]);
+    suppressHistory = false;
+    updateNavBtns();
+  }
+  function navForward() {
+    if (historyIdx >= history.length - 1) return;
+    historyIdx++;
+    suppressHistory = true;
+    selectNote(history[historyIdx]);
+    suppressHistory = false;
+    updateNavBtns();
+  }
+  function updateNavBtns() {
+    document.getElementById('nav-back').disabled = historyIdx <= 0;
+    document.getElementById('nav-fwd').disabled = historyIdx >= history.length - 1;
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────
+  function render() {
+    renderSidebar();
+    renderBreadcrumb();
+    if (selectedTopic && notes[selectedTopic]) {
+      renderEditor(selectedTopic);
+    } else {
+      selectedTopic = null;
+      document.getElementById('empty-state').style.display = '';
+      document.getElementById('editor').style.display = 'none';
+    }
+  }
+
+  function renderBreadcrumb() {
+    const bc = document.getElementById('breadcrumb');
+    bc.innerHTML = '';
+    const home = document.createElement('a');
+    home.className = 'crumb';
+    home.href = 'index.html';
+    home.textContent = 'home';
+    home.style.textDecoration = 'none';
+    home.style.color = 'inherit';
+    bc.appendChild(home);
+    const sep0 = document.createElement('span'); sep0.className = 'sep'; sep0.textContent = '/'; bc.appendChild(sep0);
+    const root = document.createElement('span');
+    root.className = 'crumb';
+    root.textContent = collectionMeta().name || 'notes';
+    root.onclick = () => { selectedTopic = null; render(); };
+    bc.appendChild(root);
+    if (tagFilter) {
+      const sep = document.createElement('span'); sep.className = 'sep'; sep.textContent = '/'; bc.appendChild(sep);
+      const tg = document.createElement('span'); tg.className = 'crumb';
+      tg.textContent = '#' + tagFilter;
+      tg.style.color = tagColor(tagFilter);
+      tg.onclick = () => { tagFilter = null; render(); };
+      bc.appendChild(tg);
+    }
+    if (selectedTopic) {
+      const sep2 = document.createElement('span'); sep2.className = 'sep'; sep2.textContent = '/'; bc.appendChild(sep2);
+      const cur = document.createElement('span'); cur.className = 'crumb current';
+      cur.textContent = selectedTopic;
+      bc.appendChild(cur);
+    }
+  }
+
+  function renderSidebar() {
+    // Tag filter
+    const tags = allTags();
+    const tagSection = document.getElementById('tag-filter-section');
+    const filterBar = document.getElementById('tag-filter-bar');
+    filterBar.innerHTML = '';
+    if (tags.length > 0) {
+      tagSection.style.display = '';
+      const allBtn = document.createElement('span');
+      allBtn.className = 'tag-pill all' + (tagFilter === null ? ' active' : '');
+      allBtn.textContent = 'all';
+      allBtn.onclick = () => { tagFilter = null; render(); };
+      filterBar.appendChild(allBtn);
+      tags.forEach(tag => {
+        const pill = document.createElement('span');
+        pill.className = 'tag-pill' + (tagFilter === tag ? ' active' : '');
+        const c = tagColor(tag);
+        pill.style.background = tagBg(tag);
+        pill.style.borderColor = c;
+        pill.style.color = c;
+        pill.textContent = tag;
+        pill.onclick = () => { tagFilter = tagFilter === tag ? null : tag; render(); };
+        filterBar.appendChild(pill);
+      });
+    } else {
+      tagSection.style.display = 'none';
+    }
+
+    // Note list
+    const query = document.getElementById('search-input').value.trim().toLowerCase();
+    const list = document.getElementById('note-list');
+    list.innerHTML = '';
+    const filtered = Object.keys(notes).sort()
+      .filter(topic => !tagFilter || (notes[topic].tags || []).includes(tagFilter))
+      .filter(topic => !query || topic.toLowerCase().includes(query) || (notes[topic].note || '').toLowerCase().includes(query));
+
+    document.getElementById('note-count').textContent = filtered.length;
+
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-list';
+      empty.textContent = query ? 'no matches' : 'no notes yet';
+      list.appendChild(empty);
+      return;
+    }
+
+    filtered.forEach(topic => {
+      const el = document.createElement('div');
+      el.className = 'note-item' + (topic === selectedTopic ? ' active' : '');
+      el.onclick = () => selectNote(topic);
+      const dot = document.createElement('span');
+      dot.className = 'note-dot';
+      const primary = (notes[topic].tags || [])[0];
+      if (primary) dot.style.background = tagColor(primary);
+      el.appendChild(dot);
+      const name = document.createElement('span');
+      name.className = 'note-name';
+      name.textContent = topic;
+      el.appendChild(name);
+      const linkCount = (notes[topic].subtopics || []).length;
+      const incomingCount = Object.keys(notes).filter(t => t !== topic && (notes[t].subtopics || []).includes(topic)).length;
+      const total = linkCount + incomingCount;
+      if (total > 0) {
+        const meta = document.createElement('span');
+        meta.className = 'note-meta';
+        meta.textContent = total;
+        el.appendChild(meta);
+      }
+      list.appendChild(el);
+    });
+  }
+
+  function renderEditor(topic) {
+    const node = notes[topic];
+    document.getElementById('empty-state').style.display = 'none';
+    const editor = document.getElementById('editor');
+    editor.style.display = 'flex';
+    // re-trigger fade animation
+    editor.style.animation = 'none';
+    void editor.offsetWidth;
+    editor.style.animation = '';
+
+    document.getElementById('input-topic').value = topic;
+    document.getElementById('input-note').innerHTML = mdToHtml(node.note || '');
+
+    const outgoing = node.subtopics || [];
+    const incoming = Object.keys(notes).filter(t => t !== topic && (notes[t].subtopics || []).includes(topic));
+
+    // Outgoing
+    const outgoingList = document.getElementById('outgoing-list');
+    outgoingList.innerHTML = '';
+    if (outgoing.length === 0) {
+      outgoingList.innerHTML = '<span class="relation-empty">no prerequisites</span>';
+    } else {
+      outgoing.forEach(neighbor => {
+        const tag = document.createElement('div');
+        tag.className = 'relation-tag outgoing';
+        tag.onclick = () => selectNote(neighbor);
+        tag.innerHTML = `<span>${neighbor}</span>`;
+        const rm = document.createElement('span');
+        rm.className = 'x'; rm.textContent = '×'; rm.title = 'remove';
+        rm.onclick = (e) => { e.stopPropagation(); unlinkNote(topic, neighbor); };
+        tag.appendChild(rm);
+        outgoingList.appendChild(tag);
+      });
+    }
+
+    // Incoming
+    const incomingList = document.getElementById('incoming-list');
+    incomingList.innerHTML = '';
+    if (incoming.length === 0) {
+      incomingList.innerHTML = '<span class="relation-empty">nothing depends on this yet</span>';
+    } else {
+      incoming.forEach(neighbor => {
+        const tag = document.createElement('div');
+        tag.className = 'relation-tag incoming';
+        tag.onclick = () => selectNote(neighbor);
+        tag.innerHTML = `<span>${neighbor}</span>`;
+        incomingList.appendChild(tag);
+      });
+    }
+
+    // Tags
+    if (!notes[topic].tags) notes[topic].tags = [];
+    const tagsContainer = document.getElementById('tags-container');
+    tagsContainer.innerHTML = '';
+    notes[topic].tags.forEach((tag, i) => {
+      const pill = document.createElement('span');
+      pill.className = 'tag-pill';
+      const c = tagColor(tag);
+      pill.style.background = tagBg(tag);
+      pill.style.borderColor = c;
+      pill.style.color = c;
+      if (i === 0) {
+        const star = document.createElement('span');
+        star.className = 'star'; star.textContent = '★';
+        pill.appendChild(star);
+      } else {
+        const up = document.createElement('span');
+        up.className = 'up'; up.textContent = '↑'; up.title = 'make primary';
+        up.onclick = (e) => {
+          e.stopPropagation();
+          notes[topic].tags.splice(i, 1);
+          notes[topic].tags.unshift(tag);
+          persist(); renderEditor(topic); renderSidebar();
+        };
+        pill.appendChild(up);
+      }
+      pill.appendChild(document.createTextNode(tag));
+      const x = document.createElement('span');
+      x.className = 'x'; x.textContent = '×'; x.title = 'remove';
+      x.onclick = (e) => {
+        e.stopPropagation();
+        notes[topic].tags = notes[topic].tags.filter(t => t !== tag);
+        persist(); renderEditor(topic); renderSidebar();
+      };
+      pill.appendChild(x);
+      tagsContainer.appendChild(pill);
+    });
+    // Tag input
+    const inputWrap = document.createElement('span');
+    inputWrap.className = 'tag-input-wrap';
+    const inp = document.createElement('input');
+    inp.id = 'tag-input';
+    inp.type = 'text';
+    inp.placeholder = '+ tag';
+    inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } };
+    inputWrap.appendChild(inp);
+    tagsContainer.appendChild(inputWrap);
+
+    // Link select
+    const sel = document.getElementById('link-select');
+    sel.innerHTML = '<option value="">add prerequisite...</option>';
+    Object.keys(notes).sort().forEach(t => {
+      if (t !== topic && !outgoing.includes(t)) {
+        const opt = document.createElement('option');
+        opt.value = t; opt.textContent = t;
+        sel.appendChild(opt);
+      }
+    });
+    sel.onchange = () => {
+      if (sel.value) {
+        notes[topic].subtopics.push(sel.value);
+        persist(); renderEditor(topic);
+      }
+    };
+  }
+
+  // ── Auto-save wiring ────────────────────────────────────────────────────
+  function scheduleAutoSave() {
+    if (!selectedTopic) return;
+    showSaving();
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => commitEdits(), 400);
+  }
+  function commitEdits() {
+    if (!selectedTopic || !notes[selectedTopic]) return;
+    const newTopic = document.getElementById('input-topic').value.trim();
+    const newNoteText = htmlToMd(document.getElementById('input-note'));
+    if (!newTopic) return; // don't commit empty rename
+
+    if (newTopic !== selectedTopic) {
+      if (notes[newTopic]) {
+        toast(`'${newTopic}' already exists`);
+        document.getElementById('input-topic').value = selectedTopic;
+        return;
+      }
+      notes[newTopic] = { ...notes[selectedTopic] };
+      Object.keys(notes).forEach(t => {
+        notes[t].subtopics = (notes[t].subtopics || []).map(n => n === selectedTopic ? newTopic : n);
+      });
+      // update history
+      history = history.map(h => h === selectedTopic ? newTopic : h);
+      delete notes[selectedTopic];
+      selectedTopic = newTopic;
+      persist();
+      renderSidebar();
+      renderBreadcrumb();
+      return;
+    }
+    notes[selectedTopic].note = newNoteText;
+    persist();
+  }
+
+  // ── Actions ─────────────────────────────────────────────────────────────
+  function selectNote(topic) {
+    if (!notes[topic]) return;
+    // commit any pending edits before switching
+    if (selectedTopic && notes[selectedTopic]) commitEdits();
+    selectedTopic = topic;
+    pushHistory(topic);
+    render();
+  }
+
+  function newNote() {
+    const base = 'untitled';
+    let i = 1;
+    let name = base;
+    while (notes[name]) { i++; name = `${base} ${i}`; }
+    notes[name] = { note: '', subtopics: [], tags: [] };
+    selectedTopic = name;
+    pushHistory(name);
+    persist();
+    render();
+    setTimeout(() => {
+      const t = document.getElementById('input-topic');
+      t.focus(); t.select();
+    }, 50);
+  }
+
+  function deleteNote() {
+    if (!selectedTopic) return;
+    if (!confirm(`Delete '${selectedTopic}'?`)) return;
+    const topic = selectedTopic;
+    delete notes[topic];
+    Object.keys(notes).forEach(t => {
+      notes[t].subtopics = (notes[t].subtopics || []).filter(n => n !== topic);
+    });
+    history = history.filter(h => h !== topic);
+    historyIdx = Math.min(historyIdx, history.length - 1);
+    selectedTopic = null;
+    persist();
+    render();
+    updateNavBtns();
+    toast('note deleted');
+  }
+
+  function addTag() {
+    if (!selectedTopic) return;
+    const input = document.getElementById('tag-input');
+    const tag = input.value.trim();
+    if (!tag) return;
+    if (!notes[selectedTopic].tags) notes[selectedTopic].tags = [];
+    if (!notes[selectedTopic].tags.includes(tag)) {
+      notes[selectedTopic].tags.push(tag);
+      persist(); renderEditor(selectedTopic); renderSidebar();
+      setTimeout(() => document.getElementById('tag-input').focus(), 30);
+    }
+    input.value = '';
+  }
+
+  function unlinkNote(a, b) {
+    notes[a].subtopics = (notes[a].subtopics || []).filter(n => n !== b);
+    persist();
+    renderEditor(a);
+  }
+
+  // ── File API ────────────────────────────────────────────────────────────
+  const FILE_OPTS = {
+    types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+  };
+  async function cmdOpen() {
+    if (!window.showOpenFilePicker) {
+      toast('file system api not available in this browser');
+      return;
+    }
+    let handle;
+    try {
+      [handle] = await window.showOpenFilePicker(FILE_OPTS);
+    } catch (e) { if (e.name !== 'AbortError') console.error(e); return; }
+    try {
+      const text = await (await handle.getFile()).text();
+      notes = JSON.parse(text);
+    } catch (e) { toast('invalid json file'); return; }
+    fileHandle = handle;
+    selectedTopic = null;
+    history = []; historyIdx = -1;
+    persist(); render(); updateNavBtns();
+    toast(`loaded ${handle.name}`);
+  }
+
+  // ── Toast ───────────────────────────────────────────────────────────────
+  let toastTimer = null;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ── Graph ───────────────────────────────────────────────────────────────
+  function showGraph() {
+    const v = document.getElementById('graph-view');
+    v.style.display = 'flex';
+    renderGraphTagFilter();
+    setTimeout(renderGraph, 50);
+  }
+  function hideGraph() {
+    document.getElementById('graph-view').style.display = 'none';
+  }
+
+  function renderGraphTagFilter() {
+    const bar = document.getElementById('graph-tag-filter');
+    bar.innerHTML = '';
+    const tags = allTags();
+    if (tags.length === 0) return;
+    const allBtn = document.createElement('span');
+    allBtn.className = 'tag-pill all' + (tagFilter === null ? ' active' : '');
+    allBtn.textContent = 'all';
+    allBtn.onclick = () => { tagFilter = null; renderGraphTagFilter(); renderGraph(); };
+    bar.appendChild(allBtn);
+    tags.forEach(tag => {
+      const pill = document.createElement('span');
+      pill.className = 'tag-pill' + (tagFilter === tag ? ' active' : '');
+      const c = tagColor(tag);
+      pill.style.background = tagBg(tag);
+      pill.style.borderColor = c;
+      pill.style.color = c;
+      pill.textContent = tag;
+      pill.onclick = () => { tagFilter = tagFilter === tag ? null : tag; renderGraphTagFilter(); renderGraph(); };
+      bar.appendChild(pill);
+    });
+  }
+
+  function computeLevels(notes) {
+    const ids = Object.keys(notes);
+    const level = {};
+    ids.forEach(id => level[id] = 0);
+    for (let iter = 0; iter < ids.length; iter++) {
+      let changed = false;
+      ids.forEach(id => {
+        const prereqs = (notes[id].subtopics || []).filter(p => level[p] !== undefined);
+        if (prereqs.length > 0) {
+          const next = Math.max(...prereqs.map(p => level[p])) + 1;
+          if (next > level[id]) { level[id] = next; changed = true; }
+        }
+      });
+      if (!changed) break;
+    }
+    return level;
+  }
+
+  function renderGraph() {
+    const svg = d3.select('#graph-svg');
+    svg.selectAll('*').remove();
+
+    const width = svg.node().clientWidth;
+    const height = svg.node().clientHeight;
+
+    const visibleIds = new Set(
+      Object.keys(notes).filter(id => !tagFilter || (notes[id].tags || []).includes(tagFilter))
+    );
+    const nodeData = [...visibleIds].map(id => ({ id }));
+    const linkData = [];
+    Object.keys(notes).forEach(source => {
+      if (!visibleIds.has(source)) return;
+      (notes[source].subtopics || []).forEach(target => {
+        if (visibleIds.has(target)) linkData.push({ source, target });
+      });
+    });
+
+    const levels = computeLevels(notes);
+    const maxLevel = Math.max(...Object.values(levels), 0);
+    const padding = 90;
+    const levelSpacing = maxLevel > 0 ? (height - padding * 2) / maxLevel : 0;
+
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    const text2 = getComputedStyle(document.documentElement).getPropertyValue('--text-2').trim();
+
+    // arrow marker
+    const defs = svg.append('defs');
+    defs.append('marker')
+      .attr('id', 'arrow')
+      .attr('viewBox', '0 -4 8 8')
+      .attr('refX', TWEAKS.graphNodeSize + 6)
+      .attr('refY', 0)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M0,-3L7,0L0,3')
+      .attr('fill', text2);
+
+    // Zoom container
+    const g = svg.append('g');
+    const zoom = d3.zoom().scaleExtent([0.2, 3]).on('zoom', e => g.attr('transform', e.transform));
+    svg.call(zoom);
+
+    // Level guides
+    const guideG = svg.append('g').attr('class', 'level-guides').lower();
+    if (TWEAKS.graphLevels && maxLevel > 0) {
+      // We draw guides in screen space (not zoom container) so labels stay readable
+    }
+
+    const simulation = d3.forceSimulation(nodeData)
+      .force('link', d3.forceLink(linkData).id(d => d.id).distance(TWEAKS.linkDistance).strength(0.3))
+      .force('charge', d3.forceManyBody().strength(-700))
+      .force('x', d3.forceX(width / 2).strength(0.05))
+      .force('y', d3.forceY(d => padding + levels[d.id] * levelSpacing).strength(TWEAKS.graphLevels ? 0.6 : 0.05))
+      .force('collision', d3.forceCollide(TWEAKS.graphNodeSize + 30));
+
+    // links — paths so we can curve
+    const link = g.append('g')
+      .selectAll('path')
+      .data(linkData)
+      .join('path')
+      .attr('class', 'graph-link')
+      .attr('stroke', text2)
+      .attr('stroke-width', 1)
+      .attr('marker-end', 'url(#arrow)');
+
+    const node = g.append('g')
+      .selectAll('g')
+      .data(nodeData)
+      .join('g')
+      .attr('class', d => 'graph-node' + (d.id === selectedTopic ? ' selected' : ''))
+      .call(d3.drag()
+        .on('start', (event, d) => {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x; d.fy = d.y;
+        })
+        .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
+        .on('end', (event, d) => {
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null; d.fy = null;
+        })
+      )
+      .on('click', (event, d) => {
+        if (event.defaultPrevented) return;
+        hideGraph();
+        selectNote(d.id);
+      })
+      .on('mouseover', (event, d) => {
+        const connected = new Set([d.id]);
+        linkData.forEach(l => {
+          const src = typeof l.source === 'object' ? l.source.id : l.source;
+          const tgt = typeof l.target === 'object' ? l.target.id : l.target;
+          if (src === d.id || tgt === d.id) { connected.add(src); connected.add(tgt); }
+        });
+        node.classed('dimmed', n => !connected.has(n.id))
+            .classed('focused', n => n.id === d.id);
+        link.classed('dimmed', l => {
+          const src = typeof l.source === 'object' ? l.source.id : l.source;
+          const tgt = typeof l.target === 'object' ? l.target.id : l.target;
+          return !connected.has(src) || !connected.has(tgt);
+        });
+      })
+      .on('mouseout', () => {
+        node.classed('dimmed', false).classed('focused', false);
+        link.classed('dimmed', false);
+      });
+
+    node.append('circle')
+      .attr('r', TWEAKS.graphNodeSize)
+      .style('stroke', d => {
+        const primary = (notes[d.id]?.tags || [])[0];
+        return primary ? tagColor(primary) : accent;
+      })
+      .style('color', d => {
+        const primary = (notes[d.id]?.tags || [])[0];
+        return primary ? tagColor(primary) : accent;
+      });
+
+    node.append('text')
+      .text(d => d.id.length > 18 ? d.id.slice(0, 17) + '…' : d.id)
+      .attr('x', TWEAKS.graphNodeSize + 6)
+      .attr('y', 0);
+
+    // Level labels (in screen space)
+    if (TWEAKS.graphLevels && maxLevel > 0) {
+      const labelG = svg.append('g').attr('class', 'level-labels');
+      for (let l = 0; l <= maxLevel; l++) {
+        const y = padding + l * levelSpacing;
+        labelG.append('line')
+          .attr('class', 'level-line')
+          .attr('x1', 24).attr('x2', width - 110)
+          .attr('y1', y).attr('y2', y);
+        labelG.append('text')
+          .attr('class', 'level-label')
+          .attr('x', width - 18)
+          .attr('y', y)
+          .attr('text-anchor', 'end')
+          .attr('dominant-baseline', 'middle')
+          .text(l === 0 ? 'foundational' : `depth ${String(l).padStart(2, '0')}`);
+      }
+    }
+
+    simulation.on('tick', () => {
+      link.attr('d', d => {
+        const sx = d.source.x, sy = d.source.y, tx = d.target.x, ty = d.target.y;
+        if (!TWEAKS.graphCurved) return `M${sx},${sy} L${tx},${ty}`;
+        const dx = tx - sx, dy = ty - sy;
+        const dr = Math.sqrt(dx*dx + dy*dy) * 1.6;
+        return `M${sx},${sy} A${dr},${dr} 0 0,1 ${tx},${ty}`;
+      });
+      node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+  }
+
+  // ── Keyboard shortcuts ──────────────────────────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    const inField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+    if (e.key === 'Escape') {
+      if (document.getElementById('graph-view').style.display === 'flex') hideGraph();
+      return;
+    }
+    if (inField) return;
+    if (e.key === 'g' || e.key === 'G') { showGraph(); }
+    if (e.key === 'n' || e.key === 'N') { newNote(); }
+    if ((e.metaKey || e.ctrlKey) && e.key === '[') { e.preventDefault(); navBack(); }
+    if ((e.metaKey || e.ctrlKey) && e.key === ']') { e.preventDefault(); navForward(); }
+    if (e.key === '/') { e.preventDefault(); document.getElementById('search-input').focus(); }
+  });
+
+  // ── Rich-text: markdown ⇄ html ─────────────────────────────────────────
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function inlineMd(s) {
+    s = escapeHtml(s);
+    s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+    s = s.replace(/\*\*([^\*\n]+)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/(^|[^\*])\*([^\*\n]+)\*/g, '$1<em>$2</em>');
+    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return s;
+  }
+  function mdToHtml(md) {
+    if (!md) return '';
+    const lines = md.split('\n');
+    const out = [];
+    let i = 0;
+    while (i < lines.length) {
+      const ln = lines[i];
+      let m;
+      if ((m = ln.match(/^(#{1,3})\s+(.*)$/))) {
+        out.push(`<h${m[1].length}>${inlineMd(m[2])}</h${m[1].length}>`);
+        i++; continue;
+      }
+      if (/^\s*---\s*$/.test(ln)) { out.push('<hr>'); i++; continue; }
+      if (/^>\s?/.test(ln)) {
+        const block = [];
+        while (i < lines.length && /^>\s?/.test(lines[i])) {
+          block.push(inlineMd(lines[i].replace(/^>\s?/, ''))); i++;
+        }
+        out.push('<blockquote>' + block.join('<br>') + '</blockquote>'); continue;
+      }
+      if (/^\s*[-*]\s+/.test(ln)) {
+        out.push('<ul>');
+        while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+          out.push('<li>' + inlineMd(lines[i].replace(/^\s*[-*]\s+/, '')) + '</li>'); i++;
+        }
+        out.push('</ul>'); continue;
+      }
+      if (/^\s*\d+\.\s+/.test(ln)) {
+        out.push('<ol>');
+        while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+          out.push('<li>' + inlineMd(lines[i].replace(/^\s*\d+\.\s+/, '')) + '</li>'); i++;
+        }
+        out.push('</ol>'); continue;
+      }
+      if (ln.trim() === '') { out.push('<p><br></p>'); i++; continue; }
+      // paragraph (consume contiguous non-block lines)
+      const para = [];
+      while (i < lines.length && lines[i].trim() !== ''
+             && !/^(#{1,3}\s|>|\s*[-*]\s|\s*\d+\.\s|---\s*$)/.test(lines[i])) {
+        para.push(inlineMd(lines[i])); i++;
+      }
+      out.push('<p>' + para.join('<br>') + '</p>');
+    }
+    return out.join('');
+  }
+  function htmlToMd(root) {
+    const lines = [];
+    function walk(node, prefix='') {
+      node.childNodes.forEach(child => {
+        if (child.nodeType === 3) {
+          if (lines.length === 0) lines.push('');
+          lines[lines.length-1] += child.textContent;
+          return;
+        }
+        if (child.nodeType !== 1) return;
+        const tag = child.tagName.toLowerCase();
+        if (tag === 'h1') { lines.push('# ' + child.textContent); lines.push(''); return; }
+        if (tag === 'h2') { lines.push('## ' + child.textContent); lines.push(''); return; }
+        if (tag === 'h3') { lines.push('### ' + child.textContent); lines.push(''); return; }
+        if (tag === 'hr') { lines.push('---'); lines.push(''); return; }
+        if (tag === 'blockquote') {
+          child.textContent.split('\n').forEach(l => lines.push('> ' + l));
+          lines.push(''); return;
+        }
+        if (tag === 'ul' || tag === 'ol') {
+          let n = 1;
+          child.querySelectorAll(':scope > li').forEach(li => {
+            const bullet = tag === 'ul' ? '- ' : (n++ + '. ');
+            lines.push(bullet + inlineHtmlToMd(li));
+          });
+          lines.push(''); return;
+        }
+        if (tag === 'p' || tag === 'div') {
+          lines.push(inlineHtmlToMd(child)); return;
+        }
+        if (tag === 'br') { lines.push(''); return; }
+        // fallback inline
+        if (lines.length === 0) lines.push('');
+        lines[lines.length-1] += inlineHtmlToMd(child);
+      });
+    }
+    function inlineHtmlToMd(el) {
+      let s = '';
+      el.childNodes.forEach(c => {
+        if (c.nodeType === 3) { s += c.textContent; return; }
+        if (c.nodeType !== 1) return;
+        const t = c.tagName.toLowerCase();
+        if (t === 'br') { s += '\n'; return; }
+        if (t === 'strong' || t === 'b') { s += '**' + inlineHtmlToMd(c) + '**'; return; }
+        if (t === 'em' || t === 'i') { s += '*' + inlineHtmlToMd(c) + '*'; return; }
+        if (t === 'code') { s += '`' + c.textContent + '`'; return; }
+        if (t === 'a') { s += '[' + inlineHtmlToMd(c) + '](' + (c.getAttribute('href')||'') + ')'; return; }
+        s += inlineHtmlToMd(c);
+      });
+      return s;
+    }
+    walk(root);
+    // collapse 3+ blank lines to 2
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+  window.mdToHtml = mdToHtml;
+  window.htmlToMd = htmlToMd;
+
+  // ── Floating selection toolbar ──────────────────────────────────────────
+  (function setupRichToolbar() {
+    const editor = document.getElementById('input-note');
+    if (!editor) return;
+    const tb = document.createElement('div');
+    tb.className = 'rt-toolbar';
+    tb.innerHTML = `
+      <button data-cmd="bold" title="bold (⌘B)" style="font-weight:700">B</button>
+      <button data-cmd="italic" title="italic (⌘I)" style="font-style:italic">I</button>
+      <button data-cmd="code" title="inline code">&lt;/&gt;</button>
+      <span class="sep"></span>
+      <button data-block="h1" title="heading 1">H1</button>
+      <button data-block="h2" title="heading 2">H2</button>
+      <button data-block="blockquote" title="quote">&ldquo;</button>
+      <button data-list="ul" title="bullet list">•</button>
+      <button data-list="ol" title="numbered">1.</button>
+    `;
+    document.body.appendChild(tb);
+
+    function hide() { tb.classList.remove('show'); }
+    function place() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return hide();
+      const r = sel.getRangeAt(0);
+      if (!editor.contains(r.commonAncestorContainer)) return hide();
+      const rect = r.getBoundingClientRect();
+      if (!rect || (rect.width === 0 && rect.height === 0)) return hide();
+      tb.style.left = (rect.left + rect.width / 2) + 'px';
+      tb.style.top = rect.top + 'px';
+      tb.classList.add('show');
+    }
+    document.addEventListener('selectionchange', place);
+    editor.addEventListener('blur', () => setTimeout(() => {
+      if (!tb.matches(':hover')) hide();
+    }, 120));
+
+    tb.addEventListener('mousedown', (e) => e.preventDefault());
+    tb.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      editor.focus();
+      if (b.dataset.cmd === 'bold') document.execCommand('bold');
+      else if (b.dataset.cmd === 'italic') document.execCommand('italic');
+      else if (b.dataset.cmd === 'code') {
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
+        const r = sel.getRangeAt(0);
+        const c = document.createElement('code');
+        c.textContent = r.toString();
+        r.deleteContents(); r.insertNode(c);
+      }
+      else if (b.dataset.block) document.execCommand('formatBlock', false, b.dataset.block);
+      else if (b.dataset.list === 'ul') document.execCommand('insertUnorderedList');
+      else if (b.dataset.list === 'ol') document.execCommand('insertOrderedList');
+      place();
+      if (window.scheduleAutoSave) window.scheduleAutoSave();
+    });
+  })();
+
+  // Wire auto-save to inputs on any keystroke after init
+  document.addEventListener('input', (e) => {
+    if (e.target.id === 'input-topic' || e.target.id === 'input-note') {
+      scheduleAutoSave();
+    }
+  });
+  // Commit on blur
+  document.addEventListener('focusout', (e) => {
+    if (e.target.id === 'input-topic' || e.target.id === 'input-note') {
+      commitEdits();
+    }
+  });
+
+  // Resize → re-render graph if open
+  window.addEventListener('resize', () => {
+    if (document.getElementById('graph-view').style.display === 'flex') renderGraph();
+  });
+
+  // ── Chat panel ──────────────────────────────────────────────────────────
+  let chatHistory = [];
+  let chatOpen = false;
+
+  function toggleChat() {
+    chatOpen = !chatOpen;
+    document.getElementById('chat-panel').classList.toggle('open', chatOpen);
+    document.getElementById('chat-toggle-btn').classList.toggle('active', chatOpen);
+    document.body.classList.toggle('chat-open', chatOpen);
+    if (chatOpen) {
+      renderChatCtx();
+      if (chatHistory.length === 0) renderChatWelcome();
+      setTimeout(() => document.getElementById('chat-input').focus(), 250);
+    }
+  }
+  function renderChatCtx() {
+    const name = (typeof selectedTopic !== 'undefined' && selectedTopic)
+      ? selectedTopic
+      : (typeof collectionMeta === 'function' ? (collectionMeta().name || 'your graph') : 'your graph');
+    document.getElementById('chat-ctx-name').textContent = name;
+  }
+  function autoGrowChat(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(120, el.scrollHeight) + 'px';
+  }
+  function escHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function linkifyRefs(text) {
+    // replace [[note name]] and #note-name patterns with chip links
+    let out = escHtml(text);
+    out = out.replace(/\[\[([^\]]+)\]\]/g, (_, n) => {
+      const safe = n.trim();
+      const exists = notes && notes[safe];
+      return `<a class="chat-ref" onclick="selectNoteFromChat('${safe.replace(/'/g,"\\'")}')">${escHtml(safe)}${exists?'':' <span style=\"opacity:.5\">·new</span>'}</a>`;
+    });
+    out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+    out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    return out;
+  }
+  function selectNoteFromChat(name) {
+    if (notes && notes[name]) selectNote(name);
+    else toast(`'${name}' not in graph`);
+  }
+  function addChatMsg(role, html) {
+    const body = document.getElementById('chat-body');
+    const m = document.createElement('div');
+    m.className = 'chat-msg ' + role;
+    const avatarHtml = role === 'ai'
+      ? '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="3" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="7" cy="11" r="1.5"/><line x1="3.7" y1="3.7" x2="6.3" y2="10.3"/><line x1="10.3" y1="3.7" x2="7.7" y2="10.3"/></svg>'
+      : 'u';
+    m.innerHTML = `<div class="chat-avatar">${avatarHtml}</div><div class="chat-bubble">${html}</div>`;
+    body.appendChild(m);
+    body.scrollTop = body.scrollHeight;
+    return m;
+  }
+  function clearChat() {
+    chatHistory = [];
+    document.getElementById('chat-body').innerHTML = '';
+    renderChatWelcome();
+  }
+  function renderChatWelcome() {
+    const body = document.getElementById('chat-body');
+    body.innerHTML = '';
+    const name = (typeof selectedTopic !== 'undefined' && selectedTopic) ? selectedTopic : null;
+    const intro = name
+      ? `i've read all your notes. ask me anything about <a class="chat-ref" onclick="selectNoteFromChat('${name.replace(/'/g,"\\'")}')">${escHtml(name)}</a> or the wider graph.`
+      : `i've read all your notes. pick a note in the sidebar, or just ask anything about your graph.`;
+    addChatMsg('ai', intro);
+    const sugs = name
+      ? [`explain ${name} in plain language`, `what should i learn before ${name}?`, `quiz me on ${name}`, `suggest related notes to add`]
+      : [`summarize my graph`, `what are the foundational notes?`, `find gaps in my knowledge`, `suggest connections i missed`];
+    const sugWrap = document.createElement('div');
+    sugWrap.className = 'chat-suggestions';
+    sugWrap.innerHTML = `<div class="label">try asking</div>` +
+      sugs.map(s => `<button class="chat-sug" onclick="useSuggestion(this)">${escHtml(s)}</button>`).join('');
+    body.appendChild(sugWrap);
+  }
+  function useSuggestion(b) {
+    const i = document.getElementById('chat-input');
+    i.value = b.textContent;
+    autoGrowChat(i);
+    sendChat();
+  }
+  function buildContext() {
+    const lines = [];
+    const ids = Object.keys(notes || {});
+    lines.push(`The user's knowledge graph has ${ids.length} notes.`);
+    ids.slice(0, 60).forEach(id => {
+      const n = notes[id];
+      const prereqs = (n.subtopics || []).join(', ') || 'none';
+      const tags = (n.tags || []).join(', ') || 'none';
+      const body = (n.note || '').replace(/\s+/g, ' ').slice(0, 240);
+      lines.push(`- ${id} [tags: ${tags}] [prereqs: ${prereqs}]${body ? ' :: ' + body : ''}`);
+    });
+    if (selectedTopic) lines.push(`\nThe user is currently viewing the note: "${selectedTopic}".`);
+    lines.push(`\nWhen referencing notes in your reply, wrap each name in [[double brackets]] so it becomes a clickable chip. Keep replies concise and helpful.`);
+    return lines.join('\n');
+  }
+  async function sendChat() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    autoGrowChat(input);
+    const sendBtn = document.getElementById('chat-send-btn');
+    sendBtn.disabled = true;
+    document.getElementById('chat-status').textContent = 'thinking…';
+
+    // remove suggestions if present
+    const sug = document.querySelector('.chat-suggestions');
+    if (sug) sug.remove();
+
+    addChatMsg('user', escHtml(text));
+    chatHistory.push({ role: 'user', content: text });
+
+    const aiMsg = addChatMsg('ai', '<span class="chat-typing"><span></span><span></span><span></span></span>');
+
+    try {
+      const system = buildContext();
+      const messages = chatHistory.map(m => ({ role: m.role, content: m.content }));
+      const reply = await window.claude.complete({
+        system,
+        messages,
+      });
+      aiMsg.querySelector('.chat-bubble').innerHTML = linkifyRefs(reply);
+      chatHistory.push({ role: 'assistant', content: reply });
+      document.getElementById('chat-status').textContent = 'ready';
+    } catch (e) {
+      aiMsg.querySelector('.chat-bubble').innerHTML = '<em style="color:var(--red)">couldn\'t reach the assistant. try again in a moment.</em>';
+      document.getElementById('chat-status').textContent = 'error';
+    } finally {
+      sendBtn.disabled = false;
+      document.getElementById('chat-body').scrollTop = document.getElementById('chat-body').scrollHeight;
+    }
+  }
+  // refresh ctx when active note changes
+  const _origSelect = window.selectNote;
+  if (typeof _origSelect === 'function') {
+    window.selectNote = function(n) { _origSelect(n); if (chatOpen) renderChatCtx(); };
+  }
+  // Keyboard shortcut: Cmd/Ctrl + /
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+      e.preventDefault();
+      toggleChat();
+    }
+  });
+
+  // ── Init ────────────────────────────────────────────────────────────────
+  load();
+  updateNavBtns();
+</script>
+
+<!-- Tweaks panel (React) -->
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+  const { useState, useEffect } = React;
+  const { TweaksPanel, useTweaks, TweakSection, TweakRadio, TweakSlider, TweakToggle, TweakColor, TweakSelect } = window;
+
+  function TweaksApp() {
+    const [open, setOpen] = useState(false);
+
+    useEffect(() => {
+      const handler = (event) => {
+        const data = event.data || {};
+        if (data.type === '__activate_edit_mode') setOpen(true);
+        if (data.type === '__deactivate_edit_mode') setOpen(false);
+      };
+      window.addEventListener('message', handler);
+      window.parent.postMessage({type: '__edit_mode_available'}, '*');
+      return () => window.removeEventListener('message', handler);
+    }, []);
+
+    if (!open) return null;
+
+    const t = window.TWEAKS;
+
+    const update = (key, value) => {
+      window.TWEAKS[key] = value;
+      // apply
+      if (key === 'theme') window.applyTheme(value);
+      if (key === 'accentHue') window.applyAccent(value);
+      if (key === 'density') window.applyDensity(value);
+      if (key === 'showDots') window.applyDots(value);
+      if (['graphLevels','graphCurved','graphNodeSize','linkDistance'].includes(key)) {
+        if (document.getElementById('graph-view').style.display === 'flex') {
+          window.renderGraph();
+        }
+      }
+      window.persistTweaks();
+      // force re-render
+      setTick(x => x + 1);
+    };
+    const [, setTick] = useState(0);
+
+    return (
+      <TweaksPanel onClose={() => {
+        setOpen(false);
+        window.parent.postMessage({type: '__edit_mode_dismissed'}, '*');
+      }}>
+        <TweakSection title="appearance">
+          <TweakRadio
+            label="theme"
+            value={t.theme}
+            options={[{value:'dark', label:'dark'}, {value:'light', label:'light'}]}
+            onChange={v => update('theme', v)}
+          />
+          <TweakColor
+            label="accent"
+            value={`oklch(0.78 0.14 ${t.accentHue})`}
+            options={[
+              'oklch(0.78 0.14 70)',  // amber
+              'oklch(0.78 0.14 145)', // green
+              'oklch(0.78 0.14 240)', // blue
+              'oklch(0.78 0.14 305)', // purple
+              'oklch(0.78 0.14 25)',  // red
+            ]}
+            onChange={v => {
+              const m = v.match(/(\d+\.?\d*)\)/);
+              if (m) update('accentHue', parseFloat(m[1]));
+            }}
+          />
+          <TweakRadio
+            label="density"
+            value={t.density}
+            options={[
+              {value:'compact', label:'compact'},
+              {value:'comfy', label:'comfy'},
+              {value:'spacious', label:'spacious'},
+            ]}
+            onChange={v => update('density', v)}
+          />
+          <TweakToggle
+            label="dotted background"
+            value={t.showDots}
+            onChange={v => update('showDots', v)}
+          />
+        </TweakSection>
+
+        <TweakSection title="graph">
+          <TweakToggle
+            label="depth levels"
+            value={t.graphLevels}
+            onChange={v => update('graphLevels', v)}
+          />
+          <TweakToggle
+            label="curved edges"
+            value={t.graphCurved}
+            onChange={v => update('graphCurved', v)}
+          />
+          <TweakSlider
+            label="node size"
+            value={t.graphNodeSize}
+            min={10} max={32} step={1}
+            onChange={v => update('graphNodeSize', v)}
+          />
+          <TweakSlider
+            label="link distance"
+            value={t.linkDistance}
+            min={80} max={400} step={10}
+            onChange={v => update('linkDistance', v)}
+          />
+        </TweakSection>
+      </TweaksPanel>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('tweaks-mount')).render(<TweaksApp />);
+</script>
+
+</body>
+</html>

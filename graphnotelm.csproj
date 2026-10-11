@@ -8,6 +8,9 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>.</DockerfileContext>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!-- The frontend lives in this folder too, and the desktop build publishes the backend into it.
+         Without this, its JSON and config files become Content and get copied into every publish. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);graphnotelm-fe\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

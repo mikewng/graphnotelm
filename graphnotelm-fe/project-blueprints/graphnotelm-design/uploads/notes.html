@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Graph Notes</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1e1e2e;
+      color: #cdd6f4;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 12px 20px;
+      background: #181825;
+      border-bottom: 1px solid #313244;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 1rem; color: #cba6f7; }
+
+    header .header-right { display: flex; gap: 8px; align-items: center; }
+
+    /* Graph view */
+    #graph-view {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #1e1e2e;
+      flex-direction: column;
+      z-index: 10;
+    }
+    #graph-header {
+      padding: 10px 20px;
+      background: #181825;
+      border-bottom: 1px solid #313244;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    #graph-header span { font-size: 0.85rem; color: #6c7086; }
+    #graph-svg { flex: 1; width: 100%; }
+    .graph-node circle {
+      fill: #313244;
+      stroke: #cba6f7;
+      stroke-width: 1.5px;
+      cursor: pointer;
+      transition: fill 0.15s;
+    }
+    .graph-node circle:hover { fill: #45475a; }
+    .graph-node.selected circle { fill: #45475a; stroke: #f5c2e7; stroke-width: 2px; }
+    .graph-node text {
+      fill: #cdd6f4;
+      font-size: 12px;
+      pointer-events: none;
+      dominant-baseline: middle;
+    }
+    .graph-link { stroke-opacity: 0.6; transition: stroke-opacity 0.2s, opacity 0.2s; }
+    .graph-link.outgoing { stroke: #a6e3a1; }
+    .graph-link.incoming { stroke: #89b4fa; }
+    .graph-node { transition: opacity 0.2s; }
+    .graph-node.dimmed { opacity: 0.15; }
+    .graph-link.dimmed { opacity: 0.08; }
+    .graph-node.focused circle { stroke-width: 2.5px; filter: drop-shadow(0 0 6px currentColor); }
+
+    button {
+      background: #313244;
+      color: #cdd6f4;
+      border: 1px solid #45475a;
+      border-radius: 6px;
+      padding: 5px 12px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    button:hover { background: #45475a; }
+    button.primary { background: #cba6f7; color: #1e1e2e; border-color: #cba6f7; }
+    button.primary:hover { background: #b893e0; }
+    button.danger { background: #f38ba8; color: #1e1e2e; border-color: #f38ba8; }
+    button.danger:hover { background: #d97a96; }
+
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      width: 220px;
+      background: #181825;
+      border-right: 1px solid #313244;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #sidebar-header {
+      padding: 12px;
+      border-bottom: 1px solid #313244;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #sidebar-header span { font-size: 0.75rem; color: #6c7086; text-transform: uppercase; letter-spacing: 1px; }
+
+    #note-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px;
+    }
+
+    .note-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .note-item:hover { background: #313244; }
+    .note-item.active { background: #45475a; color: #cba6f7; }
+
+    /* Editor */
+    #editor {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    #empty-state {
+      margin: auto;
+      color: #6c7086;
+      text-align: center;
+    }
+
+    #note-form { display: flex; flex-direction: column; gap: 12px; }
+
+    label { font-size: 0.75rem; color: #6c7086; text-transform: uppercase; letter-spacing: 1px; }
+
+    input, textarea {
+      background: #181825;
+      color: #cdd6f4;
+      border: 1px solid #313244;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      width: 100%;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #cba6f7;
+    }
+
+    textarea { resize: vertical; min-height: 120px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    .form-actions { display: flex; gap: 8px; }
+
+    /* Related notes */
+    #related-section { border-top: 1px solid #313244; padding-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+    .related-group-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .related-group-label.outgoing { color: #a6e3a1; }
+    .related-group-label.incoming { color: #89b4fa; }
+
+    .related-list { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .related-tag {
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .related-tag.outgoing { background: #1e3a2f; border: 1px solid #a6e3a1; color: #a6e3a1; }
+    .related-tag.outgoing:hover { background: #2a4f3f; }
+    .related-tag.incoming { background: #1a2a3f; border: 1px solid #89b4fa; color: #89b4fa; cursor: default; }
+    .related-tag.incoming:hover { background: #1f3250; }
+
+    .related-tag .arrow { opacity: 0.7; font-size: 0.75rem; }
+    .related-tag .remove {
+      color: #f38ba8;
+      font-weight: bold;
+      font-size: 0.75rem;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .empty-related { font-size: 0.8rem; color: #45475a; font-style: italic; }
+
+    /* Tags */
+    #tag-filter-bar { padding: 6px; border-bottom: 1px solid #313244; display: flex; flex-wrap: wrap; gap: 4px; }
+    #tag-filter-bar:empty { display: none; }
+    #graph-tag-filter { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 4px; }
+    .tag-pill {
+      border-radius: 20px; padding: 2px 8px; font-size: 0.75rem;
+      cursor: pointer; border: 1px solid transparent;
+      display: inline-flex; align-items: center; gap: 3px;
+      transition: opacity 0.15s;
+    }
+    .tag-pill:hover { opacity: 0.75; }
+    .tag-pill.filter-active { outline: 2px solid #cdd6f4; outline-offset: 1px; }
+    .tag-pill .tag-rm, .tag-pill .tag-up {
+      background: none; border: none; padding: 0;
+      cursor: pointer; color: inherit; opacity: 0.65;
+      font-size: 0.7rem; line-height: 1;
+    }
+    #search-bar { padding: 6px; border-bottom: 1px solid #313244; }
+    #search-input { width: 100%; background: #181825; color: #cdd6f4; border: 1px solid #313244; border-radius: 6px; padding: 5px 10px; font-size: 0.85rem; font-family: inherit; }
+    #search-input:focus { outline: none; border-color: #cba6f7; }
+
+    #tag-add-row { display: flex; gap: 6px; }
+    #tag-input { flex: 1; }
+    .note-item { display: flex; align-items: center; gap: 6px; }
+    .note-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+    #link-row { display: flex; gap: 8px; }
+
+    #link-select {
+      flex: 1;
+      background: #181825;
+      color: #cdd6f4;
+      border: 1px solid #313244;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Graph Notes</h1>
+  <span id="filename-display" style="font-size:0.85rem;color:#6c7086;margin-left:10px;"></span>
+  <div class="header-right">
+    <button onclick="showGraph()">Graph View</button>
+    <button onclick="cmdSave()">Save</button>
+    <button onclick="cmdOpen()">Open</button>
+    <button class="primary" onclick="cmdNew()">New</button>
+  </div>
+</header>
+
+<div id="graph-view">
+  <div id="graph-header">
+    <div style="display:flex;flex-direction:column;gap:4px;flex:1;">
+      <span>Click a node to open it · Scroll to zoom · Drag to pan</span>
+      <div id="graph-tag-filter"></div>
+    </div>
+    <button onclick="hideGraph()">✕ Close</button>
+  </div>
+  <svg id="graph-svg"></svg>
+</div>
+
+<div class="layout">
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <span>Notes</span>
+      <button class="primary" onclick="newNote()">+ New</button>
+    </div>
+    <div id="search-bar">
+      <input id="search-input" type="text" placeholder="Search topics..." oninput="renderSidebar()" />
+    </div>
+    <div id="tag-filter-bar"></div>
+    <div id="note-list"></div>
+  </div>
+
+  <div id="editor">
+    <div id="empty-state">
+      <p>Select a note or create a new one.</p>
+    </div>
+
+    <div id="note-form" style="display:none">
+      <div class="field">
+        <label>Topic</label>
+        <input id="input-topic" type="text" placeholder="Note topic" />
+      </div>
+      <div class="field">
+        <label>Note</label>
+        <textarea id="input-note" placeholder="Write your note here..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="primary" onclick="saveNote()">Save</button>
+        <button class="danger" onclick="deleteNote()">Delete</button>
+      </div>
+
+      <div class="field">
+        <label>Tags <span style="color:#6c7086;font-weight:normal;text-transform:none;letter-spacing:0">(first is primary)</span></label>
+        <div id="tags-container" style="display:flex;flex-wrap:wrap;gap:6px;min-height:24px;"></div>
+        <div id="tag-add-row">
+          <input id="tag-input" type="text" placeholder="Add tag..." onkeydown="if(event.key==='Enter')addTag()" />
+          <button onclick="addTag()">Add</button>
+        </div>
+      </div>
+
+      <div id="related-section">
+        <div>
+          <div class="related-group-label outgoing">→ Prerequisites</div>
+          <div id="outgoing-list" class="related-list"></div>
+        </div>
+        <div>
+          <div class="related-group-label incoming">← Prerequisite to</div>
+          <div id="incoming-list" class="related-list"></div>
+        </div>
+        <div id="link-row">
+          <select id="link-select"><option value="">Add prerequisite...</option></select>
+          <button onclick="linkNote()">Add Prerequisite</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Data ──────────────────────────────────────────────────────────────────
+  // { [topic]: { note: string, subtopics: string[], tags: string[] } }
+  // subtopics = outgoing directed links only (A.subtopics includes B means A → B)
+  // tags[0] is the primary tag
+  let notes = {};
+  let selectedTopic = null;
+  let tagFilter = null;
+  let fileHandle = null;
+
+  function tagColor(tag) {
+    let h = 0;
+    for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+    const hue = h % 360;
+    return `hsl(${hue}, 70%, 72%)`;
+  }
+  function allTags() {
+    const s = new Set();
+    Object.values(notes).forEach(n => (n.tags || []).forEach(t => s.add(t)));
+    return [...s].sort();
+  }
+
+  function load() {
+    const stored = localStorage.getItem("graph-notes");
+    if (stored) notes = JSON.parse(stored);
+    render();
+  }
+
+  function persist() {
+    localStorage.setItem("graph-notes", JSON.stringify(notes));
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  function render() {
+    renderSidebar();
+    if (selectedTopic && notes[selectedTopic]) {
+      renderEditor(selectedTopic);
+    } else {
+      selectedTopic = null;
+      document.getElementById("empty-state").style.display = "";
+      document.getElementById("note-form").style.display = "none";
+    }
+  }
+
+  function renderSidebar() {
+    // Tag filter bar
+    const filterBar = document.getElementById("tag-filter-bar");
+    filterBar.innerHTML = "";
+    const tags = allTags();
+    if (tags.length > 0) {
+      const allBtn = document.createElement("span");
+      allBtn.className = "tag-pill" + (tagFilter === null ? " filter-active" : "");
+      allBtn.style.cssText = "background:#313244;color:#cdd6f4;border-color:#45475a;";
+      allBtn.textContent = "All";
+      allBtn.onclick = () => { tagFilter = null; render(); };
+      filterBar.appendChild(allBtn);
+      tags.forEach(tag => {
+        const pill = document.createElement("span");
+        pill.className = "tag-pill" + (tagFilter === tag ? " filter-active" : "");
+        const c = tagColor(tag);
+        pill.style.cssText = `background:${c}22;border-color:${c};color:${c};`;
+        pill.textContent = tag;
+        pill.onclick = () => { tagFilter = tagFilter === tag ? null : tag; render(); };
+        filterBar.appendChild(pill);
+      });
+    }
+
+    // Note list
+    const query = document.getElementById("search-input").value.trim().toLowerCase();
+    const list = document.getElementById("note-list");
+    list.innerHTML = "";
+    Object.keys(notes).sort()
+      .filter(topic => !tagFilter || (notes[topic].tags || []).includes(tagFilter))
+      .filter(topic => !query || topic.toLowerCase().includes(query))
+      .forEach(topic => {
+        const el = document.createElement("div");
+        el.className = "note-item" + (topic === selectedTopic ? " active" : "");
+        el.onclick = () => selectNote(topic);
+        const primaryTag = (notes[topic].tags || [])[0];
+        if (primaryTag) {
+          const dot = document.createElement("span");
+          dot.className = "note-dot";
+          dot.style.background = tagColor(primaryTag);
+          el.appendChild(dot);
+        }
+        el.appendChild(document.createTextNode(topic));
+        list.appendChild(el);
+      });
+  }
+
+  function renderEditor(topic) {
+    const node = notes[topic];
+    document.getElementById("empty-state").style.display = "none";
+    document.getElementById("note-form").style.display = "flex";
+    document.getElementById("input-topic").value = topic;
+    document.getElementById("input-note").value = node.note;
+
+    const outgoing = node.subtopics || [];
+    const incoming = Object.keys(notes).filter(t => t !== topic && (notes[t].subtopics || []).includes(topic));
+
+    // Outgoing tags (this note → other)
+    const outgoingList = document.getElementById("outgoing-list");
+    outgoingList.innerHTML = "";
+    if (outgoing.length === 0) {
+      outgoingList.innerHTML = `<span class="empty-related">None</span>`;
+    } else {
+      outgoing.forEach(neighbor => {
+        const tag = document.createElement("div");
+        tag.className = "related-tag outgoing";
+        tag.onclick = () => selectNote(neighbor);
+        tag.innerHTML = `<span class="arrow">→</span><span>${neighbor}</span>`;
+        const rm = document.createElement("button");
+        rm.className = "remove";
+        rm.textContent = "×";
+        rm.title = "Remove neighbor";
+        rm.onclick = (e) => { e.stopPropagation(); unlinkNote(topic, neighbor); };
+        tag.appendChild(rm);
+        outgoingList.appendChild(tag);
+      });
+    }
+
+    // Incoming tags (other → this note), read-only
+    const incomingList = document.getElementById("incoming-list");
+    incomingList.innerHTML = "";
+    if (incoming.length === 0) {
+      incomingList.innerHTML = `<span class="empty-related">None</span>`;
+    } else {
+      incoming.forEach(neighbor => {
+        const tag = document.createElement("div");
+        tag.className = "related-tag incoming";
+        tag.onclick = () => selectNote(neighbor);
+        tag.innerHTML = `<span class="arrow">←</span><span>${neighbor}</span>`;
+        incomingList.appendChild(tag);
+      });
+    }
+
+    // Tags
+    if (!notes[topic].tags) notes[topic].tags = [];
+    const tagsContainer = document.getElementById("tags-container");
+    tagsContainer.innerHTML = "";
+    notes[topic].tags.forEach((tag, i) => {
+      const pill = document.createElement("span");
+      const c = tagColor(tag);
+      pill.className = "tag-pill";
+      pill.style.cssText = `background:${c}22;border-color:${c};color:${c};`;
+      if (i === 0) {
+        const star = document.createElement("span");
+        star.textContent = "★";
+        star.style.fontSize = "0.65rem";
+        pill.appendChild(star);
+      } else {
+        const up = document.createElement("button");
+        up.className = "tag-up"; up.textContent = "↑"; up.title = "Make primary";
+        up.onclick = (e) => {
+          e.stopPropagation();
+          notes[topic].tags.splice(i, 1);
+          notes[topic].tags.unshift(tag);
+          persist(); renderEditor(topic); renderSidebar();
+        };
+        pill.appendChild(up);
+      }
+      pill.appendChild(document.createTextNode(tag));
+      const rm = document.createElement("button");
+      rm.className = "tag-rm"; rm.textContent = "×"; rm.title = "Remove tag";
+      rm.onclick = (e) => {
+        e.stopPropagation();
+        notes[topic].tags = notes[topic].tags.filter(t => t !== tag);
+        persist(); renderEditor(topic); renderSidebar();
+      };
+      pill.appendChild(rm);
+      tagsContainer.appendChild(pill);
+    });
+
+    // Link dropdown — only show notes not already in outgoing and not self
+    const sel = document.getElementById("link-select");
+    sel.innerHTML = `<option value="">Link to...</option>`;
+    Object.keys(notes).sort().forEach(t => {
+      if (t !== topic && !outgoing.includes(t)) {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        sel.appendChild(opt);
+      }
+    });
+  }
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+
+  function selectNote(topic) {
+    selectedTopic = topic;
+    render();
+  }
+
+  function newNote() {
+    const topic = prompt("Topic name:");
+    if (!topic || !topic.trim()) return;
+    const t = topic.trim();
+    if (notes[t]) { alert(`'${t}' already exists.`); return; }
+    notes[t] = { note: "", subtopics: [], tags: [] };
+    selectedTopic = t;
+    persist();
+    render();
+    document.getElementById("input-note").focus();
+  }
+
+  function saveNote() {
+    const newTopic = document.getElementById("input-topic").value.trim();
+    const newNoteText = document.getElementById("input-note").value;
+
+    if (!newTopic) { alert("Topic cannot be empty."); return; }
+
+    if (newTopic !== selectedTopic) {
+      if (notes[newTopic]) { alert(`'${newTopic}' already exists.`); return; }
+      // Rename: transfer data and update all neighbor references
+      notes[newTopic] = { ...notes[selectedTopic] };
+      Object.keys(notes).forEach(t => {
+        notes[t].subtopics = notes[t].subtopics.map(n => n === selectedTopic ? newTopic : n);
+      });
+      delete notes[selectedTopic];
+      selectedTopic = newTopic;
+    }
+
+    notes[selectedTopic].note = newNoteText;
+    persist();
+    render();
+  }
+
+  function deleteNote() {
+    if (!selectedTopic) return;
+    if (!confirm(`Delete '${selectedTopic}'?`)) return;
+    const topic = selectedTopic;
+    delete notes[topic];
+    Object.keys(notes).forEach(t => {
+      notes[t].subtopics = notes[t].subtopics.filter(n => n !== topic);
+    });
+    selectedTopic = null;
+    persist();
+    render();
+  }
+
+  function addTag() {
+    if (!selectedTopic) return;
+    const input = document.getElementById("tag-input");
+    const tag = input.value.trim();
+    if (!tag) return;
+    if (!notes[selectedTopic].tags) notes[selectedTopic].tags = [];
+    if (!notes[selectedTopic].tags.includes(tag)) {
+      notes[selectedTopic].tags.push(tag);
+      persist(); renderEditor(selectedTopic); renderSidebar();
+    }
+    input.value = "";
+  }
+
+  function linkNote() {
+    const target = document.getElementById("link-select").value;
+    if (!target || !selectedTopic) return;
+    notes[selectedTopic].subtopics.push(target);
+    persist();
+    renderEditor(selectedTopic);
+  }
+
+  function unlinkNote(a, b) {
+    notes[a].subtopics = notes[a].subtopics.filter(n => n !== b);
+    persist();
+    renderEditor(a);
+  }
+
+  // ── File management (File System Access API) ─────────────────────────────
+
+  const FILE_OPTS = {
+    types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
+  };
+
+  function updateFilename() {
+    document.getElementById("filename-display").textContent =
+      fileHandle ? fileHandle.name : "";
+  }
+
+  async function writeToHandle() {
+    if (!fileHandle) return;
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(notes, null, 2));
+    await writable.close();
+  }
+
+  async function cmdNew() {
+    if (Object.keys(notes).length > 0 &&
+        !confirm("Discard current notes and start a new file?")) return;
+    try {
+      fileHandle = await window.showSaveFilePicker(
+        { suggestedName: "notes.json", ...FILE_OPTS });
+    } catch (e) { if (e.name !== "AbortError") throw e; return; }
+    notes = {};
+    selectedTopic = null;
+    persist();
+    await writeToHandle();
+    updateFilename();
+    render();
+  }
+
+  async function cmdOpen() {
+    let handle;
+    try {
+      [handle] = await window.showOpenFilePicker(FILE_OPTS);
+    } catch (e) { if (e.name !== "AbortError") throw e; return; }
+    const text = await (await handle.getFile()).text();
+    try { notes = JSON.parse(text); }
+    catch { alert("Invalid JSON file."); return; }
+    fileHandle = handle;
+    selectedTopic = null;
+    persist();
+    updateFilename();
+    render();
+  }
+
+  async function cmdSave() {
+    if (!fileHandle) {
+      try {
+        fileHandle = await window.showSaveFilePicker(
+          { suggestedName: "notes.json", ...FILE_OPTS });
+      } catch (e) { if (e.name !== "AbortError") throw e; return; }
+    }
+    await writeToHandle();
+    updateFilename();
+  }
+
+  // ── Graph View ────────────────────────────────────────────────────────────
+
+  function showGraph() {
+    document.getElementById("graph-view").style.display = "flex";
+    renderGraphTagFilter();
+    renderGraph();
+  }
+
+  function renderGraphTagFilter() {
+    const bar = document.getElementById("graph-tag-filter");
+    bar.innerHTML = "";
+    const tags = allTags();
+    if (tags.length === 0) return;
+    const allBtn = document.createElement("span");
+    allBtn.className = "tag-pill" + (tagFilter === null ? " filter-active" : "");
+    allBtn.style.cssText = "background:#313244;color:#cdd6f4;border-color:#45475a;";
+    allBtn.textContent = "All";
+    allBtn.onclick = () => { tagFilter = null; renderGraphTagFilter(); renderGraph(); };
+    bar.appendChild(allBtn);
+    tags.forEach(tag => {
+      const pill = document.createElement("span");
+      pill.className = "tag-pill" + (tagFilter === tag ? " filter-active" : "");
+      const c = tagColor(tag);
+      pill.style.cssText = `background:${c}22;border-color:${c};color:${c};`;
+      pill.textContent = tag;
+      pill.onclick = () => { tagFilter = tagFilter === tag ? null : tag; renderGraphTagFilter(); renderGraph(); };
+      bar.appendChild(pill);
+    });
+  }
+
+  function hideGraph() {
+    document.getElementById("graph-view").style.display = "none";
+  }
+
+  function computeLevels(notes) {
+    // notes[A].subtopics = prerequisites of A (things A depends on)
+    // Prerequisites are foundational → level 0 at top
+    // A node's level = max(level of its prerequisites) + 1
+    const ids = Object.keys(notes);
+    const level = {};
+    ids.forEach(id => level[id] = 0);
+
+    // Iterative relaxation — converges for DAGs, caps for cycles
+    for (let iter = 0; iter < ids.length; iter++) {
+      let changed = false;
+      ids.forEach(id => {
+        const prereqs = (notes[id].subtopics || []).filter(p => level[p] !== undefined);
+        if (prereqs.length > 0) {
+          const next = Math.max(...prereqs.map(p => level[p])) + 1;
+          if (next > level[id]) { level[id] = next; changed = true; }
+        }
+      });
+      if (!changed) break;
+    }
+    return level;
+  }
+
+  function renderGraph() {
+    const svg = d3.select("#graph-svg");
+    svg.selectAll("*").remove();
+
+    const width = svg.node().clientWidth;
+    const height = svg.node().clientHeight;
+
+    const visibleIds = new Set(
+      Object.keys(notes).filter(id => !tagFilter || (notes[id].tags || []).includes(tagFilter))
+    );
+    const nodeData = [...visibleIds].map(id => ({ id }));
+    const linkData = [];
+    Object.keys(notes).forEach(source => {
+      if (!visibleIds.has(source)) return;
+      (notes[source].subtopics || []).forEach(target => {
+        if (visibleIds.has(target)) linkData.push({ source, target });
+      });
+    });
+
+    const levels = computeLevels(notes);
+    const maxLevel = Math.max(...Object.values(levels), 0);
+    const padding = 80;
+    const levelSpacing = maxLevel > 0 ? (height - padding * 2) / maxLevel : 0;
+
+    // Arrow marker
+    const defs = svg.append("defs");
+    defs.append("marker")
+      .attr("id", "arrow")
+      .attr("viewBox", "0 -4 8 8")
+      .attr("refX", 24)
+      .attr("refY", 0)
+      .attr("markerWidth", 6)
+      .attr("markerHeight", 6)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-4L8,0L0,4")
+      .attr("fill", "#a6e3a1");
+
+    // Zoom/pan container
+    const g = svg.append("g");
+    svg.call(
+      d3.zoom().scaleExtent([0.2, 3]).on("zoom", e => g.attr("transform", e.transform))
+    );
+
+    const simulation = d3.forceSimulation(nodeData)
+      .force("link", d3.forceLink(linkData).id(d => d.id).distance(200).strength(0.3))
+      .force("charge", d3.forceManyBody().strength(-800))
+      .force("x", d3.forceX(width / 2).strength(0.05))
+      .force("y", d3.forceY(d => padding + levels[d.id] * levelSpacing).strength(0.5))
+      .force("collision", d3.forceCollide(70));
+
+    const link = g.append("g")
+      .selectAll("line")
+      .data(linkData)
+      .join("line")
+      .attr("class", "graph-link outgoing")
+      .attr("stroke-width", 1.5)
+      .attr("marker-end", "url(#arrow)");
+
+    const node = g.append("g")
+      .selectAll("g")
+      .data(nodeData)
+      .join("g")
+      .attr("class", d => "graph-node" + (d.id === selectedTopic ? " selected" : ""))
+      .call(d3.drag()
+        .on("start", (event, d) => {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x; d.fy = d.y;
+        })
+        .on("drag", (event, d) => { d.fx = event.x; d.fy = event.y; })
+        .on("end", (event, d) => {
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null; d.fy = null;
+        })
+      )
+      .on("click", (event, d) => {
+        if (event.defaultPrevented) return; // ignore drag-end clicks
+        hideGraph();
+        selectNote(d.id);
+      })
+      .on("mouseover", (event, d) => {
+        const connected = new Set([d.id]);
+        linkData.forEach(l => {
+          const src = typeof l.source === "object" ? l.source.id : l.source;
+          const tgt = typeof l.target === "object" ? l.target.id : l.target;
+          if (src === d.id || tgt === d.id) { connected.add(src); connected.add(tgt); }
+        });
+        node.classed("dimmed", n => !connected.has(n.id))
+            .classed("focused", n => n.id === d.id);
+        link.classed("dimmed", l => {
+          const src = typeof l.source === "object" ? l.source.id : l.source;
+          const tgt = typeof l.target === "object" ? l.target.id : l.target;
+          return !connected.has(src) || !connected.has(tgt);
+        });
+      })
+      .on("mouseout", () => {
+        node.classed("dimmed", false).classed("focused", false);
+        link.classed("dimmed", false);
+      });
+
+    node.append("circle")
+      .attr("r", 20)
+      .style("stroke", d => {
+        const primary = (notes[d.id]?.tags || [])[0];
+        return primary ? tagColor(primary) : "#cba6f7";
+      });
+
+    node.append("text")
+      .text(d => d.id.length > 16 ? d.id.slice(0, 15) + "…" : d.id)
+      .attr("x", 26)
+      .attr("y", 0);
+
+    // Level labels on the right edge
+    if (maxLevel > 0) {
+      const labelG = svg.append("g").attr("class", "level-labels");
+      for (let l = 0; l <= maxLevel; l++) {
+        labelG.append("text")
+          .attr("x", width - 8)
+          .attr("y", padding + l * levelSpacing)
+          .attr("text-anchor", "end")
+          .attr("dominant-baseline", "middle")
+          .attr("font-size", "10px")
+          .attr("fill", "#45475a")
+          .text(l === 0 ? "foundational" : `depth ${l}`);
+      }
+    }
+
+    simulation.on("tick", () => {
+      link
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
+      node.attr("transform", d => `translate(${d.x},${d.y})`);
+    });
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  load();
+</script>
+</body>
+</html>
