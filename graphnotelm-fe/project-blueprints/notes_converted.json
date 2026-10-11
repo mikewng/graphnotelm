@@ -1,0 +1,815 @@
+{
+  "Name": "AWS Skills",
+  "Tags": {
+    "a5a50dd1-c8d7-4708-8878-4a62c80d1f07": {
+      "Name": "AWS",
+      "Color": "#888888"
+    },
+    "ade21483-971f-4ea5-b14b-39f881291ddb": {
+      "Name": "Data Engineering",
+      "Color": "#888888"
+    },
+    "92dd561a-af28-4197-85da-e550f03f5d3d": {
+      "Name": "Networking",
+      "Color": "#888888"
+    }
+  },
+  "Relationships": {
+    "bab1f83d-b845-4da3-9678-6deea0867417": {
+      "Name": "prerequiste",
+      "Color": "#c33c3c",
+      "Inverse": "is prerequiste to"
+    }
+  },
+  "Nodes": {
+    "547ba1e2-847f-4993-ab69-4c357dd58551": {
+      "Id": "547ba1e2-847f-4993-ab69-4c357dd58551",
+      "Title": "AWS IAM",
+      "Note": "Identity and access management. Controls who can do what across all AWS services via users, roles, and policies. Every service depends on IAM for permissions.",
+      "Relationships": [],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "99423588-8e7f-40b8-a684-73400d8fb7d5": {
+      "Id": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+      "Title": "AWS S3",
+      "Note": "Object storage. Acts as the central data lake \u2014 stores raw files (CSV, JSON, Parquet, ORC) that other services read from and write to. Supports lifecycle rules, versioning, encryption, and event notifications.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "958b9c16-d7ed-44a7-84ff-630d116a4f2e": {
+      "Id": "958b9c16-d7ed-44a7-84ff-630d116a4f2e",
+      "Title": "VPC",
+      "Note": "Virtual Private Cloud. Isolated network for AWS resources. Services like EMR, Redshift, and RDS run inside VPCs. Misconfigurations (missing endpoints, wrong security groups) are common exam traps. Contains public and private subnets in which you can define to allow for access scopes.\n\nHas an internal framework of CIDR Blocks, that allow you to launch various non-regional AWS services available to other services or allow for public access. However, you can define private endpoints via VPC to allow for regional instances to communicate with other instances without having to go through the public web (www.)\\\n\nA default VPC for each AWS region is automatically created for each account, allowing for users to instantly launch EC2 instances, Load Balancers, RDS databases, etc.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "8abe5d13-8453-4838-bc66-954895e65f8f",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "8d1cdb43-cac8-4a4a-9cbc-a4fd93c2a332",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "acc43f38-1941-48e6-be6c-da5b71cae4c1",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "a841e48d-1910-48f4-a4a2-38b71c5e55c7",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "0f1d5963-63bb-42ae-b29e-fa4b8d7a6385",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "19941086-d024-4db7-89a8-66d1c560dece": {
+      "Id": "19941086-d024-4db7-89a8-66d1c560dece",
+      "Title": "CloudWatch",
+      "Note": "Monitoring and observability. Collects logs, metrics, and alarms for all services. Used to troubleshoot pipeline failures, set alerts, and query logs via Logs Insights.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "2862063f-ba2e-47d3-ba16-585b85714ab1": {
+      "Id": "2862063f-ba2e-47d3-ba16-585b85714ab1",
+      "Title": "CloudTrail",
+      "Note": "API audit logging. Records every AWS API call (who did what, when). Delivers logs to S3 for compliance and can be queried via Athena for security analysis.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "9349b634-1a2b-46c5-8f10-2f564c346154": {
+      "Id": "9349b634-1a2b-46c5-8f10-2f564c346154",
+      "Title": "Lambda",
+      "Note": "Serverless compute. Runs code in response to events (S3 uploads, Kinesis records, DynamoDB changes). The glue for event-driven ETL. 15-min max runtime, 10GB memory limit.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "19941086-d024-4db7-89a8-66d1c560dece",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "87f7a3be-6eeb-486e-84ee-4b0635891a5d",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "1f90fddf-ae56-4bd6-8389-f773d07efe3f": {
+      "Id": "1f90fddf-ae56-4bd6-8389-f773d07efe3f",
+      "Title": "EC2",
+      "Note": "Virtual machines. Foundation for EMR clusters and self-managed workloads. Key concepts: instance types (compute/memory/storage optimized), Spot vs On-Demand pricing, instance profiles for IAM roles.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "958b9c16-d7ed-44a7-84ff-630d116a4f2e",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "47da2804-5632-4f33-aeb9-50ce6a3edf77": {
+      "Id": "47da2804-5632-4f33-aeb9-50ce6a3edf77",
+      "Title": "AWS Glue",
+      "Note": "Managed serverless ETL service. Runs Apache Spark jobs to extract, transform, and load data. Handles schema inference, job bookmarks (tracks processed data), and auto-generates ETL scripts.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "19941086-d024-4db7-89a8-66d1c560dece",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "198bf9bc-61c3-45bd-acaa-521db5b3936c": {
+      "Id": "198bf9bc-61c3-45bd-acaa-521db5b3936c",
+      "Title": "Data Catalog",
+      "Note": "Centralized metadata store (part of Glue). Crawlers scan S3/databases and infer table schemas. Acts as the shared schema layer for Athena, Redshift Spectrum, and EMR \u2014 they all query through it.",
+      "Relationships": [
+        {
+          "TargetNodeId": "47da2804-5632-4f33-aeb9-50ce6a3edf77",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "16d6ebf6-f57a-469d-9eba-57b13c968f07": {
+      "Id": "16d6ebf6-f57a-469d-9eba-57b13c968f07",
+      "Title": "Athena",
+      "Note": "Serverless SQL query engine over S3. Uses schemas from Data Catalog. Pay per TB scanned. Optimized by using Parquet/ORC, partitioning, and predicate pushdown. Best for ad-hoc and infrequent queries.",
+      "Relationships": [
+        {
+          "TargetNodeId": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "198bf9bc-61c3-45bd-acaa-521db5b3936c",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "aff9422e-4694-4c7f-88c3-e4177fc2985d": {
+      "Id": "aff9422e-4694-4c7f-88c3-e4177fc2985d",
+      "Title": "Redshift",
+      "Note": "Managed data warehouse for heavy analytical workloads. Data is loaded INTO Redshift storage. Supports complex joins, aggregations, and materialized views. Redshift Spectrum extends queries to S3 without loading data.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "958b9c16-d7ed-44a7-84ff-630d116a4f2e",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "19941086-d024-4db7-89a8-66d1c560dece",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "0c623b5b-0a4a-456a-b03c-c5f715a76296": {
+      "Id": "0c623b5b-0a4a-456a-b03c-c5f715a76296",
+      "Title": "Kinesis Data Streams",
+      "Note": "Real-time data streaming. You manage shards and write custom consumers (Lambda, KCL apps). Sub-second latency. Use when you need fine-grained control over stream processing and or retries.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "19941086-d024-4db7-89a8-66d1c560dece",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "ce55a90e-9e60-4a37-b80e-0822c7f53824": {
+      "Id": "ce55a90e-9e60-4a37-b80e-0822c7f53824",
+      "Title": "Kinesis Data Firehose",
+      "Note": "Managed near-real-time delivery pipe. Auto-batches, compresses, and delivers data to S3, Redshift, OpenSearch, or Splunk. No shards to manage. Minimum 60-second buffer. Can transform in-flight via Lambda.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "9349b634-1a2b-46c5-8f10-2f564c346154",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "0c623b5b-0a4a-456a-b03c-c5f715a76296",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "919b792f-fede-4aab-b080-f4c95ac6f269": {
+      "Id": "919b792f-fede-4aab-b080-f4c95ac6f269",
+      "Title": "EMR",
+      "Note": "Managed clusters for big data frameworks (Spark, Hive, Presto, Flink). Runs on EC2 or EKS. Use for terabyte-scale ETL, ML feature engineering, and processing too heavy for Athena/Lambda. Exam loves Spot instances for cost optimization.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "1f90fddf-ae56-4bd6-8389-f773d07efe3f",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "958b9c16-d7ed-44a7-84ff-630d116a4f2e",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "19941086-d024-4db7-89a8-66d1c560dece",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "4751feaf-235f-4e9a-8c04-1f3d1fa18dd9": {
+      "Id": "4751feaf-235f-4e9a-8c04-1f3d1fa18dd9",
+      "Title": "MSK",
+      "Note": "Managed Apache Kafka. Fully managed Kafka clusters for high-throughput event streaming. Use over Kinesis when you need Kafka-native APIs, higher retention, or existing Kafka ecosystem tooling.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "958b9c16-d7ed-44a7-84ff-630d116a4f2e",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "19941086-d024-4db7-89a8-66d1c560dece",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "b58ba90a-529e-4bd5-9c3c-ee52ee83bc2a": {
+      "Id": "b58ba90a-529e-4bd5-9c3c-ee52ee83bc2a",
+      "Title": "Lake Formation",
+      "Note": "Data lake governance layer on top of Glue Data Catalog. Manages fine-grained access control (column/row-level), data sharing across accounts, and centralized permissions. Not an ETL or query engine itself.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "198bf9bc-61c3-45bd-acaa-521db5b3936c",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "47da2804-5632-4f33-aeb9-50ce6a3edf77",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "fcb04d24-2a77-4d0f-bc19-f53a7fdeed08": {
+      "Id": "fcb04d24-2a77-4d0f-bc19-f53a7fdeed08",
+      "Title": "Step Functions",
+      "Note": "Serverless workflow orchestrator. Chains services (Lambda, Glue, EMR, ECS) into state machines with branching, retries, and error handling. Use for multi-step ETL pipelines. Standard (long-running) vs Express (high-volume, short) workflows.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "9349b634-1a2b-46c5-8f10-2f564c346154",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "47da2804-5632-4f33-aeb9-50ce6a3edf77",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "19941086-d024-4db7-89a8-66d1c560dece",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "b13ff62c-60d9-4c7c-bc3c-8a11571ad085": {
+      "Id": "b13ff62c-60d9-4c7c-bc3c-8a11571ad085",
+      "Title": "EventBridge",
+      "Note": "Serverless event bus. Routes events between AWS services and custom apps using rules and patterns. Replaces CloudWatch Events. Use for scheduling (cron), reacting to state changes, and decoupling pipeline triggers.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "9349b634-1a2b-46c5-8f10-2f564c346154",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "bdd764bf-62ee-447b-b4ca-4121a1ef86e4": {
+      "Id": "bdd764bf-62ee-447b-b4ca-4121a1ef86e4",
+      "Title": "SQS",
+      "Note": "Managed message queue. Decouples producers and consumers. Standard (at-least-once, unordered) vs FIFO (exactly-once, ordered). Use for buffering between pipeline stages. Dead letter queues catch failed messages.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "9349b634-1a2b-46c5-8f10-2f564c346154",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "94534ce5-9cc9-485a-a48d-ac4c4c75b788": {
+      "Id": "94534ce5-9cc9-485a-a48d-ac4c4c75b788",
+      "Title": "SNS",
+      "Note": "Pub/sub messaging. One message fans out to multiple subscribers (SQS queues, Lambda, email, HTTP). Use for notifications (pipeline success/failure alerts) and fan-out patterns where one event triggers multiple consumers.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "2b78bad5-d919-42f5-9780-dad37ddc0374": {
+      "Id": "2b78bad5-d919-42f5-9780-dad37ddc0374",
+      "Title": "DynamoDB",
+      "Note": "Serverless NoSQL key-value/document database. Millisecond latency at any scale. Key concepts: partition key design, GSI/LSI, provisioned vs on-demand capacity, DynamoDB Streams for change data capture \u2192 Lambda.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "19941086-d024-4db7-89a8-66d1c560dece",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "3e0cccf0-5dcf-48ee-9bb5-a9ea22461731": {
+      "Id": "3e0cccf0-5dcf-48ee-9bb5-a9ea22461731",
+      "Title": "DMS",
+      "Note": "Database Migration Service. Migrates data between databases (on-prem to cloud, RDS to Redshift, etc.). Supports one-time migration and ongoing replication (CDC \u2014 change data capture). Handles heterogeneous migrations (Oracle \u2192 Aurora).",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "958b9c16-d7ed-44a7-84ff-630d116a4f2e",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "b5d4af10-d9a8-4841-9e34-7793c1223a30",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "b702a519-3477-41ad-bf10-9a5494bea680": {
+      "Id": "b702a519-3477-41ad-bf10-9a5494bea680",
+      "Title": "QuickSight",
+      "Note": "Managed BI/visualization tool. Connects to Athena, Redshift, S3, RDS and generates dashboards, charts, and reports. SPICE is its in-memory engine for fast visualizations. The 'last mile' of the data pipeline.",
+      "Relationships": [
+        {
+          "TargetNodeId": "16d6ebf6-f57a-469d-9eba-57b13c968f07",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "aff9422e-4694-4c7f-88c3-e4177fc2985d",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "0b0b58d2-878c-479b-84b4-6a32d0590425": {
+      "Id": "0b0b58d2-878c-479b-84b4-6a32d0590425",
+      "Title": "CloudFormation",
+      "Note": "Infrastructure as Code. Defines AWS resources declaratively in JSON/YAML templates. Exam expects you to read templates and trace resource dependencies, not necessarily author from scratch. Essentially automates infrastructure as code by helping define steps to set up infrastructure, what services to set up, etc., so to avoid manually processes that might be prone to human error and also copy the steps as templates to be reused again. Using YAML and JSON, you configure, create, update, and or delete \"stacks\" (AWS Compute Resources).",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "b803d5b1-1147-425c-b36c-af170fc5b800": {
+      "Id": "b803d5b1-1147-425c-b36c-af170fc5b800",
+      "Title": "KMS",
+      "Note": "Key Management Service. Creates and manages encryption keys. Used by S3 (SSE-KMS), Redshift, RDS, Kinesis, and Glue for data encryption at rest. Understand key policies, key rotation, and cross-account key access.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "030b4a36-a818-45a1-b92f-f312190339ad": {
+      "Id": "030b4a36-a818-45a1-b92f-f312190339ad",
+      "Title": "CloudWatch Container Insights",
+      "Note": "A subset of CloudWatch in which handles logging for multiple containerized applications (via EKS).",
+      "Relationships": [
+        {
+          "TargetNodeId": "19941086-d024-4db7-89a8-66d1c560dece",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "bd515be5-989d-4a7c-b0d4-8bbd05e5a3a1": {
+      "Id": "bd515be5-989d-4a7c-b0d4-8bbd05e5a3a1",
+      "Title": "EFS",
+      "Note": "Elastic File Sharing service. Provides scalable file storage for EC2 or lambda instances, allowing them to be mounted on giving built-in File IO and mutability.",
+      "Relationships": [
+        {
+          "TargetNodeId": "1f90fddf-ae56-4bd6-8389-f773d07efe3f",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "9349b634-1a2b-46c5-8f10-2f564c346154",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "4ccb6b2f-2c7d-4e35-9ac3-66fddf2830ea": {
+      "Id": "4ccb6b2f-2c7d-4e35-9ac3-66fddf2830ea",
+      "Title": "DataBrew",
+      "Note": "A no-code-low-code ETL service similar to regular Glue Jobs. Can do simple drag-drop flows for data cleaning and transformation, but lacks complexity when compared to Glue Jobs",
+      "Relationships": [
+        {
+          "TargetNodeId": "47da2804-5632-4f33-aeb9-50ce6a3edf77",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "b5d4af10-d9a8-4841-9e34-7793c1223a30": {
+      "Id": "b5d4af10-d9a8-4841-9e34-7793c1223a30",
+      "Title": "RDS",
+      "Note": "Managed relational databases (PostgreSQL, MySQL, etc.). Aurora is AWS-optimized with better performance and scaling. Key concepts: read replicas, Multi-AZ failover, RDS Proxy for Lambda connections, snapshot export to S3 as Parquet.",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "958b9c16-d7ed-44a7-84ff-630d116a4f2e",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "19941086-d024-4db7-89a8-66d1c560dece",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "b6829d51-2415-4bf8-88bc-f476a36ec5e9": {
+      "Id": "b6829d51-2415-4bf8-88bc-f476a36ec5e9",
+      "Title": "RDS Aurora",
+      "Note": "A subset of RDS in which is Amazon's custom SQL that is higher in availability and performance. An RDS can use different types of SQL engines like PostgreSQL and MySQL, but Amazon boasts of Aurora's capabilities at a higher cost per hour.",
+      "Relationships": [
+        {
+          "TargetNodeId": "b5d4af10-d9a8-4841-9e34-7793c1223a30",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "ca6c1e34-9553-48b1-a09c-f9a67a361712": {
+      "Id": "ca6c1e34-9553-48b1-a09c-f9a67a361712",
+      "Title": "Athena Queries",
+      "Note": "",
+      "Relationships": [
+        {
+          "TargetNodeId": "16d6ebf6-f57a-469d-9eba-57b13c968f07",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "2ad12ae3-53bb-49bd-8c95-980e5e5fa040": {
+      "Id": "2ad12ae3-53bb-49bd-8c95-980e5e5fa040",
+      "Title": "Redshift Queries",
+      "Note": "",
+      "Relationships": [
+        {
+          "TargetNodeId": "aff9422e-4694-4c7f-88c3-e4177fc2985d",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "a751906d-07b4-4270-9a5c-0c9d0b5042bf": {
+      "Id": "a751906d-07b4-4270-9a5c-0c9d0b5042bf",
+      "Title": "Secrets Manager",
+      "Note": "A subset of KMS in which allows for the creation, storage, and rotation of keys and secrets. The biggest feature is that it can conduct AUTOMATIC rotations of keys and secrets.",
+      "Relationships": [
+        {
+          "TargetNodeId": "b803d5b1-1147-425c-b36c-af170fc5b800",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "87f7a3be-6eeb-486e-84ee-4b0635891a5d": {
+      "Id": "87f7a3be-6eeb-486e-84ee-4b0635891a5d",
+      "Title": "API Gateway",
+      "Note": "The routing service for incoming API requests. This service is the router in which directs requests to the correct backend. Often is used by Lambda as the front door!",
+      "Relationships": [
+        {
+          "TargetNodeId": "547ba1e2-847f-4993-ab69-4c357dd58551",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "44e04f58-d796-4cad-b552-9ec22eac07d7": {
+      "Id": "44e04f58-d796-4cad-b552-9ec22eac07d7",
+      "Title": "Glue Crawler",
+      "Note": "Given a data source, scans the data within a infers a schema that is saved into the Data Catalog. Best used for scheduling crawl jobs so schema stays up to date and can conduct partition detection.",
+      "Relationships": [
+        {
+          "TargetNodeId": "198bf9bc-61c3-45bd-acaa-521db5b3936c",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "47da2804-5632-4f33-aeb9-50ce6a3edf77",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "99423588-8e7f-40b8-a684-73400d8fb7d5",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "b5d4af10-d9a8-4841-9e34-7793c1223a30",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "2b78bad5-d919-42f5-9780-dad37ddc0374",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "22610261-889d-4055-80a9-f7f7d56aa466": {
+      "Id": "22610261-889d-4055-80a9-f7f7d56aa466",
+      "Title": "Schema Registry",
+      "Note": "Enforces and manages schema for streamed data. Can allow for versioning, but the core part of this service is that it validates incoming data within a constant data stream before it is processed.",
+      "Relationships": [
+        {
+          "TargetNodeId": "0c623b5b-0a4a-456a-b03c-c5f715a76296",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "ce55a90e-9e60-4a37-b80e-0822c7f53824",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "a5a50dd1-c8d7-4708-8878-4a62c80d1f07"
+      ]
+    },
+    "90b0ac8d-2802-4241-8719-66a076dc7854": {
+      "Id": "90b0ac8d-2802-4241-8719-66a076dc7854",
+      "Title": "Data Lake",
+      "Note": "A storage of unorganized and unstructured data that can be of multiple different formats. This is typically within object storage services like S3 or a general folder which houses a variety of files. Data here is always UNSTRUCTURED and UNPROCESSED.",
+      "Relationships": [],
+      "Tags": [
+        "ade21483-971f-4ea5-b14b-39f881291ddb"
+      ]
+    },
+    "9492b0fc-2599-44cc-a40b-80ebb4e2509b": {
+      "Id": "9492b0fc-2599-44cc-a40b-80ebb4e2509b",
+      "Title": "Data Warehouse",
+      "Note": "A centralized database that contains CLEANED and PROCESSED data that is optimized for analytical queries. This can be a database that is an aggregation of multiple different data sources, or just a database of a cleaned data lake.",
+      "Relationships": [
+        {
+          "TargetNodeId": "90b0ac8d-2802-4241-8719-66a076dc7854",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "ade21483-971f-4ea5-b14b-39f881291ddb"
+      ]
+    },
+    "273c7c4a-c012-4d2d-8a7a-17a9d26b2224": {
+      "Id": "273c7c4a-c012-4d2d-8a7a-17a9d26b2224",
+      "Title": "Data Lakehouse",
+      "Note": "",
+      "Relationships": [
+        {
+          "TargetNodeId": "90b0ac8d-2802-4241-8719-66a076dc7854",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        },
+        {
+          "TargetNodeId": "9492b0fc-2599-44cc-a40b-80ebb4e2509b",
+          "RelationshipId": "bab1f83d-b845-4da3-9678-6deea0867417"
+        }
+      ],
+      "Tags": [
+        "ade21483-971f-4ea5-b14b-39f881291ddb"
+      ]
+    },
+    "8abe5d13-8453-4838-bc66-954895e65f8f": {
+      "Id": "8abe5d13-8453-4838-bc66-954895e65f8f",
+      "Title": "Internet Gateway",
+      "Note": "Allows instances to connect to the public internet.",
+      "Relationships": [],
+      "Tags": [
+        "92dd561a-af28-4197-85da-e550f03f5d3d"
+      ]
+    },
+    "a841e48d-1910-48f4-a4a2-38b71c5e55c7": {
+      "Id": "a841e48d-1910-48f4-a4a2-38b71c5e55c7",
+      "Title": "Customer Gateway",
+      "Note": "Configured and established connection between VPCs and a third party on premise data center",
+      "Relationships": [],
+      "Tags": [
+        "92dd561a-af28-4197-85da-e550f03f5d3d"
+      ]
+    },
+    "acc43f38-1941-48e6-be6c-da5b71cae4c1": {
+      "Id": "acc43f38-1941-48e6-be6c-da5b71cae4c1",
+      "Title": "Virtual Private Gateway",
+      "Note": "",
+      "Relationships": [],
+      "Tags": [
+        "92dd561a-af28-4197-85da-e550f03f5d3d"
+      ]
+    },
+    "8d1cdb43-cac8-4a4a-9cbc-a4fd93c2a332": {
+      "Id": "8d1cdb43-cac8-4a4a-9cbc-a4fd93c2a332",
+      "Title": "Carrier Gateways",
+      "Note": "Allows for incoming traffic from a carrier network in a specific location",
+      "Relationships": [],
+      "Tags": [
+        "92dd561a-af28-4197-85da-e550f03f5d3d"
+      ]
+    },
+    "0f1d5963-63bb-42ae-b29e-fa4b8d7a6385": {
+      "Id": "0f1d5963-63bb-42ae-b29e-fa4b8d7a6385",
+      "Title": "Egress-only Internet Gateway",
+      "Note": "Horizontally scaled and redundant VPC component that allows for outbound communication over IPv6 to public internet.",
+      "Relationships": [],
+      "Tags": [
+        "92dd561a-af28-4197-85da-e550f03f5d3d"
+      ]
+    }
+  }
+}

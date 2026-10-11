@@ -1,0 +1,374 @@
+/* ── Shell ───────────────────────────────────────────────────────────────── */
+.set-backdrop {
+  position: fixed;
+  inset: 0;
+  background: oklch(0 0 0 / 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+  backdrop-filter: blur(2px);
+  animation: modalFadeIn 160ms ease both;
+}
+
+.set-modal {
+  display: flex;
+  width: 820px;
+  max-width: calc(100vw - 32px);
+  height: 600px;
+  max-height: calc(100vh - 64px);
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  animation: modalSlideIn 160ms cubic-bezier(.4, 0, .2, 1) both;
+}
+
+/* ── Nav rail ────────────────────────────────────────────────────────────── */
+.set-nav {
+  width: 188px;
+  flex-shrink: 0;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  padding: 18px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.set-nav-title {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 0 8px;
+}
+
+.set-nav-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.set-nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text-2);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+
+.set-nav-item:hover {
+  background: var(--hover);
+  border-color: transparent;
+  color: var(--text);
+}
+
+.set-nav-item.active {
+  background: var(--bg-3);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.set-nav-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+
+.set-nav-item.active .set-nav-icon { color: var(--accent); }
+.set-nav-icon svg { width: 15px; height: 15px; }
+
+/* ── Pane ────────────────────────────────────────────────────────────────── */
+.set-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.set-pane-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.set-pane-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.set-pane-desc {
+  margin-top: 4px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+.set-close {
+  padding: 4px 6px;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+.set-close .app-icon {
+  width: 11px;
+  height: 11px;
+}
+
+.set-pane-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 20px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* ── Groups & fields ─────────────────────────────────────────────────────── */
+.set-group {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.set-group:last-child { border-bottom: none; }
+
+.set-group-title {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.set-group-desc {
+  margin-top: 6px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-3);
+}
+
+.set-group-body {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.set-field {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.set-field-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--text-2);
+}
+
+.set-input {
+  width: 100%;
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  transition: border-color var(--t-fast);
+}
+
+.set-input:focus { outline: none; border-color: var(--accent); }
+.set-input::placeholder { color: var(--text-3); }
+
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.set-row .set-input { flex: 1; }
+
+/* SecretInput renders its own .set-row; keep it filling the field. */
+.set-field > .set-row { width: 100%; }
+
+.set-hint {
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--text-3);
+}
+
+.set-hint code {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--text-2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+
+.set-error {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--red);
+}
+
+.set-success {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--accent);
+}
+
+.set-empty {
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.set-self-start { align-self: flex-start; }
+
+/* ── Toggle row ──────────────────────────────────────────────────────────── */
+.set-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
+.set-toggle .modal-toggle { margin-top: 1px; }
+
+.set-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.set-toggle-label {
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+/* ── Save button ─────────────────────────────────────────────────────────── */
+.set-save-btn {
+  align-self: flex-start;
+  padding: 5px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: filter var(--t-fast), opacity var(--t-fast);
+}
+
+.set-save-btn:hover:not(:disabled) { filter: brightness(1.1); background: var(--accent); }
+.set-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Code block (MCP config) ─────────────────────────────────────────────── */
+.set-code-block {
+  position: relative;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  padding-right: 64px;
+}
+
+.set-code {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.set-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
+/* ── Inline confirmation ─────────────────────────────────────────────────── */
+.set-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.set-confirm .set-row { width: auto; }
+
+/* ── Fact list ───────────────────────────────────────────────────────────── */
+.set-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  font-size: 11.5px;
+  width: 100%;
+}
+
+.set-facts dt {
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.set-facts dd {
+  color: var(--text-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ── Narrow screens ──────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .set-modal { flex-direction: column; height: calc(100vh - 48px); }
+
+  .set-nav {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .set-nav-title { display: none; }
+  .set-nav-list { flex-direction: row; }
+  .set-nav-item { white-space: nowrap; }
+}
