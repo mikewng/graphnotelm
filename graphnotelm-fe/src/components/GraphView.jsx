@@ -5,10 +5,15 @@ import { edgeKey } from '../utils/studyPath'
 import { displayConfidence } from '../utils/review'
 
 const NODE_R = 8
+const NODE_R_MAX = 26
+const NODE_R_GROWTH = 3      // px added per √(edges beyond NODE_R_FREE_EDGES)
+const NODE_R_FREE_EDGES = 2  // nodes with this many edges or fewer keep the base size
 const LINK_DISTANCE = 240
 const RADIAL_RING_SPACING = 180
 const COMPACT_R = 5
-const COMPACT_LINK_DISTANCE = 60
+const COMPACT_R_MAX = 14
+const COMPACT_R_GROWTH = 1.8
+const COMPACT_LINK_DISTANCE = 90
 
 // Distance-based seed layout (stress majorization): places nodes so on-screen
 // distance ≈ shortest-path distance × linkDistance. Started from this, the
@@ -264,7 +269,22 @@ const GraphView = forwardRef(function GraphView({
       group.forEach((l, i) => { l._pairIndex = i; l._pairCount = group.length })
     })
 
-    nodeData.forEach(n => { n._r = compactMode ? COMPACT_R : NODE_R })
+    // Size each node by how many drawn edges touch it (incoming + outgoing).
+    // The first few edges are free so ordinary chain links stay base size;
+    // √ growth keeps hubs prominent without small differences jumping in size,
+    // and the cap stops a heavily linked note from swallowing its neighbours.
+    const degree = {}
+    linkData.forEach(l => {
+      degree[l.source] = (degree[l.source] || 0) + 1
+      degree[l.target] = (degree[l.target] || 0) + 1
+    })
+    const [baseR, maxR, growthR] = compactMode
+      ? [COMPACT_R, COMPACT_R_MAX, COMPACT_R_GROWTH]
+      : [NODE_R, NODE_R_MAX, NODE_R_GROWTH]
+    nodeData.forEach(n => {
+      const extra = Math.max(0, (degree[n.id] || 0) - NODE_R_FREE_EDGES)
+      n._r = Math.min(maxR, baseR + growthR * Math.sqrt(extra))
+    })
 
     // Outgoing-edge map built once for the hover-highlight BFS (was previously
     // rebuilt from linkData on every mouseover).
@@ -368,8 +388,8 @@ const GraphView = forwardRef(function GraphView({
       const counts = {}
       nodeData.forEach(n => { const c = componentOf[n.id]; counts[c] = (counts[c] || 0) + 1 })
       // Rough on-screen radius of each component (packing estimate)
-      const base = compactMode ? 24 : 55
-      const scale = compactMode ? 14 : 40
+      const base = compactMode ? 32 : 55
+      const scale = compactMode ? 20 : 40
       const compRadius = {}
       for (let c = 0; c < nComp; c++) compRadius[c] = base + Math.sqrt(counts[c] || 1) * scale
       const centerByComp = {}
@@ -442,7 +462,7 @@ const GraphView = forwardRef(function GraphView({
       .alphaMin(0.01)
       .alpha(hasPositions ? 0.3 : 1)
       .force('link', d3.forceLink(linkData).id(d => d.id).distance(compactMode ? COMPACT_LINK_DISTANCE : LINK_DISTANCE).strength(0.3))
-      .force('charge', d3.forceManyBody().strength(compactMode ? -80 : -700))
+      .force('charge', d3.forceManyBody().strength(compactMode ? -130 : -700))
       .force('x', layoutMode === 'tagClusters'
         ? d3.forceX(getClusterX).strength(0.5)
         : layoutMode == null
